@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>ไฮเพอร์โบลาและเส้นกำกับ</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/jsxgraph.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/jsxgraphcore.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+Shell.page({
+  title: 'ไฮเพอร์โบลาและเส้นกำกับ',
+  problem: 'ไฮเพอร์โบลามีสมการ $\\frac{x^2}{16} - \\frac{y^2}{9} = 1$ จงหาจุดยอด โฟกัสทั้งสอง และสมการเส้นกำกับทั้งสองเส้น พร้อมวาดรูปแสดงส่วนประกอบเหล่านั้น',
+  level: 'ม.4'
+});
+
+var b = Shell.board({box: [-8, 5.5, 8, -5.5], axis: true, grid: true, keepaspect: true}), C = Shell.C;
+
+Shell.setup('สมการอยู่ในรูปมาตรฐาน $\\frac{x^2}{a^2} - \\frac{y^2}{b^2} = 1$ ซึ่งมีจุดศูนย์กลางอยู่ที่ $(0,0)$ และแกนตามขวางอยู่บนแกน $X$ จึงหาจุดยอด โฟกัส และเส้นกำกับได้โดยตรงจากค่า $a, b, c$');
+
+Shell.group('หาค่า $a, b$ และระบุจุดยอด');
+
+var center = b.create('point', [0, 0], {name: '', withLabel: false, fixed: true, size: 3, strokeColor: C.note, fillColor: C.note});
+var V1 = b.create('point', [-4, 0], {name: '', withLabel: false, fixed: true, size: 4, strokeColor: C.answer, fillColor: C.answer});
+var V2 = b.create('point', [4, 0], {name: '', withLabel: false, fixed: true, size: 4, strokeColor: C.answer, fillColor: C.answer});
+var B1 = b.create('point', [0, -3], {name: '', withLabel: false, fixed: true, size: 3, strokeColor: C.work, fillColor: C.work});
+var B2 = b.create('point', [0, 3], {name: '', withLabel: false, fixed: true, size: 3, strokeColor: C.work, fillColor: C.work});
+
+var s1 = Shell.step('เทียบสมการกับรูปมาตรฐาน $\\frac{x^2}{a^2} - \\frac{y^2}{b^2} = 1$ ได้ $a^2 = 16 \\implies a = 4$ และ $b^2 = 9 \\implies b = 3$ ทำให้ได้จุดยอด $V_1(-4, 0)$ และ $V_2(4, 0)$', {
+  why: 'พจน์ $x^2$ เป็นบวกและเป็นตัวตั้ง แสดงว่าแกนตามขวางอยู่บนแกน $X$ และกราฟเปิดซ้าย-ขวา'
+});
+Shell.on(s1, center, V1, V2, B1, B2);
+Shell.tag(s1, center, '$(0, 0)$', {role: 'note', until: 'step'});
+Shell.tag(s1, V1, '$V_1(-4, 0)$', {role: 'answer', until: 'end'});
+Shell.tag(s1, V2, '$V_2(4, 0)$', {role: 'answer', until: 'end'});
+Shell.tag(s1, B1, '$(0, -3)$', {role: 'work', until: 'step'});
+Shell.tag(s1, B2, '$(0, 3)$', {role: 'work', until: 'step'});
+
+Shell.group('สร้างกล่องช่วยสร้างและสมการเส้นกำกับ');
+
+var P1 = b.create('point', [-4, -3], {visible: false, name: '', withLabel: false});
+var P2 = b.create('point', [4, -3], {visible: false, name: '', withLabel: false});
+var P3 = b.create('point', [4, 3], {visible: false, name: '', withLabel: false});
+var P4 = b.create('point', [-4, 3], {visible: false, name: '', withLabel: false});
+
+var seg1 = b.create('segment', [P1, P2], {strokeColor: C.work, dash: 2, strokeWidth: 1.5, fixed: true, highlight: false});
+var seg2 = b.create('segment', [P2, P3], {strokeColor: C.work, dash: 2, strokeWidth: 1.5, fixed: true, highlight: false});
+var seg3 = b.create('segment', [P3, P4], {strokeColor: C.work, dash: 2, strokeWidth: 1.5, fixed: true, highlight: false});
+var seg4 = b.create('segment', [P4, P1], {strokeColor: C.work, dash: 2, strokeWidth: 1.5, fixed: true, highlight: false});
+
+var asym1 = b.create('line', [P1, P3], {strokeColor: C.answer, dash: 2, strokeWidth: 1.5, fixed: true, highlight: false});
+var asym2 = b.create('line', [P4, P2], {strokeColor: C.answer, dash: 2, strokeWidth: 1.5, fixed: true, highlight: false});
+
+var s2 = Shell.step('สร้างกล่องสี่เหลี่ยมผืนผ้าช่วยสร้างจาก $x = \\pm 4$ และ $y = \\pm 3$ เส้นทแยงมุมของกล่องคือเส้นกำกับที่มีสมการ $y = \\pm\\frac{b}{a}x = \\pm\\frac{3}{4}x$', {
+  why: 'เส้นกำกับคือเส้นตรงที่ผ่านจุดศูนย์กลางและมุมของกล่องช่วยสร้าง โดยมีความชัน $\\pm\\frac{b}{a}$',
+  uses: [1]
+});
+Shell.on(s2, seg1, seg2, seg3, seg4, asym1, asym2);
+Shell.tag(s2, P3, '$y = \\frac{3}{4}x$', {role: 'answer', until: 'end'});
+Shell.tag(s2, P4, '$y = -\\frac{3}{4}x$', {role: 'answer', until: 'end'});
+
+Shell.group('หาค่า $c$ และระบุจุดโฟกัส');
+
+var cCircle = b.create('circle', [center, P3], {strokeColor: C.note, dash: 3, strokeWidth: 1, fixed: true, highlight: false});
+var F1 = b.create('point', [-5, 0], {name: '', withLabel: false, fixed: true, size: 4, strokeColor: C.answer, fillColor: C.answer});
+var F2 = b.create('point', [5, 0], {name: '', withLabel: false, fixed: true, size: 4, strokeColor: C.answer, fillColor: C.answer});
+
+var s3 = Shell.step('หาระยะโฟกัส $c$ จากความสัมพันธ์ $c^2 = a^2 + b^2 = 16 + 9 = 25 \\implies c = 5$ จะได้จุดโฟกัส $F_1(-5, 0)$ และ $F_2(5, 0)$', {
+  why: 'สำหรับไฮเพอร์โบลา $c^2 = a^2 + b^2$ เสมอ โดยระยะ $c$ เท่ากับระยะจากจุดศูนย์กลางไปยังมุมของกล่องช่วยสร้าง',
+  uses: [1]
+});
+Shell.on(s3, cCircle, {until: 'step'});
+Shell.on(s3, F1, F2);
+Shell.tag(s3, F1, '$F_1(-5, 0)$', {role: 'answer', until: 'end'});
+Shell.tag(s3, F2, '$F_2(5, 0)$', {role: 'answer', until: 'end'});
+
+Shell.group('วาดกราฟไฮเพอร์โบลา');
+
+var hyp = b.create('hyperbola', [F1, F2, V2], {strokeColor: C.answer, strokeWidth: 2.5, fixed: true, highlight: false});
+
+var s4 = Shell.step('วาดเส้นโค้งไฮเพอร์โบลาทั้งสองกิ่ง โดยผ่านจุดยอด $V_1, V_2$ โค้งโอบจุดโฟกัส $F_1, F_2$ และลู่เข้าสู่เส้นกำกับทั้งสองเส้น', {
+  why: 'เส้นโค้งไฮเพอร์โบลาจะเข้าใกล้เส้นกำกับมากขึ้นเรื่อย ๆ เมื่อจุดห่างออกจากจุดศูนย์กลาง',
+  uses: [1, 2, 3]
+});
+Shell.on(s4, hyp);
+
+Shell.answer('จุดยอด โฟกัส และสมการเส้นกำกับ', 'จุดยอด: $(\\pm 4, 0)$, โฟกัส: $(\\pm 5, 0)$, เส้นกำกับ: $y = \\pm\\frac{3}{4}x$', {
+  sanity: 'ค่า $c = 5 > a = 4$ โฟกัสอยู่ไกลกว่าจุดยอดและอยู่ภายในส่วนโค้งเสมอ และเส้นกำกับตัดกันที่จุดศูนย์กลาง $(0,0)$'
+});
+
+Shell.done();
+</script>
+</body></html>

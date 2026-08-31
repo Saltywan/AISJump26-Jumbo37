@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>วงรี: จุดศูนย์กลาง จุดยอด และโฟกัส</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/jsxgraph.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/jsxgraphcore.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+Shell.page({
+  title: 'ส่วนประกอบของวงรี',
+  problem: 'วงรีมีสมการ $\\frac{(x-1)^2}{25} + \\frac{(y+2)^2}{9} = 1$ จงหาจุดศูนย์กลาง จุดยอด และโฟกัสทั้งสองของวงรีนี้ พร้อมวาดรูปวงรีแสดงจุดเหล่านั้น',
+  level: 'ม.4'
+});
+
+var b = Shell.board({box: [-6, 3, 8, -7], axis: true, grid: true, keepaspect: true});
+var C = Shell.C;
+
+Shell.setup('เทียบสมการกับรูปมาตรฐาน $\\frac{(x-h)^2}{a^2} + \\frac{(y-k)^2}{b^2} = 1$ เนื่องจากตัวส่วนใต้ $x$ มากกว่าตัวส่วนใต้ $y$ ($25 > 9$) แกนเอกจึงขนานกับแกน X');
+
+Shell.group('หาจุดศูนย์กลางและขนาดของแกน');
+
+var ptC = b.create('point', [1, -2], {strokeColor: C.answer, fillColor: C.answer, size: 4, fixed: true});
+var s1 = Shell.step('หาจุดศูนย์กลาง $(h, k)$ และค่า $a, b$<br>จากสมการจะได้ $(h, k) = (1, -2)$, $a^2 = 25 \\implies a = 5$, $b^2 = 9 \\implies b = 3$', {
+  why: 'อ่านค่า $(h, k)$ จาก $(x-h)$ และ $(y+2) = (y-(-2))$ ส่วน $a^2$ คือค่าที่มากกว่าใต้เศษส่วน'
+});
+Shell.on(s1, ptC);
+Shell.tag(s1, ptC, 'C(1, -2)', {role: 'answer'});
+
+var ptV1 = b.create('point', [-4, -2], {strokeColor: C.answer, fillColor: C.answer, size: 4, fixed: true});
+var ptV2 = b.create('point', [6, -2], {strokeColor: C.answer, fillColor: C.answer, size: 4, fixed: true});
+var segMajor = b.create('segment', [ptV1, ptV2], {strokeColor: C.note, dash: 2, strokeWidth: 1.5, fixed: true});
+
+var s2 = Shell.step('หาจุดยอดทั้งสอง $V_1, V_2$<br>นับจากจุดศูนย์กลางไปตามแกนเอก (ซ้าย-ขวา) เป็นระยะ $a = 5$ หน่วย<br>$V_1(1-5, -2) = (-4, -2)$ และ $V_2(1+5, -2) = (6, -2)$', {
+  why: 'จุดยอดอยู่ห่างจากจุดศูนย์กลางไปตามแนวแกนเอกเป็นระยะ $a$',
+  uses: [1]
+});
+Shell.on(s2, ptV1, ptV2, segMajor);
+Shell.tag(s2, ptV1, 'V_1(-4, -2)', {role: 'answer'});
+Shell.tag(s2, ptV2, 'V_2(6, -2)', {role: 'answer'});
+
+Shell.group('หาจุดโฟกัสและสร้างวงรี');
+
+var ptF1 = b.create('point', [-3, -2], {strokeColor: C.answer, fillColor: C.answer, size: 4, fixed: true});
+var ptF2 = b.create('point', [5, -2], {strokeColor: C.answer, fillColor: C.answer, size: 4, fixed: true});
+
+var s3 = Shell.step('หาระยะโฟกัส $c$ และจุดโฟกัสทั้งสอง $F_1, F_2$<br>จากความสัมพันธ์ $c^2 = a^2 - b^2 = 25 - 9 = 16 \\implies c = 4$<br>โฟกัสคือ $F_1(1-4, -2) = (-3, -2)$ และ $F_2(1+4, -2) = (5, -2)$', {
+  why: 'ในวงรี ความยาวครึ่งแกนเอก $a$, ครึ่งแกนโท $b$ และระยะโฟกัส $c$ สัมพันธ์กันด้วย $c = \\sqrt{a^2 - b^2}$',
+  uses: [1]
+});
+Shell.on(s3, ptF1, ptF2);
+Shell.tag(s3, ptF1, 'F_1(-3, -2)', {role: 'answer'});
+Shell.tag(s3, ptF2, 'F_2(5, -2)', {role: 'answer'});
+
+var ptB1 = b.create('point', [1, 1], {strokeColor: C.note, fillColor: C.note, size: 2.5, fixed: true});
+var ptB2 = b.create('point', [1, -5], {strokeColor: C.note, fillColor: C.note, size: 2.5, fixed: true});
+var segMinor = b.create('segment', [ptB1, ptB2], {strokeColor: C.note, dash: 2, strokeWidth: 1.5, fixed: true});
+var ell = b.create('ellipse', [ptF1, ptF2, ptV2], {strokeColor: C.work, strokeWidth: 2.5, fixed: true});
+
+var s4 = Shell.step('วาดแกนโทและเส้นโค้งวงรี<br>วัดจากจุดศูนย์กลางขึ้น-ลงตามแนวแกนโทเป็นระยะ $b = 3$ หน่วย จะได้จุดปลายแกนโท $(1, 1)$ และ $(1, -5)$ แล้วสร้างวงรีที่ผ่านจุดยอดทั้งสอง', {
+  why: 'วงรีถูกกำหนดอย่างสมบูรณ์ด้วยจุดโฟกัสทั้งสองและจุดยอดบนวงรี',
+  uses: [2, 3]
+});
+Shell.on(s4, ptB1, ptB2, segMinor, ell);
+
+Shell.answer(
+  'จุดศูนย์กลาง จุดยอด และโฟกัสของวงรี',
+  'จุดศูนย์กลาง $(1, -2)$, จุดยอด $(-4, -2)$ และ $(6, -2)$, โฟกัส $(-3, -2)$ และ $(5, -2)$',
+  {sanity: 'ระยะครึ่งแกน $a = 5 > c = 4 > 0$ และ $c^2 + b^2 = 4^2 + 3^2 = 25 = a^2$ สอดคล้องกับสมบัติของวงรี'}
+);
+
+Shell.done();
+</script>
+</body></html>

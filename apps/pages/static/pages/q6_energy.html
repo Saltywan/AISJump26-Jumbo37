@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>การเปลี่ยนระดับพลังงานของอะตอมไฮโดรเจน</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+var SVGNS = 'http://www.w3.org/2000/svg';
+
+Shell.page({
+  title: 'การเปลี่ยนระดับพลังงานและการแผ่โฟตอนของอะตอมไฮโดรเจน',
+  problem: 'อะตอมไฮโดรเจนมีระดับพลังงาน $E_n = -\\frac{13.6}{n^2}$ eV อิเล็กตรอนเปลี่ยนระดับพลังงานจาก $n = 3$ ลงมาที่ $n = 2$ จงเขียนแผนภาพระดับพลังงานแสดงการเปลี่ยนระดับ แล้วหาพลังงานของโฟตอนที่ปล่อยออกมาในหน่วย eV และความยาวคลื่นของโฟตอนในหน่วย nm',
+  level: 'ม.6'
+});
+
+var g = Shell.canvas(), C = Shell.C;
+
+Shell.setup('แบบจำลองของบอร์ระบุว่าพลังงานของอิเล็กตรอนในอะตอมมีค่าไม่ต่อเนื่อง เมื่ออิเล็กตรอนเปลี่ยนจากระดับพลังงานสูงลงสู่ระดับพลังงานต่ำ จะคายพลังงานออกมาในรูปโฟตอนที่มีพลังงานเท่ากับผลต่างของระดับพลังงานทั้งสอง');
+
+// มาตราส่วนสำหรับลูกศรแสดงการเปลี่ยนระดับพลังงาน
+var PX_PER_EV = 58.2;
+
+// เส้นแกนพลังงานหลัก
+var axis = document.createElementNS(SVGNS, 'line');
+axis.setAttribute('x1', '220');
+axis.setAttribute('y1', '60');
+axis.setAttribute('x2', '220');
+axis.setAttribute('y2', '490');
+axis.setAttribute('stroke', C.note);
+axis.setAttribute('stroke-width', '2');
+g.appendChild(axis);
+
+Shell.label(g, 220, 45, 'พลังงาน $E$ (eV)', {role: 'note', anchor: [220, 60], until: 'end'});
+
+// พิกัดความสูงของระดับพลังงานแต่ละชั้น
+var y_n1 = 460;
+var y_n2 = 290;
+var y_n3 = 180;
+var y_n4 = 120;
+var y_inf = 75;
+
+// วาดเส้นระดับพลังงานอ้างอิง
+function drawLevelLine(targetG, y, labelText, nText, role) {
+  var line = document.createElementNS(SVGNS, 'line');
+  line.setAttribute('x1', '250');
+  line.setAttribute('y1', y);
+  line.setAttribute('x2', '750');
+  line.setAttribute('y2', y);
+  line.setAttribute('stroke', role === 'given' ? C.given : C.note);
+  line.setAttribute('stroke-width', role === 'given' ? '2.5' : '1.5');
+  if (role === 'note') {
+    line.setAttribute('stroke-dasharray', '4,4');
+  }
+  targetG.appendChild(line);
+
+  Shell.label(targetG, 240, y, labelText, {role: role, anchor: [250, y], until: 'end'});
+  Shell.label(targetG, 765, y, nText, {role: role, anchor: [750, y], until: 'end'});
+}
+
+// เส้นร่างระดับพลังงานพื้นฐานและขอบเขต
+drawLevelLine(g, y_inf, '$E_\\infty = 0$ eV', '$n = \\infty$', 'note');
+drawLevelLine(g, y_n4, '$E_4 = -0.85$ eV', '$n = 4$', 'note');
+drawLevelLine(g, y_n1, '$E_1 = -13.60$ eV', '$n = 1$ (สถานะพื้น)', 'note');
+
+Shell.group('คำนวณระดับพลังงาน $n = 3$ และ $n = 2$');
+
+var s1 = Shell.step('คำนวณระดับพลังงานเริ่มต้น $E_3 = -\\frac{13.6}{3^2} = -1.51$ eV', {
+  why: 'แทนค่าเลขควอนตัม $n = 3$ ลงในสูตรระดับพลังงานของบอร์ เพื่อหาพลังงานของสถานะกระตุ้นเริ่มต้น'
+});
+drawLevelLine(s1, y_n3, '$E_3 = -1.51$ eV', '$n = 3$', 'given');
+
+var s2 = Shell.step('คำนวณระดับพลังงานปลายทาง $E_2 = -\\frac{13.6}{2^2} = -3.40$ eV', {
+  why: 'แทนค่าเลขควอนตัม $n = 2$ ลงในสูตรระดับพลังงานของบอร์ เพื่อหาพลังงานของสถานะปลายทาง'
+});
+drawLevelLine(s2, y_n2, '$E_2 = -3.40$ eV', '$n = 2$', 'given');
+
+Shell.group('การเปลี่ยนระดับพลังงานและการปล่อยโฟตอน');
+
+var s3 = Shell.step('อิเล็กตรอนเปลี่ยนระดับจาก $n = 3$ ลงมายัง $n = 2$ ทำให้สูญเสียพลังงาน', {
+  uses: [1, 2]
+});
+
+// อิเล็กตรอนตำแหน่งเริ่มต้น
+var electron = document.createElementNS(SVGNS, 'circle');
+electron.setAttribute('cx', '440');
+electron.setAttribute('cy', y_n3);
+electron.setAttribute('r', '6');
+electron.setAttribute('fill', C.given);
+s3.appendChild(electron);
+
+// ลูกศรแสดงการเปลี่ยนระดับพลังงาน
+var dE_val = 1.89;
+Shell.arrow(s3, 440, y_n3, 440, y_n2, {
+  role: 'work',
+  label: '$\\Delta E = 1.89$ eV',
+  value: dE_val,
+  unit: 'eV',
+  until: 'end'
+});
+
+var s4 = Shell.step('หาพลังงานโฟตอนที่ปล่อยออกมา $E_{\\text{photon}} = \\Delta E = E_3 - E_2 = -1.51 - (-3.40) = 1.89$ eV', {
+  uses: [1, 2]
+});
+
+// วาดคลื่นโฟตอนที่แผ่ออกมา
+var photonPath = document.createElementNS(SVGNS, 'path');
+photonPath.setAttribute('d', 'M 450 235 Q 470 215, 490 235 T 530 235 T 570 235 T 610 235');
+photonPath.setAttribute('fill', 'none');
+photonPath.setAttribute('stroke', C.answer);
+photonPath.setAttribute('stroke-width', '2.5');
+s4.appendChild(photonPath);
+
+Shell.arrow(s4, 610, 235, 660, 235, {
+  role: 'answer',
+  label: 'โฟตอน (แสงสีแดง)',
+  value: dE_val,
+  unit: 'eV',
+  until: 'end'
+});
+
+Shell.group('คำนวณความยาวคลื่นของโฟตอน');
+
+var s5 = Shell.step('คำนวณความยาวคลื่นจาก $\\lambda = \\frac{hc}{\\Delta E} = \\frac{1240}{1.89} = 656$ nm', {
+  uses: [4],
+  why: 'พลังงานของโฟตอนสัมพันธ์กับความยาวคลื่นตามสมการของพลังค์และไอน์สไตน์ $E = \\frac{hc}{\\lambda}$'
+});
+
+Shell.label(s5, 600, 275, '$\\lambda = 656$ nm (เส้น $H_\\alpha$ อนุกรมบาลเมอร์)', {
+  role: 'answer',
+  anchor: [550, 235],
+  until: 'end'
+});
+
+Shell.answer('พลังงานของโฟตอน', '$E_{\\text{photon}} = 1.89$ eV', {
+  sanity: 'มีค่าบวกเสมอ และน้อยกว่าพลังงานไอออไนเซชัน $13.6$ eV'
+});
+
+Shell.answer('ความยาวคลื่นของโฟตอน', '$\\lambda = 656$ nm', {
+  sanity: 'อยู่ในช่วงแสงที่ตามองเห็น (แสงสีแดง ความยาวคลื่น $650-700$ nm) ตรงกับเส้น $H_\\alpha$ ของอนุกรมบาลเมอร์'
+});
+
+Shell.done();
+</script>
+</body></html>

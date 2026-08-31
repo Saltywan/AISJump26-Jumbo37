@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>การสะท้อนข้ามเส้นตรง y = x</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/jsxgraph.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/jsxgraphcore.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+Shell.page({
+  title: 'การสะท้อนข้ามเส้นตรง $y = x$',
+  problem: 'สามเหลี่ยม $ABC$ มีจุดยอด $A(1, 2)$, $B(5, 1)$, $C(3, 5)$ จงหาภาพของสามเหลี่ยมนี้จากการสะท้อนข้ามเส้นตรง $y = x$ และบอกพิกัดของจุดยอดทั้งสามหลังการสะท้อน',
+  level: 'ม.3'
+});
+
+var b = Shell.board({box: [-1, 7, 7, -1], axis: true, grid: true, keepaspect: true});
+var C = Shell.C;
+
+Shell.setup('การสะท้อนข้ามเส้นตรง $y = x$ เส้นสะท้อนจะแบ่งครึ่งและตั้งฉากกับส่วนของเส้นตรงที่เชื่อมระหว่างจุดต้นแบบและจุดภาพ ทำให้พิกัดสลับกันตามความสัมพันธ์ $(x, y) \\to (y, x)$');
+
+var A = b.create('point', [1, 2], {strokeColor: C.given, fillColor: C.given, size: 4, name: '', withLabel: false});
+var B = b.create('point', [5, 1], {strokeColor: C.given, fillColor: C.given, size: 4, name: '', withLabel: false});
+var Cp = b.create('point', [3, 5], {strokeColor: C.given, fillColor: C.given, size: 4, name: '', withLabel: false});
+var tri = b.create('polygon', [A, B, Cp], {borders: {strokeColor: C.given, strokeWidth: 2}, fillColor: C.given, fillOpacity: 0.15, name: '', withLabel: false});
+var lineRef = b.create('line', [[0, 0], [6, 6]], {strokeColor: C.note, dash: 2, strokeWidth: 1.5, name: '', withLabel: false});
+
+Shell.group('สร้างรูปต้นแบบและเส้นสะท้อน');
+var s1 = Shell.step('ลงจุดยอด $A(1, 2)$, $B(5, 1)$, $C(3, 5)$ วาดสามเหลี่ยม $ABC$ และเขียนเส้นสะท้อน $y = x$');
+Shell.on(s1, A, B, Cp, tri, lineRef);
+Shell.tag(s1, A, 'A(1, 2)', {role: 'given', until: 'end'});
+Shell.tag(s1, B, 'B(5, 1)', {role: 'given', until: 'end'});
+Shell.tag(s1, Cp, 'C(3, 5)', {role: 'given', until: 'end'});
+Shell.tag(s1, [6, 6], 'เส้นตรง $y = x$', {role: 'note', until: 'end'});
+
+var A_prime = b.create('reflection', [A, lineRef], {strokeColor: C.answer, fillColor: C.answer, size: 4, name: '', withLabel: false});
+var segA = b.create('segment', [A, A_prime], {strokeColor: C.work, dash: 3, strokeWidth: 1, name: '', withLabel: false});
+
+var B_prime = b.create('reflection', [B, lineRef], {strokeColor: C.answer, fillColor: C.answer, size: 4, name: '', withLabel: false});
+var segB = b.create('segment', [B, B_prime], {strokeColor: C.work, dash: 3, strokeWidth: 1, name: '', withLabel: false});
+
+var C_prime = b.create('reflection', [Cp, lineRef], {strokeColor: C.answer, fillColor: C.answer, size: 4, name: '', withLabel: false});
+var segC = b.create('segment', [Cp, C_prime], {strokeColor: C.work, dash: 3, strokeWidth: 1, name: '', withLabel: false});
+
+Shell.group('หาพิกัดภาพจากการสะท้อนทีละจุดยอด');
+
+var s2 = Shell.step('สะท้อนจุด $A(1, 2)$ ข้ามเส้น $y = x$ สลับพิกัด $(x, y) \\to (y, x)$ ได้จุด $A\'(2, 1)$', {
+  why: 'จุดภาพต้องอยู่ห่างจากเส้นสะท้อนเท่ากับจุดต้นแบบในแนวตั้งฉาก ซึ่งบนเส้น $y = x$ จะสลับค่า $x$ และ $y$',
+  uses: [1]
+});
+Shell.on(s2, segA, A_prime);
+Shell.tag(s2, A_prime, "A'(2, 1)", {role: 'answer', until: 'end'});
+
+var s3 = Shell.step('สะท้อนจุด $B(5, 1)$ ข้ามเส้น $y = x$ สลับพิกัดได้จุด $B\'(1, 5)$', {
+  uses: [1]
+});
+Shell.on(s3, segB, B_prime);
+Shell.tag(s3, B_prime, "B'(1, 5)", {role: 'answer', until: 'end'});
+
+var s4 = Shell.step('สะท้อนจุด $C(3, 5)$ ข้ามเส้น $y = x$ สลับพิกัดได้จุด $C\'(5, 3)$', {
+  uses: [1]
+});
+Shell.on(s4, segC, C_prime);
+Shell.tag(s4, C_prime, "C'(5, 3)", {role: 'answer', until: 'end'});
+
+var tri_prime = b.create('polygon', [A_prime, B_prime, C_prime], {borders: {strokeColor: C.answer, strokeWidth: 2}, fillColor: C.answer, fillOpacity: 0.15, name: '', withLabel: false});
+
+Shell.group('สร้างภาพสามเหลี่ยมที่ได้จากการสะท้อน');
+var s5 = Shell.step('ลากเส้นเชื่อมจุด $A\', B\', C\'$ เกิดเป็นสามเหลี่ยมภาพ $A\'B\'C\'$', {
+  uses: [2, 3, 4]
+});
+Shell.on(s5, tri_prime);
+
+Shell.answer('พิกัดของจุดยอดหลังการสะท้อนคือ', "$A'(2, 1)$, $B'(1, 5)$, $C'(5, 3)$", {
+  sanity: 'ภาพที่ได้มีขนาดและรูปร่างเท่ากันทุกประการกับรูปต้นแบบ และอยู่ห่างจากเส้นสะท้อนเท่ากันในทิศทางตรงข้าม'
+});
+
+Shell.done();
+</script>
+</body></html>

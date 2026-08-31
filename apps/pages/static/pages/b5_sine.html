@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>กราฟของฟังก์ชันตรีโกณมิติ y = 3 sin(2x)</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/jsxgraph.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/jsxgraphcore.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+Shell.page({
+  title: 'กราฟของ $y = 3\\sin(2x)$',
+  problem: 'กราฟของ $y = 3\\sin(2x)$ มีแอมพลิจูดและคาบเท่าใด จงวาดกราฟในช่วง $-\\pi \\le x \\le \\pi$ พร้อมระบุจุดสูงสุด จุดต่ำสุด และจุดตัดแกน $x$',
+  level: 'ม.5'
+});
+
+var b = Shell.board({box: [-3.8, 4.2, 3.8, -4.2], axis: true, grid: true});
+var C = Shell.C;
+var PI = Math.PI;
+
+Shell.setup('เทียบสมการกับรูปทั่วไป $y = A\\sin(Bx)$ เพื่อหาแอมพลิจูดและคาบ แล้วแบ่งช่วงคาบออกเป็น 4 ส่วนย่อยเพื่อกำหนดพิกัดของจุดสำคัญ');
+
+Shell.group('วิเคราะห์คุณสมบัติและขอบเขตของกราฟ');
+
+var s1 = Shell.step('เทียบสมการกับ $y = A\\sin(Bx)$ พบว่า $A = 3$ และ $B = 2$<br>• แอมพลิจูด $= |A| = 3$<br>• คาบ $= \\frac{2\\pi}{B} = \\frac{2\\pi}{2} = \\pi$', {
+  why: 'สัมประสิทธิ์หน้าฟังก์ชันบอกความสูงคลื่น และสัมประสิทธิ์หน้า $x$ กำหนดอัตราการเกิดรอบคลื่น'
+});
+
+var lineTop = b.create('segment', [[-PI, 3], [PI, 3]], {strokeColor: C.note, dash: 2, strokeWidth: 1.5});
+var lineBot = b.create('segment', [[-PI, -3], [PI, -3]], {strokeColor: C.note, dash: 2, strokeWidth: 1.5});
+
+var s2 = Shell.step('ช่วง $[-\\pi, \\pi]$ มีความยาว $2\\pi$ จึงเกิดคลื่นสมบูรณ์ $2$ คาบ เส้นขอบเขตบน-ล่างคือ $y = 3$ และ $y = -3$ โดยแบ่งช่วงย่อยละ $\\frac{\\text{คาบ}}{4} = \\frac{\\pi}{4}$', {
+  why: 'ฟังก์ชันตรีโกณมิติพื้นฐานจะสลับระหว่างจุดตัดแกน จุดสูงสุด และจุดต่ำสุด ทุก ๆ หนึ่งในสี่ของคาบ',
+  uses: [1]
+});
+Shell.on(s2, lineTop, lineBot);
+
+Shell.group('กำหนดจุดสำคัญและสร้างกราฟ');
+
+var max1 = b.create('point', [-3 * PI / 4, 3], {strokeColor: C.answer, fillColor: C.answer, size: 4});
+var max2 = b.create('point', [PI / 4, 3], {strokeColor: C.answer, fillColor: C.answer, size: 4});
+var min1 = b.create('point', [-PI / 4, -3], {strokeColor: C.answer, fillColor: C.answer, size: 4});
+var min2 = b.create('point', [3 * PI / 4, -3], {strokeColor: C.answer, fillColor: C.answer, size: 4});
+
+var s3 = Shell.step('หาจุดสูงสุดและจุดต่ำสุดในช่วง $[-\\pi, \\pi]$<br>• จุดสูงสุด: $(-\\frac{3\\pi}{4}, 3)$ และ $(\\frac{\\pi}{4}, 3)$<br>• จุดต่ำสุด: $(-\\frac{\\pi}{4}, -3)$ และ $(\\frac{3\\pi}{4}, -3)$', {
+  why: 'ค่าสูงสุดของ $\\sin(2x)$ คือ $1$ ให้ $y = 3$ และค่าต่ำสุดคือ $-1$ ให้ $y = -3$',
+  uses: [1, 2]
+});
+Shell.on(s3, max1, max2, min1, min2);
+Shell.tag(s3, max1, 'จุดสูงสุด $(-\\frac{3\\pi}{4}, 3)$', {role: 'answer'});
+Shell.tag(s3, max2, 'จุดสูงสุด $(\\frac{\\pi}{4}, 3)$', {role: 'answer'});
+Shell.tag(s3, min1, 'จุดต่ำสุด $(-\\frac{\\pi}{4}, -3)$', {role: 'answer'});
+Shell.tag(s3, min2, 'จุดต่ำสุด $(\\frac{3\\pi}{4}, -3)$', {role: 'answer'});
+
+var z1 = b.create('point', [-PI, 0], {strokeColor: C.work, fillColor: C.work, size: 3.5});
+var z2 = b.create('point', [-PI / 2, 0], {strokeColor: C.work, fillColor: C.work, size: 3.5});
+var z3 = b.create('point', [0, 0], {strokeColor: C.work, fillColor: C.work, size: 3.5});
+var z4 = b.create('point', [PI / 2, 0], {strokeColor: C.work, fillColor: C.work, size: 3.5});
+var z5 = b.create('point', [PI, 0], {strokeColor: C.work, fillColor: C.work, size: 3.5});
+
+var s4 = Shell.step('หาจุดตัดแกน $x$ (เมื่อ $y = 0$ หรือ $\\sin(2x) = 0$)<br>ได้ 5 จุดคือ $(-\\pi, 0), (-\\frac{\\pi}{2}, 0), (0, 0), (\\frac{\\pi}{2}, 0), (\\pi, 0)$', {
+  why: 'เมื่อ $2x = k\\pi$ จะได้ $x = \\frac{k\\pi}{2}$ สำหรับจำนวนเต็ม $k$',
+  uses: [2]
+});
+Shell.on(s4, z1, z2, z3, z4, z5);
+Shell.tag(s4, z1, '$(-\\pi, 0)$', {role: 'work'});
+Shell.tag(s4, z2, '$(-\\frac{\\pi}{2}, 0)$', {role: 'work'});
+Shell.tag(s4, z3, '$(0, 0)$', {role: 'work'});
+Shell.tag(s4, z4, '$(\\frac{\\pi}{2}, 0)$', {role: 'work'});
+Shell.tag(s4, z5, '$(\\pi, 0)$', {role: 'work'});
+
+var curve = b.create('functiongraph', [function(x) { return 3 * Math.sin(2 * x); }, -PI, PI], {strokeColor: C.answer, strokeWidth: 3});
+
+var s5 = Shell.step('วาดเส้นโค้งไซน์เชื่อมจุดสำคัญทั้งหมดตามลำดับอย่างต่อเนื่องตั้งแต่ $x = -\\pi$ ถึง $x = \\pi$', {
+  why: 'ฟังก์ชันคลื่นไซน์มีความโค้งมนต่อเนื่องสมบูรณ์ตลอดโดเมนที่กำหนด',
+  uses: [3, 4]
+});
+Shell.on(s5, curve);
+
+Shell.answer(
+  'แอมพลิจูด $= 3$, คาบ $= \\pi$',
+  'จุดสูงสุด: $(-\\frac{3\\pi}{4}, 3), (\\frac{\\pi}{4}, 3)$ | จุดต่ำสุด: $(-\\frac{\\pi}{4}, -3), (\\frac{3\\pi}{4}, -3)$ | จุดตัดแกน $x$: $(-\\pi, 0), (-\\frac{\\pi}{2}, 0), (0, 0), (\\frac{\\pi}{2}, 0), (\\pi, 0)$',
+  {sanity: 'ช่วง $[-\\pi, \\pi]$ ยาว $2\\pi$ ซึ่งเท่ากับ $2$ คาบ จึงมีจุดยอดครบ 4 จุด และจุดตัดแกน $x$ ครบ 5 จุด'}
+);
+
+Shell.done();
+</script>
+</body></html>

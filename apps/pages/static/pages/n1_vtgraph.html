@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>กราฟความเร็ว-เวลาและการเคลื่อนที่ของรถยนต์</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/jsxgraph.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/jsxgraphcore.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+Shell.page({
+  title: 'กราฟความเร็ว-เวลาและการเคลื่อนที่ของรถยนต์',
+  problem: 'รถยนต์เคลื่อนที่โดยมีกราฟความเร็ว-เวลาดังนี้: ช่วง $0$ ถึง $4$ วินาที ความเร็วเพิ่มจาก $0$ เป็น $12$ m/s, ช่วง $4$ ถึง $10$ วินาที ความเร็วคงที่ $12$ m/s, ช่วง $10$ ถึง $14$ วินาที ความเร็วลดลงเหลือ $0$ m/s จงวาดกราฟความเร็ว-เวลา หาความเร่งในแต่ละช่วง และระยะทางรวมที่รถเคลื่อนที่ได้',
+  level: 'ม.4'
+});
+
+var b = Shell.board({box: [-2, 15, 16, -2], axis: true, grid: true, keepaspect: false});
+var C = Shell.C;
+
+Shell.setup('ในกราฟความเร็ว-เวลา ($v-t$) ความชันของเส้นกราฟคือความเร่ง ($a = \\frac{\\Delta v}{\\Delta t}$) และพื้นที่ใต้กราฟคือระยะทางรวมที่เคลื่อนที่ได้ ($s = \\int v\\,dt$)');
+
+var O = b.create('point', [0, 0], {fixed: true, size: 3, strokeColor: C.given, fillColor: C.given});
+var P1 = b.create('point', [4, 12], {fixed: true, size: 3, strokeColor: C.given, fillColor: C.given});
+var P2 = b.create('point', [10, 12], {fixed: true, size: 3, strokeColor: C.given, fillColor: C.given});
+var P3 = b.create('point', [14, 0], {fixed: true, size: 3, strokeColor: C.given, fillColor: C.given});
+
+var seg1 = b.create('segment', [O, P1], {strokeColor: C.given, strokeWidth: 3});
+var seg2 = b.create('segment', [P1, P2], {strokeColor: C.given, strokeWidth: 3});
+var seg3 = b.create('segment', [P2, P3], {strokeColor: C.given, strokeWidth: 3});
+
+var drop1 = b.create('segment', [[4, 0], [4, 12]], {strokeColor: C.note, dash: 2});
+var drop2 = b.create('segment', [[10, 0], [10, 12]], {strokeColor: C.note, dash: 2});
+
+Shell.group('วาดกราฟความเร็ว-เวลา ($v-t$)');
+
+var s1 = Shell.step('วางจุดและลากเส้นแสดงความสัมพันธ์ระหว่างความเร็ว ($v$) กับเวลา ($t$) ตามข้อมูลที่โจทย์กำหนด', {
+  why: 'การสร้างกราฟเส้นตรงในแต่ละช่วงเวลาช่วยให้เห็นลักษณะการเคลื่อนที่ได้ชัดเจน'
+});
+Shell.on(s1, O, P1, P2, P3, seg1, seg2, seg3, drop1, drop2);
+Shell.tag(s1, O, '$(0, 0)$', {role: 'given', until: 'end'});
+Shell.tag(s1, P1, '$(4, 12)$', {role: 'given', until: 'end'});
+Shell.tag(s1, P2, '$(10, 12)$', {role: 'given', until: 'end'});
+Shell.tag(s1, P3, '$(14, 0)$', {role: 'given', until: 'end'});
+
+Shell.group('หาความเร่งในแต่ละช่วงจากความชัน');
+
+var s2 = Shell.step('ช่วงที่ 1 ($0$ ถึง $4$ s): หาความเร่ง $a_1$ จากความชันเส้นตรง<br>$a_1 = \\frac{12 - 0}{4 - 0} = 3$ m/s²', {
+  why: 'ความเร่งคืออัตราการเปลี่ยนแปลงความเร็ว ซึ่งเทียบเท่ากับความชัน $\\frac{\\Delta v}{\\Delta t}$ ของกราฟ $v-t$',
+  uses: [1]
+});
+
+var s3 = Shell.step('ช่วงที่ 2 ($4$ ถึง $10$ s): ความเร็วคงที่ กราฟขนานแกนนอน ความชันเป็นศูนย์<br>$a_2 = \\frac{12 - 12}{10 - 4} = 0$ m/s²', {
+  uses: [1]
+});
+
+var s4 = Shell.step('ช่วงที่ 3 ($10$ ถึง $14$ s): หาความเร่ง $a_3$ จากความชันเส้นตรง<br>$a_3 = \\frac{0 - 12}{14 - 10} = -3$ m/s² (ความหน่วง $3$ m/s²)', {
+  why: 'ความเร็วลดลงทำให้ความชันติดลบ แสดงถึงความเร่งที่มีทิศตรงข้ามกับทิศทางการเคลื่อนที่',
+  uses: [1]
+});
+
+Shell.group('หาระยะทางรวมจากพื้นที่ใต้กราฟ');
+
+var poly = b.create('polygon', [O, P1, P2, P3], {
+  fillColor: C.work,
+  fillOpacity: 0.25,
+  strokeColor: C.work,
+  strokeWidth: 1
+});
+
+var s5 = Shell.step('คำนวณระยะทางรวม ($s$) จากพื้นที่รูปสี่เหลี่ยมคางหมูใต้กราฟ<br>$s = \\frac{1}{2} \\times (b_1 + b_2) \\times h = \\frac{1}{2} \\times (6 + 14) \\times 12 = 120$ m', {
+  why: 'พื้นที่ใต้กราฟความเร็ว-เวลาเทียบเท่ากับระยะทางทั้งหมดที่วัตถุเคลื่อนที่ได้',
+  uses: [1]
+});
+Shell.on(s5, poly);
+Shell.tag(s5, [7, 5], 'พื้นที่ $= 120$ m', {role: 'work', until: 'end'});
+
+Shell.answer('ความเร่งในแต่ละช่วง', '$a_1 = 3$ m/s², $a_2 = 0$ m/s², $a_3 = -3$ m/s²');
+Shell.answer('ระยะทางรวมที่รถเคลื่อนที่ได้', '$s = 120$ m', {
+  sanity: 'สมเหตุสมผล เพราะมากกว่าพื้นที่สี่เหลี่ยมผืนผ้าช่วงกลาง ($6 \\times 12 = 72$ m) แต่น้อยกว่าพื้นที่สี่เหลี่ยมผืนผ้าคลุมทั้งหมด ($14 \\times 12 = 168$ m)'
+});
+
+Shell.done();
+</script>
+</body></html>

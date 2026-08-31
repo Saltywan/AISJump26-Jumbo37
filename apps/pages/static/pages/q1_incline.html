@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>การเคลื่อนที่บนพื้นเอียงที่มีความเสียดทาน</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+var SVGNS = 'http://www.w3.org/2000/svg';
+
+Shell.page({
+  title: 'การเคลื่อนที่ของกล่องบนพื้นเอียงที่มีความเสียดทาน',
+  problem: 'กล่องมวล $5$ kg วางอยู่บนพื้นเอียงที่ทำมุม $30^\\circ$ กับแนวราบ สัมประสิทธิ์ความเสียดทานจลน์ระหว่างกล่องกับพื้นเอียงเท่ากับ $0.2$ จงเขียนแผนภาพวัตถุอิสระ (Free-Body Diagram) แสดงแรงทุกแรงที่กระทำต่อกล่อง และหาความเร่งของกล่องขณะไถลลงพื้นเอียง ($g = 10$ m/s²)',
+  level: 'ม.4'
+});
+
+var g = Shell.canvas();
+var C = Shell.C;
+
+// กำหนดมาตราส่วน: 1 N = 2.6 พิกเซล
+var PX_PER_N = 2.6;
+
+// มุมพื้นเอียง 30 องศา
+var THETA_DEG = 30;
+var rad = THETA_DEG * Math.PI / 180;
+var cos30 = Math.cos(rad); // ~0.8660
+var sin30 = Math.sin(rad); // ~0.5000
+
+// เวกเตอร์ทิศทาง:
+// ขนานพื้นเอียง (ลง): (cos30, sin30)
+// ตั้งฉากพื้นเอียง (ชี้ขึ้น): (sin30, -cos30)
+var ux = cos30, uy = sin30;
+var nx = sin30, ny = -cos30;
+
+// จุดยอดของพื้นเอียง
+var pTop = {x: 140, y: 130};
+var pBottom = {x: 740, y: 130 + 600 * Math.tan(rad)}; // (740, 476.4)
+var pCorner = {x: 140, y: pBottom.y}; // (140, 476.4)
+
+// วาดพื้นเอียง (ฉากหลัง)
+var inclineGroup = document.createElementNS(SVGNS, 'g');
+var wedge = document.createElementNS(SVGNS, 'polygon');
+wedge.setAttribute('points', pTop.x + ',' + pTop.y + ' ' + pBottom.x + ',' + pBottom.y + ' ' + pCorner.x + ',' + pCorner.y);
+wedge.setAttribute('fill', '#f1f5f9');
+wedge.setAttribute('stroke', C.note);
+wedge.setAttribute('stroke-width', '2.5');
+inclineGroup.appendChild(wedge);
+
+// เส้นโค้งบอกมุม 30 องศา
+var arc = document.createElementNS(SVGNS, 'path');
+var arcR = 80;
+var arcStartX = pBottom.x - arcR;
+var arcStartY = pBottom.y;
+var arcEndX = pBottom.x - arcR * cos30;
+var arcEndY = pBottom.y - arcR * sin30;
+arc.setAttribute('d', 'M ' + arcStartX + ' ' + arcStartY + ' A ' + arcR + ' ' + arcR + ' 0 0 0 ' + arcEndX + ' ' + arcEndY);
+arc.setAttribute('fill', 'none');
+arc.setAttribute('stroke', C.note);
+arc.setAttribute('stroke-width', '1.8');
+arc.setAttribute('stroke-dasharray', '3,3');
+inclineGroup.appendChild(arc);
+
+g.appendChild(inclineGroup);
+
+Shell.label(g, pBottom.x - 110, pBottom.y - 20, '$30^\\circ$', {
+  role: 'note',
+  anchor: [pBottom.x - 70, pBottom.y - 15],
+  until: 'end'
+});
+
+// พิกัดจุดศูนย์กลางกล่องบนพื้นเอียง
+var boxDist = 320;
+var surfacePt = {
+  x: pTop.x + boxDist * ux,
+  y: pTop.y + boxDist * uy
+};
+var boxH = 50; // ความสูงกล่อง
+var boxW = 80; // ความกว้างกล่อง
+var cx = surfacePt.x + (boxH / 2) * nx;
+var cy = surfacePt.y + (boxH / 2) * ny;
+
+// วาดกล่อง (เอียง 30 องศา)
+var boxGroup = document.createElementNS(SVGNS, 'g');
+var boxRect = document.createElementNS(SVGNS, 'rect');
+boxRect.setAttribute('x', cx - boxW / 2);
+boxRect.setAttribute('y', cy - boxH / 2);
+boxRect.setAttribute('width', boxW);
+boxRect.setAttribute('height', boxH);
+boxRect.setAttribute('rx', '4');
+boxRect.setAttribute('fill', '#e2e8f0');
+boxRect.setAttribute('stroke', '#475569');
+boxRect.setAttribute('stroke-width', '2.5');
+boxRect.setAttribute('transform', 'rotate(30 ' + cx + ' ' + cy + ')');
+boxGroup.appendChild(boxRect);
+
+// จุดศูนย์กลางมวล (จุดกำเนิดแรง)
+var centerDot = document.createElementNS(SVGNS, 'circle');
+centerDot.setAttribute('cx', cx);
+centerDot.setAttribute('cy', cy);
+centerDot.setAttribute('r', '4');
+centerDot.setAttribute('fill', '#334155');
+boxGroup.appendChild(centerDot);
+
+g.appendChild(boxGroup);
+
+Shell.label(g, cx + 45, cy - 35, 'มวล $m = 5$ kg', {
+  role: 'given',
+  anchor: [cx, cy],
+  until: 'end'
+});
+
+// กำหนดแนวคิดหลักก่อนเริ่มคำนวณ
+Shell.setup('เลือกแกนอ้างอิงให้แกน $x$ ขนานกับพื้นเอียงและแกน $y$ ตั้งฉากกับพื้นเอียง เพราะวัตถุเคลื่อนที่ในแนวระนาบนี้เท่านั้น ทำให้คิดสมการการเคลื่อนที่ได้ง่ายและตรงไปตรงมา');
+
+// -------------------------------------------------------------
+// กลุ่มที่ 1: การเขียนแผนภาพวัตถุอิสระ (Free-Body Diagram)
+// -------------------------------------------------------------
+Shell.group('สร้างแผนภาพวัตถุอิสระ (Free-Body Diagram)');
+
+// ขั้นที่ 1: แรงโน้มถ่วง (น้ำหนัก W)
+var s1 = Shell.step('น้ำหนักของกล่องกระทำในแนวดิ่งชี้ลงสู่ศูนย์กลางโลก $W = mg = 5 \\times 10 = 50$ N', {
+  why: 'โลกดึงดูดวัตถุทุกชิ้นในแนวดิ่งเสมอตามกฎความโน้มถ่วงสากล'
+});
+var wLen = 50 * PX_PER_N;
+Shell.arrow(s1, cx, cy, cx, cy + wLen, {
+  role: 'given',
+  label: '$W = 50$ N',
+  value: 50,
+  unit: 'N',
+  until: 'end'
+});
+
+// ขั้นที่ 2: แตกแรงน้ำหนักตามแนวแกนตั้งฉากและขนานพื้นเอียง
+var s2 = Shell.step('แตกแรง $W$ เป็นแรงตั้งฉากพื้นเอียง $W_\\perp = W\\cos 30^\\circ = 43.3$ N และแรงขนานพื้นเอียง $W_\\parallel = W\\sin 30^\\circ = 25$ N', {
+  uses: [1],
+  why: 'ต้องแตกแรงเข้าสู่ระบบแกนที่ขนานและตั้งฉากกับพื้นเอียงเพื่อแยกการวิเคราะห์แต่ละแนวแกน'
+});
+var wPerpLen = 43.3 * PX_PER_N;
+var wParLen = 25 * PX_PER_N;
+
+// ลูกศรองค์ประกอบแรง W_perp (ทิศลงตั้งฉากพื้นเอียง)
+Shell.arrow(s2, cx, cy, cx - wPerpLen * nx, cy - wPerpLen * ny, {
+  role: 'work',
+  label: '$W_\\perp = 43.3$ N',
+  value: 43.3,
+  unit: 'N',
+  dash: true,
+  until: 'step'
+});
+
+// ลูกศรองค์ประกอบแรง W_parallel (ทิศลงตามพื้นเอียง)
+Shell.arrow(s2, cx, cy, cx + wParLen * ux, cy + wParLen * uy, {
+  role: 'work',
+  label: '$W_\\parallel = 25$ N',
+  value: 25,
+  unit: 'N',
+  dash: true,
+  until: 'step'
+});
+
+// ขั้นที่ 3: แรงปฏิกิริยาตั้งฉาก N
+var s3 = Shell.step('ในแนวตั้งฉากพื้นเอียง วัตถุไม่เคลื่อนที่ ($\\Sigma F_y = 0$) ดังนั้นแรงแนวฉาก $N = W_\\perp = 43.3$ N', {
+  uses: [2],
+  why: 'พื้นเอียงรองรับวัตถุและดันในแนวตั้งฉากกับผิวสัมผัสเพื่อต้านไม่ให้วัตถุยื่นจมลงไปในพื้น'
+});
+var nLen = 43.3 * PX_PER_N;
+Shell.arrow(s3, cx, cy, cx + nLen * nx, cy + nLen * ny, {
+  role: 'given',
+  label: '$N = 43.3$ N',
+  value: 43.3,
+  unit: 'N',
+  until: 'end'
+});
+
+// ขั้นที่ 4: แรงเสียดทานจลน์ f_k
+var s4 = Shell.step('หาแรงเสียดทานจลน์ที่ต้านการไถลลง $f_k = \\mu_k N = 0.2 \\times 43.3 = 8.66$ N (ทิศชี้ขึ้นตามพื้นเอียง)', {
+  uses: [3],
+  why: 'แรงเสียดทานจลน์แปรผันตรงกับแรงกดในแนวตั้งฉากและมีทิศตรงข้ามกับทิศทางการไถล'
+});
+var fkLen = 8.66 * PX_PER_N;
+Shell.arrow(s4, cx, cy, cx - fkLen * ux, cy - fkLen * uy, {
+  role: 'given',
+  label: '$f_k = 8.66$ N',
+  value: 8.66,
+  unit: 'N',
+  until: 'end'
+});
+
+// -------------------------------------------------------------
+// กลุ่มที่ 2: การคำนวณความเร่งตามกฎข้อที่สองของนิวตัน
+// -------------------------------------------------------------
+Shell.group('คำนวณความเร่งตามกฎข้อที่สองของนิวตัน');
+
+// ขั้นที่ 5: หาแรงลัพธ์ในแนวขนานพื้นเอียง
+var s5 = Shell.step('หาแรงลัพธ์ในแนวขนานพื้นเอียง $\\Sigma F_x = W_\\parallel - f_k = 25 - 8.66 = 16.34$ N (ทิศชี้ลงตามพื้นเอียง)', {
+  uses: [2, 4]
+});
+
+// ขั้นที่ 6: คำนวณหาความเร่ง a
+var s6 = Shell.step('ใช้กฎข้อที่สองของนิวตัน $\\Sigma F_x = ma$ จะได้ความเร่ง $a = \\frac{\\Sigma F_x}{m} = \\frac{16.34}{5} = 3.27$ m/s²', {
+  uses: [5],
+  why: 'แรงลัพธ์ที่ไม่เป็นศูนย์ในแนวการเคลื่อนที่จะทำให้มวลเกิดความเร่งตามกฎข้อสองของนิวตัน'
+});
+
+// แสดงเวกเตอร์ความเร่งชี้ลงตามแนวพื้นเอียง
+var aVecLen = 3.27 * 30; // ปรับสเกลให้เห็นชัดเจน
+var aStartOffset = 65;
+var aStartX = cx + aStartOffset * nx;
+var aStartY = cy + aStartOffset * ny;
+Shell.arrow(s6, aStartX, aStartY, aStartX + aVecLen * ux, aStartY + aVecLen * uy, {
+  role: 'answer',
+  label: '$a = 3.27$ m/s²',
+  value: 3.27,
+  unit: 'm/s²',
+  until: 'end'
+});
+
+// -------------------------------------------------------------
+// กล่องคำตอบสรุปผล
+// -------------------------------------------------------------
+Shell.answer(
+  'ความเร่งของกล่องขณะไถลลงพื้นเอียง',
+  '$a = 3.27$ m/s²',
+  {
+    sanity: 'ความเร่งที่ได้ ($3.27$ m/s²) น้อยกว่ากรณีไม่มีแรงเสียดทาน ($g\\sin 30^\\circ = 5.00$ m/s²) และมากกว่าศูนย์ แสดงว่ากล่องไถลลงด้วยความเร่งตามจริง'
+  }
+);
+
+Shell.done();
+</script>
+</body></html>

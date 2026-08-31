@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>การชนแบบติดกันไปของรถทดลอง</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+var SVGNS = 'http://www.w3.org/2000/svg';
+
+Shell.page({
+  title: 'การชนแบบติดกันไปของรถทดลอง (การอนุรักษ์โมเมนตัม)',
+  problem: 'รถทดลอง A มวล $2$ kg เคลื่อนที่ด้วยความเร็ว $6$ m/s เข้าชนรถทดลอง B มวล $4$ kg ที่หยุดนิ่งอยู่บนพื้นราบ หลังชนรถทั้งสองติดกันไปด้วยกัน จงเขียนแผนภาพแสดงสถานการณ์ก่อนชนและหลังชน แล้วหาความเร็วของรถทั้งสองหลังการชน',
+  level: 'ม.4'
+});
+
+var g = Shell.canvas();
+var C = Shell.C;
+
+// กำหนดมาตราส่วนความเร็ว 1 m/s = 25 px
+var PX_PER_MS = 25;
+
+Shell.setup('เนื่องจากไม่มีแรงลัพธ์ภายนอกในแนวราบกระทำต่อระบบรถทั้งสองคัน ผลรวมโมเมนตัมเชิงเส้นของระบบจึงมีค่าคงตัวเสมอ จึงใช้กฎการอนุรักษ์โมเมนตัม');
+
+// ฟังก์ชันช่วยวาดพื้นผิว
+function drawTrack(parent, y, labelText) {
+  var line = document.createElementNS(SVGNS, 'line');
+  line.setAttribute('x1', '80');
+  line.setAttribute('y1', y);
+  line.setAttribute('x2', '880');
+  line.setAttribute('y2', y);
+  line.setAttribute('stroke', C.note);
+  line.setAttribute('stroke-width', '3');
+  parent.appendChild(line);
+
+  // ขีดลายพื้น
+  for (var x = 90; x < 880; x += 30) {
+    var hatch = document.createElementNS(SVGNS, 'line');
+    hatch.setAttribute('x1', x);
+    hatch.setAttribute('y1', y);
+    hatch.setAttribute('x2', x - 15);
+    hatch.setAttribute('y2', y + 15);
+    hatch.setAttribute('stroke', C.note);
+    hatch.setAttribute('stroke-width', '1.5');
+    parent.appendChild(hatch);
+  }
+
+  Shell.label(parent, 140, y - 90, labelText, {role: 'note', anchor: [140, y - 70], until: 'end'});
+}
+
+// ฟังก์ชันช่วยวาดรถทดลอง
+function drawCar(parent, x, y, width, height, labelName, massText, fillColor) {
+  var carG = document.createElementNS(SVGNS, 'g');
+  
+  // ตัวถังรถ
+  var body = document.createElementNS(SVGNS, 'rect');
+  body.setAttribute('x', x);
+  body.setAttribute('y', y - height - 16);
+  body.setAttribute('width', width);
+  body.setAttribute('height', height);
+  body.setAttribute('rx', '6');
+  body.setAttribute('fill', fillColor || '#e2e8f0');
+  body.setAttribute('stroke', C.given);
+  body.setAttribute('stroke-width', '2.5');
+  carG.appendChild(body);
+
+  // ล้อรถ (รัศมี 8 px ติดพื้นพอดีที่ระดับ y)
+  var wheel1 = document.createElementNS(SVGNS, 'circle');
+  wheel1.setAttribute('cx', x + 22);
+  wheel1.setAttribute('cy', y - 8);
+  wheel1.setAttribute('r', '8');
+  wheel1.setAttribute('fill', '#475569');
+  carG.appendChild(wheel1);
+
+  var wheel2 = document.createElementNS(SVGNS, 'circle');
+  wheel2.setAttribute('cx', x + width - 22);
+  wheel2.setAttribute('cy', y - 8);
+  wheel2.setAttribute('r', '8');
+  wheel2.setAttribute('fill', '#475569');
+  carG.appendChild(wheel2);
+
+  // ป้ายชื่อรถและมวล
+  Shell.label(carG, x + width / 2, y - height - 32, '<b>รถ ' + labelName + '</b> (' + massText + ')', {
+    role: 'given',
+    anchor: [x + width / 2, y - height / 2 - 16],
+    until: 'end'
+  });
+
+  parent.appendChild(carG);
+  return carG;
+}
+
+// พื้นรางสถานการณ์ก่อนชนและหลังชน
+drawTrack(g, 210, '<b>สถานการณ์ก่อนชน</b>');
+drawTrack(g, 430, '<b>สถานการณ์หลังชน</b>');
+
+Shell.group('สถานการณ์ก่อนการชน');
+
+// ขั้นที่ 1: วาดรถ A และ B ก่อนชน พร้อมเวกเตอร์ความเร็ว
+var s1 = Shell.step('ก่อนชน: รถ A ($m_A = 2$ kg) มีความเร็ว $u_A = 6$ m/s เข้าหารถ B ($m_B = 4$ kg) ซึ่งอยู่นิ่ง ($u_B = 0$ m/s)');
+drawCar(s1, 180, 210, 110, 50, 'A', '$m_A = 2$ kg', '#fed7aa');
+drawCar(s1, 520, 210, 130, 50, 'B', '$m_B = 4$ kg', '#bfdbfe');
+
+// ลูกศรความเร็ว u_A = 6 m/s (ยาว 6 * 25 = 150 px)
+Shell.arrow(s1, 290, 150, 290 + 6 * PX_PER_MS, 150, {
+  role: 'given',
+  label: '$u_A = 6$ m/s',
+  value: 6,
+  unit: 'm/s',
+  until: 'end'
+});
+
+// ป้าย u_B = 0 m/s
+Shell.label(s1, 585, 125, '$u_B = 0$ m/s (หยุดนิ่ง)', {
+  role: 'given',
+  anchor: [585, 150],
+  until: 'end'
+});
+
+// ขั้นที่ 2: คำนวณโมเมนตัมก่อนชน
+var s2 = Shell.step('โมเมนตัมรวมก่อนชน $\\sum p_i = m_A u_A + m_B u_B = (2)(6) + (4)(0) = 12$ kg·m/s', {
+  why: 'ต้องรวมโมเมนตัมของวัตถุทุกก้อนในระบบก่อนเกิดการชน เพื่อนำไปเทียบกับโมเมนตัมรวมหลังชน'
+});
+
+Shell.group('สถานการณ์หลังชนและการคำนวณ');
+
+// ขั้นที่ 3: วาดรถ A และ B ติดกันไปหลังชน
+var s3 = Shell.step('หลังชน: รถทั้งสองติดกันไปด้วยกัน เกิดเป็นมวลรวม $M = m_A + m_B = 2 + 4 = 6$ kg', {
+  uses: [1]
+});
+
+// วาดรถ A และ B ชนติดกันที่ตำแหน่ง x = 400
+var carAB = document.createElementNS(SVGNS, 'g');
+var bodyA = document.createElementNS(SVGNS, 'rect');
+bodyA.setAttribute('x', '360');
+bodyA.setAttribute('y', '430' - 50 - 16);
+bodyA.setAttribute('width', '100');
+bodyA.setAttribute('height', '50');
+bodyA.setAttribute('rx', '4');
+bodyA.setAttribute('fill', '#fed7aa');
+bodyA.setAttribute('stroke', C.work);
+bodyA.setAttribute('stroke-width', '2.5');
+carAB.appendChild(bodyA);
+
+var bodyB = document.createElementNS(SVGNS, 'rect');
+bodyB.setAttribute('x', '460');
+bodyB.setAttribute('y', '430' - 50 - 16);
+bodyB.setAttribute('width', '120');
+bodyB.setAttribute('height', '50');
+bodyB.setAttribute('rx', '4');
+bodyB.setAttribute('fill', '#bfdbfe');
+bodyB.setAttribute('stroke', C.work);
+bodyB.setAttribute('stroke-width', '2.5');
+carAB.appendChild(bodyB);
+
+// รอยต่อที่ติดกัน
+var joint = document.createElementNS(SVGNS, 'line');
+joint.setAttribute('x1', '460');
+joint.setAttribute('y1', '364');
+joint.setAttribute('x2', '460');
+joint.setAttribute('y2', '414');
+joint.setAttribute('stroke', '#ef4444');
+joint.setAttribute('stroke-width', '3');
+joint.setAttribute('stroke-dasharray', '4,3');
+carAB.appendChild(joint);
+
+// ล้อรถร่วม
+var w1 = document.createElementNS(SVGNS, 'circle');
+w1.setAttribute('cx', '385');
+w1.setAttribute('cy', '422');
+w1.setAttribute('r', '8');
+w1.setAttribute('fill', '#475569');
+carAB.appendChild(w1);
+
+var w2 = document.createElementNS(SVGNS, 'circle');
+w2.setAttribute('cx', '435');
+w2.setAttribute('cy', '422');
+w2.setAttribute('r', '8');
+w2.setAttribute('fill', '#475569');
+carAB.appendChild(w2);
+
+var w3 = document.createElementNS(SVGNS, 'circle');
+w3.setAttribute('cx', '485');
+w3.setAttribute('cy', '422');
+w3.setAttribute('r', '8');
+w3.setAttribute('fill', '#475569');
+carAB.appendChild(w3);
+
+var w4 = document.createElementNS(SVGNS, 'circle');
+w4.setAttribute('cx', '555');
+w4.setAttribute('cy', '422');
+w4.setAttribute('r', '8');
+w4.setAttribute('fill', '#475569');
+carAB.appendChild(w4);
+
+s3.appendChild(carAB);
+
+Shell.label(s3, 470, 340, '<b>รถ A + B ติดกัน</b> ($M = 6$ kg)', {
+  role: 'work',
+  anchor: [470, 390],
+  until: 'end'
+});
+
+// ขั้นที่ 4: คำนวณความเร็วหลังชน v
+var s4 = Shell.step('จากกฎการอนุรักษ์โมเมนตัม $\\sum p_i = \\sum p_f \\Rightarrow 12 = (m_A + m_B)v = 6v$ ได้ $v = 2$ m/s', {
+  uses: [2, 3],
+  why: 'เมื่อไม่มีแรงลัพธ์ภายนอกมากระทำ โมเมนตัมรวมก่อนชนต้องเท่ากับโมเมนตัมรวมหลังชนเสมอ'
+});
+
+// ลูกศรความเร็วหลังชน v = 2 m/s (ยาว 2 * 25 = 50 px)
+Shell.arrow(s4, 580, 385, 580 + 2 * PX_PER_MS, 385, {
+  role: 'answer',
+  label: '$v = 2$ m/s',
+  value: 2,
+  unit: 'm/s',
+  until: 'end'
+});
+
+Shell.answer('ความเร็วของรถทั้งสองหลังการชน', '$v = 2$ m/s (มีทิศไปทางขวาตามทิศเดิมของรถ A)', {
+  sanity: 'สมเหตุสมผล เพราะมวลรวมเพิ่มขึ้นจาก $2$ kg เป็น $6$ kg (เพิ่ม $3$ เท่า) ความเร็วจึงลดลงเหลือ $1/3$ ของเดิมคือจาก $6$ m/s เหลือ $2$ m/s'
+});
+
+Shell.done();
+</script>
+</body></html>

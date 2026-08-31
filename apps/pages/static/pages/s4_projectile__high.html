@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>การเคลื่อนที่แบบโพรเจกไทล์บนพื้นราบ</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+var SVGNS = 'http://www.w3.org/2000/svg';
+
+function createSvg(tag, attrs) {
+  var el = document.createElementNS(SVGNS, tag);
+  for (var k in attrs) {
+    el.setAttribute(k, attrs[k]);
+  }
+  return el;
+}
+
+Shell.page({
+  title: 'การเคลื่อนที่แบบโพรเจกไทล์บนพื้นราบ',
+  problem: 'ยิงลูกบอลมวล $0.5$ kg ออกจากพื้นด้วยความเร็วต้น $20$ m/s ทำมุม $37^\\circ$ กับแนวราบ จงหาความสูงสูงสุดที่ลูกบอลขึ้นไปได้ และระยะทางตามแนวราบที่ลูกบอลตกกลับสู่พื้น (ให้ $g = 10$ m/s$^2$, $\\sin 37^\\circ = 0.6$, $\\cos 37^\\circ = 0.8$)',
+  level: 'ม.4'
+});
+
+var g = Shell.canvas(), C = Shell.C;
+
+// กำหนดมาตราส่วน
+var PX_PER_MS = 6.0;               // 1 m/s = 6 px
+var PX_PER_M_X = 640.0 / 38.4;     // สเกลระยะทางแนวราบ 16.67 px/m
+var PX_PER_M_Y = 240.0 / 7.2;      // สเกลระยะทางแนวดิ่ง 33.33 px/m
+var PX_PER_ACC = 5.0;              // 1 m/s² = 5 px
+
+var X0 = 140, Y0 = 428;
+var X_PEAK = 460, Y_PEAK = 188;
+var X_LAND = 780, Y_LAND = 428;
+
+// วาดพื้นผิวอ้างอิงบน canvas หลัก
+var groundLine = createSvg('line', {
+  x1: '60', y1: Y0, x2: '900', y2: Y0,
+  stroke: C.note, 'stroke-width': '2'
+});
+g.appendChild(groundLine);
+
+for (var hx = 80; hx <= 880; hx += 30) {
+  var hatch = createSvg('line', {
+    x1: hx, y1: Y0, x2: hx - 12, y2: Y0 + 12,
+    stroke: C.note, 'stroke-width': '1.5', opacity: '0.6'
+  });
+  g.appendChild(hatch);
+}
+
+Shell.setup('การเคลื่อนที่แบบโพรเจกไทล์เป็นการเคลื่อนที่สองมิติที่เกิดขึ้นพร้อมกัน ในแนวราบไม่มีแรงลัพธ์กระทำ ($a_x = 0$) ความเร็วคงที่ ส่วนในแนวดิ่งมีแรงโน้มถ่วงกระทำคงที่ ($a_y = -g$) จึงแยกวิเคราะห์การเคลื่อนที่ทั้งสองแกนเป็นอิสระต่อกัน');
+
+// กลุ่มที่ 1: แตกเวกเตอร์ความเร็วต้น
+Shell.group('แตกเวกเตอร์ความเร็วต้นเข้าสู่แกนอ้างอิง');
+
+var s1 = Shell.step('กำหนดจุดเริ่มต้นและเวกเตอร์ความเร็วต้น $u = 20$ m/s ทำมุม $37^\\circ$ กับแนวราบ');
+
+// ลูกบอลจุดเริ่มต้น
+var ball0 = createSvg('circle', {
+  cx: X0, cy: Y0, r: '10',
+  fill: C.given, stroke: C.given, 'stroke-width': '2'
+});
+s1.appendChild(ball0);
+
+// เส้นโค้งบอกมุม 37 องศา
+var angleArc = createSvg('path', {
+  d: 'M 180 428 A 40 40 0 0 0 172 404',
+  fill: 'none', stroke: C.given, 'stroke-width': '1.5'
+});
+s1.appendChild(angleArc);
+
+Shell.arrow(s1, X0, Y0, X0 + 20 * PX_PER_MS * 0.8, Y0 - 20 * PX_PER_MS * 0.6, {
+  role: 'given', label: '$u = 20$ m/s', value: 20, unit: 'm/s', until: 'end'
+});
+Shell.label(s1, 195, 412, '$37^\\circ$', {
+  role: 'given', anchor: [X0, Y0], until: 'end'
+});
+
+var s2 = Shell.step('แตกความเร็วต้นเข้าสู่แกนราบและแนวดิ่ง:<br>แนวราบ: $u_x = u \\cos 37^\\circ = 20(0.8) = 16$ m/s<br>แนวดิ่ง: $u_y = u \\sin 37^\\circ = 20(0.6) = 12$ m/s', {
+  why: 'แรงโน้มถ่วงกระทำเฉพาะในแนวดิ่ง จึงต้องแยกองค์ประกอบความเร็วเพื่อคำนวณแต่ละแกนแยกกัน',
+  uses: [1]
+});
+
+// เวกเตอร์ความเร็วองค์ประกอบ
+Shell.arrow(s2, X0, Y0, X0 + 16 * PX_PER_MS, Y0, {
+  role: 'work', label: '$u_x = 16$ m/s', value: 16, unit: 'm/s', until: 'step', dash: 3
+});
+Shell.arrow(s2, X0, Y0, X0, Y0 - 12 * PX_PER_MS, {
+  role: 'work', label: '$u_y = 12$ m/s', value: 12, unit: 'm/s', until: 'step', dash: 3
+});
+
+// เวกเตอร์สนามโน้มถ่วง
+Shell.arrow(s2, 280, 160, 280, 160 + 10 * PX_PER_ACC, {
+  role: 'note', label: '$g = 10$ m/s²', value: 10, unit: 'm/s²', until: 'end'
+});
+
+// กลุ่มที่ 2: หาความสูงสูงสุด
+Shell.group('คำนวณความสูงสูงสุด ($H$)');
+
+var s3 = Shell.step('ที่จุดสูงสุด ความเร็วในแนวดิ่งลดลงจนเป็นศูนย์ ($v_y = 0$)<br>ใช้สมการ: $v_y^2 = u_y^2 - 2gH$<br>$0^2 = 12^2 - 2(10)H \\implies 20H = 144 \\implies H = 7.2$ m', {
+  why: 'ที่จุดสูงสุดของวิถีโค้ง ลูกบอลหยุดเคลื่อนที่ขึ้นชั่วขณะ ทำให้ความเร็วในแนวดิ่ง $v_y = 0$',
+  uses: [2]
+});
+
+// วิถีโค้งพาราโบลา
+var trajectory = createSvg('path', {
+  d: 'M 140 428 Q 460 -52 780 428',
+  fill: 'none', stroke: C.note, 'stroke-width': '2', 'stroke-dasharray': '5 5'
+});
+s3.appendChild(trajectory);
+
+// เส้นประช่วยวัดระดับความสูง
+var peakGuide = createSvg('line', {
+  x1: X0, y1: Y_PEAK, x2: X_PEAK, y2: Y_PEAK,
+  stroke: C.note, 'stroke-width': '1', 'stroke-dasharray': '3 3'
+});
+s3.appendChild(peakGuide);
+
+// ลูกบอลที่จุดสูงสุด
+var ballPeak = createSvg('circle', {
+  cx: X_PEAK, cy: Y_PEAK, r: '10',
+  fill: C.work, stroke: C.work, 'stroke-width': '2', opacity: '0.8'
+});
+s3.appendChild(ballPeak);
+
+// ความเร็วที่จุดสูงสุด (เหลือเฉพาะแกนราบ)
+Shell.arrow(s3, X_PEAK, Y_PEAK, X_PEAK + 16 * PX_PER_MS, Y_PEAK, {
+  role: 'work', label: '$v_x = 16$ m/s', value: 16, unit: 'm/s', until: 'step'
+});
+Shell.label(s3, X_PEAK - 5, Y_PEAK - 25, '$v_y = 0$', {
+  role: 'work', anchor: [X_PEAK, Y_PEAK], until: 'step'
+});
+
+// ลูกศรบอกความสูงสูงสุด H
+Shell.arrow(s3, X_PEAK, Y0, X_PEAK, Y_PEAK, {
+  role: 'answer', label: '$H = 7.2$ m', value: 7.2, unit: 'm', until: 'end'
+});
+
+// กลุ่มที่ 3: หาระยะทางตามแนวราบ
+Shell.group('คำนวณระยะทางตามแนวราบ ($S_x$)');
+
+var s4 = Shell.step('หาเวลาการเคลื่อนที่ทั้งหมด ($T$):<br>เวลาถึงจุดสูงสุดจาก $v_y = u_y - gt_{\\text{top}} \\implies 0 = 12 - 10t_{\\text{top}} \\implies t_{\\text{top}} = 1.2$ s<br>เนื่องจากวิถีโค้งสมมาตร เวลาทั้งหมดจนกระทั่งตกถึงพื้นคือ $T = 2 t_{\\text{top}} = 2.4$ s', {
+  why: 'การเคลื่อนที่แนวราบและแนวดิ่งใช้เวลาเดียวกัน จึงหาเวลาการเคลื่อนที่ทั้งหมดจากแนวดิ่งก่อน',
+  uses: [2]
+});
+
+Shell.label(s4, X_PEAK + 10, Y_PEAK - 25, '$t = 1.2$ s', {
+  role: 'work', anchor: [X_PEAK, Y_PEAK], until: 'step'
+});
+Shell.label(s4, X_LAND, Y_LAND - 30, '$T = 2.4$ s', {
+  role: 'work', anchor: [X_LAND, Y_LAND], until: 'step'
+});
+
+var s5 = Shell.step('หาระยะทางตามแนวราบจากความเร็วคงที่ ($a_x = 0$):<br>$S_x = u_x T = 16 \\times 2.4 = 38.4$ m', {
+  why: 'แนวราบไม่มีความเร่ง ระยะทางจึงเท่ากับความเร็วแนวราบคงที่คูณด้วยเวลาการเคลื่อนที่ทั้งหมด',
+  uses: [2, 4]
+});
+
+// ลูกบอลที่จุดตกถึงพื้น
+var ballLand = createSvg('circle', {
+  cx: X_LAND, cy: Y_LAND, r: '10',
+  fill: C.answer, stroke: C.answer, 'stroke-width': '2'
+});
+s5.appendChild(ballLand);
+
+// เส้นประแนวดิ่งช่วยบอกช่วงระยะทาง
+var dropLine1 = createSvg('line', {
+  x1: X0, y1: Y0, x2: X0, y2: 495,
+  stroke: C.note, 'stroke-width': '1', 'stroke-dasharray': '3 3'
+});
+var dropLine2 = createSvg('line', {
+  x1: X_LAND, y1: Y_LAND, x2: X_LAND, y2: 495,
+  stroke: C.note, 'stroke-width': '1', 'stroke-dasharray': '3 3'
+});
+s5.appendChild(dropLine1);
+s5.appendChild(dropLine2);
+
+// ลูกศรบอกระยะตกแนวราบ Sx
+Shell.arrow(s5, X0, 485, X_LAND, 485, {
+  role: 'answer', label: '$S_x = 38.4$ m', value: 38.4, unit: 'm', until: 'end'
+});
+
+// กล่องคำตอบสรุป
+Shell.answer('ความสูงสูงสุดที่ลูกบอลขึ้นไปได้', '$H = 7.2$ m', {
+  sanity: 'ความสูง $7.2$ m น้อยกว่ากรณีโยนขึ้นตรง ๆ ($H = \\frac{u^2}{2g} = 20$ m) เนื่องจากพลังงานจลน์ส่วนหนึ่งคงอยู่ในแนวราบ'
+});
+
+Shell.answer('ระยะทางตามแนวราบที่ตกถึงพื้น', '$S_x = 38.4$ m', {
+  sanity: 'ระยะทาง $38.4$ m น้อยกว่าระยะสูงสุดเมื่อยิงมุม $45^\\circ$ ($R_{\\max} = \\frac{u^2}{g} = 40$ m)'
+});
+
+Shell.done();
+</script>
+</body></html>

@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>การเคลื่อนที่ของมวลผ่านรอกเดี่ยว (Atwood Machine)</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+var SVGNS = 'http://www.w3.org/2000/svg';
+
+Shell.page({
+  title: 'การเคลื่อนที่ของมวลผ่านรอกเดี่ยว',
+  problem: 'มวล $m_1 = 3$ กิโลกรัม และ $m_2 = 5$ กิโลกรัม ผูกด้วยเชือกเบาคล้องผ่านรอกเบาไร้ความฝืด จงหาความเร่งของระบบและแรงตึงในเส้นเชือก (ให้ $g = 10$ m/s²)',
+  level: 'ม.4'
+});
+
+var g = Shell.canvas();
+var C = Shell.C;
+var PX_PER_N = 2.0;
+
+// โครงสร้างรอกและเพดาน (สิ่งที่โจทย์กำหนดให้เป็นฉากหลัง)
+var ceiling = document.createElementNS(SVGNS, 'line');
+ceiling.setAttribute('x1', '360');
+ceiling.setAttribute('y1', '40');
+ceiling.setAttribute('x2', '600');
+ceiling.setAttribute('y2', '40');
+ceiling.setAttribute('stroke', C.note);
+ceiling.setAttribute('stroke-width', '4');
+g.appendChild(ceiling);
+
+// ลายเฉียงเพดาน
+for (var i = 370; i <= 590; i += 20) {
+  var hatch = document.createElementNS(SVGNS, 'line');
+  hatch.setAttribute('x1', i);
+  hatch.setAttribute('y1', '40');
+  hatch.setAttribute('x2', i + 10);
+  hatch.setAttribute('y2', '30');
+  hatch.setAttribute('stroke', C.note);
+  hatch.setAttribute('stroke-width', '2');
+  g.appendChild(hatch);
+}
+
+// ขายึดรอก
+var mount = document.createElementNS(SVGNS, 'line');
+mount.setAttribute('x1', '480');
+mount.setAttribute('y1', '40');
+mount.setAttribute('x2', '480');
+mount.setAttribute('y2', '90');
+mount.setAttribute('stroke', C.note);
+mount.setAttribute('stroke-width', '4');
+g.appendChild(mount);
+
+// ตัวรอก
+var pulley = document.createElementNS(SVGNS, 'circle');
+pulley.setAttribute('cx', '480');
+pulley.setAttribute('cy', '90');
+pulley.setAttribute('r', '50');
+pulley.setAttribute('fill', '#2d3748');
+pulley.setAttribute('stroke', C.note);
+pulley.setAttribute('stroke-width', '3');
+g.appendChild(pulley);
+
+var pulleyCenter = document.createElementNS(SVGNS, 'circle');
+pulleyCenter.setAttribute('cx', '480');
+pulleyCenter.setAttribute('cy', '90');
+pulleyCenter.setAttribute('r', '5');
+pulleyCenter.setAttribute('fill', '#cbd5e0');
+g.appendChild(pulleyCenter);
+
+// เชือกคล้องผ่านรอก
+var rope = document.createElementNS(SVGNS, 'path');
+rope.setAttribute('d', 'M 430 230 L 430 90 A 50 50 0 0 1 530 90 L 530 250');
+rope.setAttribute('fill', 'none');
+rope.setAttribute('stroke', '#a0aec0');
+rope.setAttribute('stroke-width', '3');
+g.appendChild(rope);
+
+// มวล m1 (3 kg)
+var box1 = document.createElementNS(SVGNS, 'rect');
+box1.setAttribute('x', '400');
+box1.setAttribute('y', '230');
+box1.setAttribute('width', '60');
+box1.setAttribute('height', '60');
+box1.setAttribute('rx', '4');
+box1.setAttribute('fill', '#1a365d');
+box1.setAttribute('stroke', C.given);
+box1.setAttribute('stroke-width', '2');
+g.appendChild(box1);
+
+Shell.label(g, 430, 260, '$m_1 = 3$ kg', {role: 'given', anchor: [430, 260], until: 'end'});
+
+// มวล m2 (5 kg)
+var box2 = document.createElementNS(SVGNS, 'rect');
+box2.setAttribute('x', '490');
+box2.setAttribute('y', '250');
+box2.setAttribute('width', '80');
+box2.setAttribute('height', '80');
+box2.setAttribute('rx', '4');
+box2.setAttribute('fill', '#2a4365');
+box2.setAttribute('stroke', C.given);
+box2.setAttribute('stroke-width', '2');
+g.appendChild(box2);
+
+Shell.label(g, 530, 290, '$m_2 = 5$ kg', {role: 'given', anchor: [530, 290], until: 'end'});
+
+// ตั้งแนวคิดหลักก่อนเริ่มขั้นตอน
+Shell.setup('เนื่องจากเชือกเบาไม่ยืดและรอกเบาไร้ความฝืด แรงตึงเชือก $T$ มีขนาดเท่ากันตลอดเส้น และมวลทั้งสองก้อนมีความเร่งขนาดเท่ากัน ($a$)');
+
+// กลุ่มที่ 1: วิเคราะห์แรงที่กระทำต่อระบบ
+Shell.group('สร้างแผนภาพวัตถุอิสระ (FBD)');
+
+var s1 = Shell.step('หาน้ำหนักของมวลทั้งสองก้อนจาก $W = mg$', {
+  why: 'แรงโน้มถ่วงของโลกดึงดูดมวลทั้งสองลงในแนวดิ่งตลอดเวลา'
+});
+Shell.arrow(s1, 430, 290, 430, 290 + 30 * PX_PER_N, {
+  role: 'given',
+  label: '$W_1 = 30$ N',
+  value: 30,
+  unit: 'N',
+  until: 'end'
+});
+Shell.arrow(s1, 530, 330, 530, 330 + 50 * PX_PER_N, {
+  role: 'given',
+  label: '$W_2 = 50$ N',
+  value: 50,
+  unit: 'N',
+  until: 'end'
+});
+
+var s2 = Shell.step('เขียนแรงตึงเชือก $T$ ที่กระทำต่อมวลทั้งสองในทิศดึงขึ้น', {
+  why: 'เส้นเชือกดึงวัตถุออกจากจุดผูกเสมอเพื่อพยุงมวลแต่ละก้อน'
+});
+Shell.arrow(s2, 430, 230, 430, 230 - 37.5 * PX_PER_N, {
+  role: 'work',
+  label: '$T$',
+  value: 37.5,
+  unit: 'N',
+  until: 'end'
+});
+Shell.arrow(s2, 530, 250, 530, 250 - 37.5 * PX_PER_N, {
+  role: 'work',
+  label: '$T$',
+  value: 37.5,
+  unit: 'N',
+  until: 'end'
+});
+
+var s3 = Shell.step('กำหนดทิศทางความเร่ง $\\vec{a}$ ของแต่ละมวล โดย $m_2 > m_1$ ดังนั้น $m_2$ เคลื่อนที่ลง และ $m_1$ เคลื่อนที่ขึ้น', {
+  why: 'น้ำหนัก $W_2 = 50$ N มากกว่า $W_1 = 30$ N ระบบจึงเคลื่อนที่ตามทิศของแรงที่มากกว่า'
+});
+Shell.arrow(s3, 360, 270, 360, 210, {
+  role: 'work',
+  label: '$a$ (ทิศขึ้น)',
+  value: 2.5,
+  unit: 'm/s²',
+  until: 'end'
+});
+Shell.arrow(s3, 610, 270, 610, 330, {
+  role: 'work',
+  label: '$a$ (ทิศลง)',
+  value: 2.5,
+  unit: 'm/s²',
+  until: 'end'
+});
+
+// กลุ่มที่ 2: คำนวณความเร่ง
+Shell.group('ใช้กฎข้อที่สองของนิวตันหาความเร่ง');
+
+var s4 = Shell.step('พิจารณามวล $m_1$ (เคลื่อนที่ขึ้น): $\\sum F = m_1 a \\implies T - W_1 = m_1 a \\implies T - 30 = 3a$ --- (สมการที่ 1)', {
+  why: 'มวล $m_1$ มีความเร่งในทิศขึ้น แรงตึงเชือก $T$ จึงต้องมีขนาดมากกว่าน้ำหนัก $W_1$',
+  uses: [1, 2, 3]
+});
+
+var s5 = Shell.step('พิจารณามวล $m_2$ (เคลื่อนที่ลง): $\\sum F = m_2 a \\implies W_2 - T = m_2 a \\implies 50 - T = 5a$ --- (สมการที่ 2)', {
+  why: 'มวล $m_2$ มีความเร่งในทิศลง น้ำหนัก $W_2$ จึงต้องมีขนาดมากกว่าแรงตึงเชือก $T$',
+  uses: [1, 2, 3]
+});
+
+var s6 = Shell.step('นำสมการที่ (1) บวกกับสมการที่ (2) เพื่อหาความเร่ง $a$:<br>$(50 - T) + (T - 30) = 5a + 3a \\implies 20 = 8a \\implies a = 2.5$ m/s²', {
+  why: 'แรงตึงเชือก $T$ เป็นแรงภายในระบบ เมื่อรวมสมการจะหักล้างกันเหลือเฉพาะแรงขับเคลื่อนสุทธิ',
+  uses: [4, 5]
+});
+
+// กลุ่มที่ 3: คำนวณแรงตึงในเส้นเชือก
+Shell.group('คำนวณแรงตึงในเส้นเชือก');
+
+var s7 = Shell.step('แทนค่า $a = 2.5$ m/s² ลงในสมการที่ (1):<br>$T = 30 + 3(2.5) = 30 + 7.5 = 37.5$ N', {
+  uses: [4, 6]
+});
+
+// สรุปคำตอบ
+Shell.answer('ความเร่งของระบบ', '$a = 2.5$ m/s²', {
+  sanity: 'ขนาดความเร่ง $a = 2.5$ m/s² น้อยกว่า $g = 10$ m/s² เพราะมวลทั้งสองก้อนเคลื่อนที่ต้านแรงโน้มถ่วงซึ่งกันและกัน'
+});
+
+Shell.answer('แรงตึงในเส้นเชือก', '$T = 37.5$ N', {
+  sanity: 'แรงตึงเชือก $T = 37.5$ N มีค่าอยู่ระหว่าง $W_1 = 30$ N และ $W_2 = 50$ N ทำให้ดึง $m_1$ ขึ้นและชะลอการตกของ $m_2$ ได้อย่างสอดคล้อง'
+});
+
+Shell.done();
+</script>
+</body></html>

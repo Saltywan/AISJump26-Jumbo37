@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>แผนภาพกล่องและควอร์ไทล์ - ม.6</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/jsxgraph.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/jsxgraphcore.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+Shell.page({
+  title: 'แผนภาพกล่องและควอร์ไทล์',
+  problem: 'คะแนนสอบของนักเรียน 11 คน คือ 42, 55, 61, 63, 68, 70, 72, 75, 79, 88, 95 จงหาค่ามัธยฐาน ควอร์ไทล์ที่หนึ่ง ควอร์ไทล์ที่สาม พิสัยระหว่างควอร์ไทล์ และวาดแผนภาพกล่อง',
+  level: 'ม.6'
+});
+
+var b = Shell.board({
+  box: [30, 4.5, 108, -1.5],
+  axis: true,
+  grid: false,
+  keepaspect: false
+});
+var C = Shell.C;
+
+Shell.setup('ข้อมูลคะแนนสอบมี $N = 11$ จำนวน ซึ่งเรียงลำดับจากน้อยไปมากแล้ว จึงใช้สูตรตำแหน่ง $\\frac{r(N+1)}{4}$ เพื่อหาควอร์ไทล์และสร้างแผนภาพกล่อง');
+
+var rawData = [42, 55, 61, 63, 68, 70, 72, 75, 79, 88, 95];
+
+Shell.group('แจกแจงข้อมูลและหาค่าควอร์ไทล์');
+
+var s1 = Shell.step('ข้อมูลคะแนนสอบของนักเรียน $11$ คน เรียงจากน้อยไปมาก: $42, 55, 61, 63, 68, 70, 72, 75, 79, 88, 95$');
+var pts = rawData.map(function(val) {
+  return b.create('point', [val, 0], {
+    size: 4,
+    fillColor: C.given,
+    strokeColor: C.given,
+    fixed: true,
+    name: '',
+    withLabel: false
+  });
+});
+Shell.on(s1, pts[0], pts[1], pts[2], pts[3], pts[4], pts[5], pts[6], pts[7], pts[8], pts[9], pts[10]);
+Shell.tag(s1, pts[0], '$x_{(1)} = 42$', {role: 'given', until: 'step'});
+Shell.tag(s1, pts[10], '$x_{(11)} = 95$', {role: 'given', until: 'step'});
+
+var s2 = Shell.step('หามัธยฐาน $(\\text{Med})$: ตำแหน่งคือ $\\frac{2(11+1)}{4} = 6$ ตรงกับข้อมูลตัวที่ $6$ คือ $70$', {
+  why: 'มัธยฐานคือค่ากึ่งกลางที่แบ่งข้อมูลออกเป็นสองส่วนเท่ากัน เมื่อเรียงข้อมูลแล้วจะอยู่ตำแหน่งที่ 6',
+  uses: [1]
+});
+var pMedDot = b.create('point', [70, 0], {
+  size: 6,
+  fillColor: C.work,
+  strokeColor: C.work,
+  fixed: true,
+  name: '',
+  withLabel: false
+});
+Shell.on(s2, pMedDot, {until: 'step'});
+Shell.tag(s2, pMedDot, 'มัธยฐาน $= 70$', {role: 'work', until: 'step'});
+
+var s3 = Shell.step('หาควอร์ไทล์ที่หนึ่ง $(Q_1)$: ตำแหน่งคือ $\\frac{1(11+1)}{4} = 3$ ตรงกับข้อมูลตัวที่ $3$ คือ $61$', {
+  why: 'ควอร์ไทล์ที่หนึ่งเป็นค่าที่แบ่งข้อมูล $25\\%$ แรก จึงอยู่ที่ตำแหน่งหนึ่งในสี่ของข้อมูลทั้งหมด',
+  uses: [1]
+});
+var pQ1Dot = b.create('point', [61, 0], {
+  size: 6,
+  fillColor: C.work,
+  strokeColor: C.work,
+  fixed: true,
+  name: '',
+  withLabel: false
+});
+Shell.on(s3, pQ1Dot, {until: 'step'});
+Shell.tag(s3, pQ1Dot, '$Q_1 = 61$', {role: 'work', until: 'step'});
+
+var s4 = Shell.step('หาควอร์ไทล์ที่สาม $(Q_3)$: ตำแหน่งคือ $\\frac{3(11+1)}{4} = 9$ ตรงกับข้อมูลตัวที่ $9$ คือ $79$', {
+  why: 'ควอร์ไทล์ที่สามเป็นค่าที่แบ่งข้อมูล $75\\%$ แรก จึงอยู่ที่ตำแหน่งสามในสี่ของข้อมูลทั้งหมด',
+  uses: [1]
+});
+var pQ3Dot = b.create('point', [79, 0], {
+  size: 6,
+  fillColor: C.work,
+  strokeColor: C.work,
+  fixed: true,
+  name: '',
+  withLabel: false
+});
+Shell.on(s4, pQ3Dot, {until: 'step'});
+Shell.tag(s4, pQ3Dot, '$Q_3 = 79$', {role: 'work', until: 'step'});
+
+Shell.group('คำนวณพิสัยระหว่างควอร์ไทล์และตรวจค่านอกเกณฑ์');
+
+var s5 = Shell.step('หาพิสัยระหว่างควอร์ไทล์ $(\\text{IQR})$: $\\text{IQR} = Q_3 - Q_1 = 79 - 61 = 18$', {
+  why: 'พิสัยระหว่างควอร์ไทล์วัดการกระจายของข้อมูลช่วงกลาง $50\\%$ คำนวณจากผลต่างระหว่าง $Q_3$ กับ $Q_1$',
+  uses: [3, 4]
+});
+var iqrSeg = b.create('segment', [[61, 0.8], [79, 0.8]], {
+  strokeColor: C.work,
+  strokeWidth: 3,
+  name: '',
+  withLabel: false
+});
+var iqrMid = b.create('point', [70, 0.8], {
+  size: 0,
+  visible: false,
+  fixed: true,
+  name: '',
+  withLabel: false
+});
+Shell.on(s5, iqrSeg, iqrMid, {until: 'step'});
+Shell.tag(s5, iqrMid, '$\\text{IQR} = 18$', {role: 'work', until: 'step'});
+
+var s6 = Shell.step('ตรวจสอบค่านอกเกณฑ์: ขอบล่าง $Q_1 - 1.5(\\text{IQR}) = 61 - 27 = 34$ และขอบบน $Q_3 + 1.5(\\text{IQR}) = 79 + 27 = 106$ ข้อมูลทั้งหมดอยู่ในช่วงจึงไม่มีค่านอกเกณฑ์', {
+  why: 'ต้องตรวจสอบค่านอกเกณฑ์เพื่อกำหนดจุดสิ้นสุดของหนวดแมวว่าครอบคลุมถึงค่าต่ำสุดและสูงสุดหรือไม่',
+  uses: [5]
+});
+var lbPt = b.create('point', [34, 0], {
+  size: 3,
+  strokeColor: C.note,
+  fillColor: C.note,
+  fixed: true,
+  name: '',
+  withLabel: false
+});
+var ubPt = b.create('point', [106, 0], {
+  size: 3,
+  strokeColor: C.note,
+  fillColor: C.note,
+  fixed: true,
+  name: '',
+  withLabel: false
+});
+Shell.on(s6, lbPt, ubPt, {until: 'step'});
+Shell.tag(s6, lbPt, 'ขอบล่าง $34$', {role: 'note', until: 'step'});
+Shell.tag(s6, ubPt, 'ขอบบน $106$', {role: 'note', until: 'step'});
+
+Shell.group('สร้างแผนภาพกล่อง (Box Plot)');
+
+var s7 = Shell.step('วาดตัวกล่อง (Box) จาก $Q_1 = 61$ ถึง $Q_3 = 79$ พร้อมลากเส้นมัธยฐาน $\\text{Med} = 70$ ภายในกล่อง', {
+  why: 'ตัวกล่องครอบคลุมข้อมูลตรงกลาง $50\\%$ ตั้งแต่ควอร์ไทล์ที่หนึ่งถึงควอร์ไทล์ที่สาม',
+  uses: [2, 3, 4]
+});
+var boxPoly = b.create('polygon', [[61, 1.5], [79, 1.5], [79, 3], [61, 3]], {
+  fillColor: C.work,
+  fillOpacity: 0.2,
+  borders: {strokeColor: C.answer, strokeWidth: 2.5},
+  vertices: {visible: false},
+  name: '',
+  withLabel: false
+});
+var medSeg = b.create('segment', [[70, 1.5], [70, 3]], {
+  strokeColor: C.answer,
+  strokeWidth: 3,
+  name: '',
+  withLabel: false
+});
+var pQ1Top = b.create('point', [61, 3], {size: 0, visible: false, fixed: true, name: '', withLabel: false});
+var pMedTop = b.create('point', [70, 3], {size: 0, visible: false, fixed: true, name: '', withLabel: false});
+var pQ3Top = b.create('point', [79, 3], {size: 0, visible: false, fixed: true, name: '', withLabel: false});
+Shell.on(s7, boxPoly, medSeg, pQ1Top, pMedTop, pQ3Top);
+Shell.tag(s7, pQ1Top, '$Q_1 = 61$', {role: 'answer', until: 'end'});
+Shell.tag(s7, pMedTop, '$\\text{Med} = 70$', {role: 'answer', until: 'end'});
+Shell.tag(s7, pQ3Top, '$Q_3 = 79$', {role: 'answer', until: 'end'});
+
+var s8 = Shell.step('วาดหนวดแมว (Whiskers) เชื่อมไปยังค่าต่ำสุด $\\text{Min} = 42$ และค่าสูงสุด $\\text{Max} = 95$', {
+  why: 'เมื่อไม่มีค่านอกเกณฑ์ หนวดแมวจะลากจากกล่องไปสิ้นสุดที่ค่าต่ำสุดและค่าสูงสุดของชุดข้อมูล',
+  uses: [6, 7]
+});
+var pMin = b.create('point', [42, 2.25], {
+  size: 3,
+  strokeColor: C.answer,
+  fillColor: C.answer,
+  fixed: true,
+  name: '',
+  withLabel: false
+});
+var pMax = b.create('point', [95, 2.25], {
+  size: 3,
+  strokeColor: C.answer,
+  fillColor: C.answer,
+  fixed: true,
+  name: '',
+  withLabel: false
+});
+var wLeft = b.create('segment', [[42, 2.25], [61, 2.25]], {
+  strokeColor: C.answer,
+  strokeWidth: 2,
+  name: '',
+  withLabel: false
+});
+var wRight = b.create('segment', [[79, 2.25], [95, 2.25]], {
+  strokeColor: C.answer,
+  strokeWidth: 2,
+  name: '',
+  withLabel: false
+});
+var cMin = b.create('segment', [[42, 1.8], [42, 2.7]], {
+  strokeColor: C.answer,
+  strokeWidth: 2,
+  name: '',
+  withLabel: false
+});
+var cMax = b.create('segment', [[95, 1.8], [95, 2.7]], {
+  strokeColor: C.answer,
+  strokeWidth: 2,
+  name: '',
+  withLabel: false
+});
+Shell.on(s8, pMin, pMax, wLeft, wRight, cMin, cMax);
+Shell.tag(s8, pMin, '$\\text{Min} = 42$', {role: 'answer', until: 'end'});
+Shell.tag(s8, pMax, '$\\text{Max} = 95$', {role: 'answer', until: 'end'});
+
+Shell.answer(
+  'สรุปผลการวิเคราะห์ข้อมูลและแผนภาพกล่อง',
+  'มัธยฐาน $= 70$, $Q_1 = 61$, $Q_3 = 79$, $\\text{IQR} = 18$',
+  {
+    sanity: 'ค่า $Q_1 = 61 < \\text{Med} = 70 < Q_3 = 79$ และข้อมูลทั้งหมด $42 \\le x \\le 95$ อยู่ภายในขอบเขต $[34, 106]$ จึงไม่มีค่านอกเกณฑ์'
+  }
+);
+
+Shell.done();
+</script>
+</body></html>

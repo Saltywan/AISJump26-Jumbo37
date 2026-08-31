@@ -1,0 +1,54 @@
+# Four services and a database. `pages` is deliberately its own service on its
+# own port: generated pages contain model-written scripts, so they are served
+# from a different origin than the app and embedded in a sandboxed iframe.
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: jumpais
+      POSTGRES_PASSWORD: jumpais
+      POSTGRES_DB: jumpais
+    ports: ["5432:5432"]
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jumpais"]
+      interval: 3s
+      retries: 20
+
+  api:
+    build: { context: ., dockerfile: apps/api/Dockerfile }
+    environment:
+      DATABASE_URL: postgresql+psycopg://jumpais:jumpais@db:5432/jumpais
+      GOOGLE_CLOUD_API_KEY: ${GOOGLE_CLOUD_API_KEY}
+      PAGES_ORIGIN: http://localhost:8080
+    ports: ["8000:8000"]
+    volumes: ["storage:/storage", "./packages/kit:/kit:ro"]
+    depends_on: { db: { condition: service_healthy } }
+
+  worker:
+    build: { context: ., dockerfile: apps/worker/Dockerfile }
+    environment:
+      DATABASE_URL: postgresql+psycopg://jumpais:jumpais@db:5432/jumpais
+      GOOGLE_CLOUD_API_KEY: ${GOOGLE_CLOUD_API_KEY}
+    volumes: ["storage:/storage", "./packages/kit:/kit:ro"]
+    depends_on: { db: { condition: service_healthy } }
+
+  # separate origin, static only, no API surface at all
+  pages:
+    image: nginx:alpine
+    ports: ["8080:80"]
+    volumes:
+      - "storage:/usr/share/nginx/html/pages:ro"
+      - "./packages/kit/lib:/usr/share/nginx/html/lib:ro"
+      - "./apps/pages/nginx.conf:/etc/nginx/conf.d/default.conf:ro"
+
+  web:
+    build: { context: ., dockerfile: apps/web/Dockerfile }
+    environment:
+      VITE_API_URL: http://localhost:8000
+      VITE_PAGES_URL: http://localhost:8080
+    ports: ["5173:5173"]
+
+volumes:
+  pgdata:
+  storage:

@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>การวิเคราะห์วงจรผสมและความต้านทานรวม</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+var SVGNS = 'http://www.w3.org/2000/svg';
+
+Shell.page({
+  title: 'การวิเคราะห์วงจรไฟฟ้าผสมและความต้านทานรวม',
+  problem: 'ตัวต้านทาน $R_1 = 6\\ \\Omega$ ต่ออนุกรมกับวงจรย่อยที่มีตัวต้านทาน $R_2 = 4\\ \\Omega$ ต่อขนานกับ $R_3 = 12\\ \\Omega$ ทั้งหมดต่อกับแบตเตอรี่ $12\\text{ V}$ จงเขียนแผนภาพวงจรไฟฟ้า แล้วหาความต้านทานรวมและกระแสไฟฟ้ารวมที่ไหลผ่านวงจร',
+  level: 'ม.3'
+});
+
+var g = Shell.canvas(), C = Shell.C;
+var PX_PER_A = 60;
+
+Shell.setup('วงจรไฟฟ้าผสมประกอบด้วยส่วนที่ต่อแบบอนุกรมและขนานร่วมกัน การคำนวณหาความต้านทานรวมต้องเริ่มจากการยุบวงจรย่อยที่ต่อขนานกันให้กลายเป็นความต้านทานสมมูลหนึ่งตัวก่อน แล้วจึงนำไปรวมแบบอนุกรมกับส่วนที่เหลือของวงจร');
+
+function createEl(tag, attrs) {
+  var el = document.createElementNS(SVGNS, tag);
+  for (var k in attrs) {
+    el.setAttribute(k, attrs[k]);
+  }
+  return el;
+}
+
+function drawWire(parent, d, color, dash) {
+  var path = createEl('path', {
+    'd': d,
+    'fill': 'none',
+    'stroke': color,
+    'stroke-width': '3',
+    'stroke-linecap': 'round',
+    'stroke-linejoin': 'round'
+  });
+  if (dash) {
+    path.setAttribute('stroke-dasharray', dash);
+  }
+  parent.appendChild(path);
+  return path;
+}
+
+function drawResistorBox(parent, cx, cy, w, h, strokeColor, fillColor) {
+  var rect = createEl('rect', {
+    'x': cx - w / 2,
+    'y': cy - h / 2,
+    'width': w,
+    'height': h,
+    'rx': '5',
+    'fill': fillColor || '#ffffff',
+    'stroke': strokeColor,
+    'stroke-width': '2.5'
+  });
+  parent.appendChild(rect);
+  return rect;
+}
+
+function drawBatterySymbol(parent, cx, cy, color) {
+  var grp = createEl('g', {});
+  grp.appendChild(createEl('line', {
+    'x1': cx - 25, 'y1': cy - 14,
+    'x2': cx + 25, 'y2': cy - 14,
+    'stroke': color, 'stroke-width': '3.5', 'stroke-linecap': 'round'
+  }));
+  grp.appendChild(createEl('line', {
+    'x1': cx - 14, 'y1': cy + 14,
+    'x2': cx + 14, 'y2': cy + 14,
+    'stroke': color, 'stroke-width': '6', 'stroke-linecap': 'round'
+  }));
+  parent.appendChild(grp);
+  return grp;
+}
+
+Shell.group('เขียนแผนภาพวงจรไฟฟ้า');
+
+var s1 = Shell.step('เขียนแผนภาพวงจรไฟฟ้าตามที่โจทย์กำหนด แสดงแบตเตอรี่ $V = 12\\text{ V}$ ต่อกับ $R_1 = 6\\ \\Omega$ อนุกรมกับกลุ่มขนาน $R_2 = 4\\ \\Omega$ และ $R_3 = 12\\ \\Omega$');
+
+drawWire(s1, 'M 160 256 L 160 120 L 320 120', C.given);
+drawWire(s1, 'M 440 120 L 530 120', C.given);
+drawWire(s1, 'M 530 120 L 530 200 L 580 200', C.given);
+drawWire(s1, 'M 530 120 L 530 320 L 580 320', C.given);
+drawWire(s1, 'M 700 200 L 750 200 L 750 120', C.given);
+drawWire(s1, 'M 700 320 L 750 320 L 750 420 L 160 420 L 160 284', C.given);
+drawWire(s1, 'M 750 120 L 750 420', C.given);
+
+drawBatterySymbol(s1, 160, 270, C.given);
+Shell.label(s1, 95, 256, '$+$', {role: 'note', anchor: [130, 256], until: 'end'});
+Shell.label(s1, 95, 284, '$-$', {role: 'note', anchor: [130, 284], until: 'end'});
+Shell.label(s1, 80, 270, '$V = 12\\text{ V}$', {role: 'given', anchor: [160, 270], until: 'end'});
+
+drawResistorBox(s1, 380, 120, 120, 36, C.given);
+Shell.label(s1, 380, 70, '$R_1 = 6\\ \\Omega$', {role: 'given', anchor: [380, 100], until: 'end'});
+
+drawResistorBox(s1, 640, 200, 120, 36, C.given);
+Shell.label(s1, 640, 155, '$R_2 = 4\\ \\Omega$', {role: 'given', anchor: [640, 180], until: 'end'});
+
+drawResistorBox(s1, 640, 320, 120, 36, C.given);
+Shell.label(s1, 640, 365, '$R_3 = 12\\ \\Omega$', {role: 'given', anchor: [640, 340], until: 'end'});
+
+var j1 = createEl('circle', {'cx': 530, 'cy': 120, 'r': 4, 'fill': C.given});
+var j2 = createEl('circle', {'cx': 750, 'cy': 200, 'r': 4, 'fill': C.given});
+s1.appendChild(j1);
+s1.appendChild(j2);
+
+Shell.group('ยุบความต้านทานส่วนที่ต่อขนาน');
+
+var s2 = Shell.step('ยุบตัวต้านทาน $R_2$ และ $R_3$ ที่ต่อขนานกัน ได้ความต้านทานสมมูล $R_{23} = \\frac{R_2 R_3}{R_2 + R_3} = \\frac{4 \\times 12}{4 + 12} = 3\\ \\Omega$', {
+  why: 'ตัวต้านทานต่อขนานกันมีความต่างศักย์ตกคร่อมเท่ากัน การหาความต้านทานสมมูลจึงใช้ผลคูณหารด้วยผลบวก'
+});
+
+var boxParallel = createEl('rect', {
+  'x': 510, 'y': 150,
+  'width': 260, 'height': 210,
+  'rx': '10',
+  'fill': 'none',
+  'stroke': C.work,
+  'stroke-width': '2',
+  'stroke-dasharray': '6 4'
+});
+s2.appendChild(boxParallel);
+Shell.label(s2, 640, 260, 'ยุบขนาน $R_{23} = 3\\ \\Omega$', {role: 'work', anchor: [640, 260], until: 'step'});
+
+Shell.group('หาความต้านทานรวมทั้งวงจร');
+
+var s3 = Shell.step('รวมความต้านทาน $R_1$ กับ $R_{23}$ แบบอนุกรม ได้ความต้านทานรวม $R_{\\text{total}} = R_1 + R_{23} = 6 + 3 = 9\\ \\Omega$', {
+  uses: [2],
+  why: 'กระแสไฟฟ้าชุดเดียวกันไหลผ่านตัวต้านทานต่อเนื่องกัน ความต้านทานรวมแบบอนุกรมจึงเท่ากับผลบวกของความต้านทานแต่ละตัว'
+});
+
+var boxEquivalent = createEl('rect', {
+  'x': 550, 'y': 100,
+  'width': 180, 'height': 40,
+  'rx': '6',
+  'fill': '#ffffff',
+  'stroke': C.work,
+  'stroke-width': '2.5'
+});
+s3.appendChild(boxEquivalent);
+Shell.label(s3, 640, 65, 'สมมูล $R_{23} = 3\\ \\Omega$', {role: 'work', anchor: [640, 100], until: 'end'});
+
+var totalBrace = createEl('path', {
+  'd': 'M 320 40 L 510 40 L 510 25 L 510 40 L 730 40',
+  'fill': 'none',
+  'stroke': C.answer,
+  'stroke-width': '2'
+});
+s3.appendChild(totalBrace);
+Shell.label(s3, 510, 15, '$R_{\\text{total}} = 6 + 3 = 9\\ \\Omega$', {role: 'answer', anchor: [510, 25], until: 'end'});
+
+Shell.group('หากระแสไฟฟ้ารวมในวงจร');
+
+var s4 = Shell.step('หากระแสไฟฟ้ารวม $I_{\\text{total}}$ จากกฎของโอห์ม $I_{\\text{total}} = \\frac{V}{R_{\\text{total}}} = \\frac{12}{9} = \\frac{4}{3} \\approx 1.33\\text{ A}$', {
+  uses: [3],
+  why: 'ตามกฎของโอห์ม กระแสไฟฟ้ารวมของวงจรแปรผันตรงกับแรงดันไฟฟ้ารวมและแปรผกผันกับความต้านทานรวม'
+});
+
+Shell.arrow(s4, 200, 120, 200 + 1.333 * PX_PER_A, 120, {
+  role: 'answer',
+  label: '$I_{\\text{total}} = 1.33$ A',
+  value: 1.33,
+  unit: 'A',
+  until: 'end'
+});
+
+Shell.arrow(s4, 160, 360, 160, 360 - 1.333 * PX_PER_A, {
+  role: 'answer',
+  label: '$I = 1.33$ A',
+  value: 1.33,
+  unit: 'A',
+  until: 'end'
+});
+
+Shell.answer('ความต้านทานรวมของวงจร', '$R_{\\text{total}} = 9\\ \\Omega$', {
+  sanity: 'มากกว่า $R_1 = 6\\ \\Omega$ เนื่องจากต่ออนุกรมเพิ่มกับความต้านทานสมมูลส่วนขนาน ($3\\ \\Omega$)'
+});
+
+Shell.answer('กระแสไฟฟ้ารวมที่ไหลผ่านวงจร', '$I_{\\text{total}} = \\frac{4}{3}\\text{ A} \\approx 1.33\\text{ A}$', {
+  sanity: 'สอดคล้องกับ $V = 12\\text{ V}$ จ่ายให้ความต้านทานรวม $9\\ \\Omega$ ได้กระแส $I = \\frac{12}{9}\\text{ A}$'
+});
+
+Shell.done();
+</script>
+</body></html>

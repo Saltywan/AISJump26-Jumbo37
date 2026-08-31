@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>เส้นสัมผัสวงกลมจากจุดภายนอก</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/jsxgraph.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/jsxgraphcore.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+Shell.page({
+  title: 'เส้นสัมผัสวงกลมจากจุดภายนอก',
+  problem: 'จากจุด $P(7, 0)$ ลากเส้นสัมผัสวงกลม $x^2 + y^2 = 9$ ได้สองเส้น จงหาพิกัดของจุดสัมผัสทั้งสอง และความยาวของเส้นสัมผัสจากจุด $P$',
+  level: 'ม.4'
+});
+
+var b = Shell.board({
+  box: [-4, 5, 9, -5],
+  axis: true,
+  grid: true,
+  keepaspect: true
+});
+var C = Shell.C;
+
+Shell.setup('รัศมีที่ลากไปยังจุดสัมผัสจะตั้งฉากกับเส้นสัมผัสเสมอ ($\triangle OPT$ เป็นรูปสามเหลี่ยมมุมฉาก) และเส้นสัมผัสวงกลม $x^2 + y^2 = r^2$ ที่จุด $(x_1, y_1)$ มีสมการคือ $x_1 x + y_1 y = r^2$');
+
+var O = b.create('point', [0, 0], {fixed: true, size: 3, strokeColor: C.given, fillColor: C.given});
+var P = b.create('point', [7, 0], {fixed: true, size: 3, strokeColor: C.given, fillColor: C.given});
+var c1 = b.create('circle', [O, 3], {strokeColor: C.given, strokeWidth: 2});
+var segOP = b.create('segment', [O, P], {strokeColor: C.note, dash: 2});
+
+// วงกลมช่วยตามการสร้างทางเรขาคณิต (Thales's circle) เพื่อหาจุดสัมผัส
+var M = b.create('midpoint', [O, P], {visible: false});
+var c2 = b.create('circle', [M, P], {visible: false});
+
+var T1 = b.create('intersection', [c1, c2, 0], {size: 4, strokeColor: C.answer, fillColor: C.answer});
+var T2 = b.create('intersection', [c1, c2, 1], {size: 4, strokeColor: C.answer, fillColor: C.answer});
+
+var r1 = b.create('segment', [O, T1], {strokeColor: C.work, dash: 2});
+var r2 = b.create('segment', [O, T2], {strokeColor: C.work, dash: 2});
+
+var ang1 = b.create('angle', [P, T1, O], {radius: 0.6, strokeColor: C.work, fillColor: 'none'});
+var ang2 = b.create('angle', [P, T2, O], {radius: 0.6, strokeColor: C.work, fillColor: 'none'});
+
+var t1 = b.create('segment', [P, T1], {strokeColor: C.answer, strokeWidth: 2});
+var t2 = b.create('segment', [P, T2], {strokeColor: C.answer, strokeWidth: 2});
+
+// ขั้นที่ 1: สิ่งที่โจทย์กำหนด
+var s1 = Shell.step('วงกลม $x^2 + y^2 = 9$ มีจุดศูนย์กลางที่ $O(0, 0)$ รัศมี $r = 3$ และจุดภายนอก $P(7, 0)$');
+Shell.on(s1, O, P, c1, segOP);
+Shell.tag(s1, O, 'O(0, 0)', {role: 'given', until: 'end'});
+Shell.tag(s1, P, 'P(7, 0)', {role: 'given', until: 'end'});
+
+// กลุ่มที่ 1: หาความยาวเส้นสัมผัส
+Shell.group('หาความยาวของเส้นสัมผัส');
+
+var s2 = Shell.step('ลากรัศมี $OT_1$ และ $OT_2$ ไปยังจุดสัมผัส จะได้ว่า $OT \\perp PT$ เสมอ', {
+  why: 'รัศมีของวงกลมตั้งฉากกับเส้นสัมผัส ณ จุดสัมผัสเสมอ ทำให้ $\\triangle OPT$ เป็นสามเหลี่ยมมุมฉาก'
+});
+Shell.on(s2, r1, r2, ang1, ang2);
+
+var s3 = Shell.step('พิจารณา $\\triangle OPT$ ใช้ทฤษฎีบทพีทาโกรัสหาความยาวเส้นสัมผัส $PT = \\sqrt{OP^2 - r^2} = \\sqrt{7^2 - 3^2} = \\sqrt{40} = 2\\sqrt{10}$ หน่วย', {
+  uses: [1, 2]
+});
+Shell.on(s3, t1, t2);
+
+// กลุ่มที่ 2: หาพิกัดของจุดสัมผัส
+Shell.group('หาพิกัดของจุดสัมผัสทั้งสอง');
+
+var s4 = Shell.step('ให้จุดสัมผัสคือ $T(x_1, y_1)$ สมการเส้นสัมผัสคือ $x_1 x + y_1 y = 9$ ผ่านจุด $P(7, 0)$ จะได้ $x_1(7) + y_1(0) = 9 \\implies x_1 = \\frac{9}{7}$', {
+  why: 'เส้นสัมผัสวงกลม $x^2+y^2=r^2$ ที่จุด $(x_1, y_1)$ ใด ๆ บนวงกลม มีสมการเป็น $x_1 x + y_1 y = r^2$'
+});
+
+var s5 = Shell.step('แทน $x_1 = \\frac{9}{7}$ ลงในสมการวงกลม $x_1^2 + y_1^2 = 9$ ได้ $y_1^2 = 9 - \\left(\\frac{9}{7}\\right)^2 = \\frac{360}{49} \\implies y_1 = \\pm\\frac{6\\sqrt{10}}{7}$', {
+  uses: [4]
+});
+
+var s6 = Shell.step('ดังนั้น จุดสัมผัสทั้งสองคือ $T_1\\left(\\frac{9}{7}, \\frac{6\\sqrt{10}}{7}\\right)$ และ $T_2\\left(\\frac{9}{7}, -\\frac{6\\sqrt{10}}{7}\\right)$', {
+  uses: [5]
+});
+Shell.on(s6, T1, T2);
+Shell.tag(s6, T1, 'T_1\\left(\\frac{9}{7}, \\frac{6\\sqrt{10}}{7}\\right)', {role: 'answer', until: 'end'});
+Shell.tag(s6, T2, 'T_2\\left(\\frac{9}{7}, -\\frac{6\\sqrt{10}}{7}\\right)', {role: 'answer', until: 'end'});
+
+// คำตอบสรุป
+Shell.answer('ความยาวของเส้นสัมผัสจากจุด $P$', '$PT = 2\\sqrt{10}$ หน่วย', {
+  sanity: 'ความยาวเส้นสัมผัส $2\\sqrt{10} \\approx 6.32$ หน่วย สั้นกว่าระยะ $OP = 7$ หน่วย ซึ่งสอดคล้องกับด้านประกอบมุมฉากใน $\\triangle OPT$'
+});
+
+Shell.answer('พิกัดของจุดสัมผัสทั้งสอง', 'T_1\\left(\\frac{9}{7}, \\frac{6\\sqrt{10}}{7}\\right),\\ T_2\\left(\\frac{9}{7}, -\\frac{6\\sqrt{10}}{7}\\right)', {
+  sanity: 'ค่า $x_1 = \\frac{9}{7} \\approx 1.29$ อยู่ในช่วงรัศมี $[-3, 3]$ และมีจุดสัมผัสสมมาตรรอบแกน X สองจุดอย่างสมบูรณ์'
+});
+
+Shell.done();
+</script>
+</body></html>

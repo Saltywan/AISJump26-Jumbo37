@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>การเคลื่อนที่แบบโพรเจกไทล์</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+var SVGNS = 'http://www.w3.org/2000/svg';
+
+Shell.page({
+  title: 'การเคลื่อนที่แบบโพรเจกไทล์',
+  problem: 'ยิงลูกบอลมวล $0.5$ kg ออกจากพื้นด้วยความเร็วต้น $20$ m/s ทำมุม $37^\\circ$ กับแนวราบ จงหาความสูงสูงสุด ($H$) ที่ลูกบอลขึ้นไปได้ และระยะทางตามแนวราบ ($R$) ที่ลูกบอลตกกลับสู่พื้น (กำหนด $g = 10$ m/s$^2$, $\\sin 37^\\circ = 0.6$, $\\cos 37^\\circ = 0.8$)',
+  level: 'ม.4'
+});
+
+var g = Shell.canvas(), C = Shell.C;
+
+var PX_PER_VEL = 5.0;
+var PX_PER_M = 16.67;
+
+Shell.setup('การเคลื่อนที่แบบโพรเจกไทล์เป็นการเคลื่อนที่ $2$ มิติที่อิสระต่อกัน โดยแนวราบไม่มีแรงลัพธ์ ($a_x = 0$) ส่วนแนวดิ่งมีความเร่งคงตัวจากแรงโน้มถ่วง ($a_y = -g$) จึงต้องแยกพิจารณาทีละแกน');
+
+var ground = document.createElementNS(SVGNS, 'line');
+ground.setAttribute('x1', '60');
+ground.setAttribute('y1', '440');
+ground.setAttribute('x2', '900');
+ground.setAttribute('y2', '440');
+ground.setAttribute('stroke', C.note);
+ground.setAttribute('stroke-width', '3');
+g.appendChild(ground);
+
+for (var i = 70; i < 900; i += 30) {
+  var hatch = document.createElementNS(SVGNS, 'line');
+  hatch.setAttribute('x1', i);
+  hatch.setAttribute('y1', '440');
+  hatch.setAttribute('x2', i - 15);
+  hatch.setAttribute('y2', '455');
+  hatch.setAttribute('stroke', C.note);
+  hatch.setAttribute('stroke-width', '1.5');
+  g.appendChild(hatch);
+}
+
+Shell.group('แตกเวกเตอร์ความเร็วต้น');
+
+var s1 = Shell.step('แตกความเร็วต้น $u = 20$ m/s เข้าสู่แกนราบและแกนดิ่ง<br>แนวราบ: $u_x = u\\cos 37^\\circ = 20(0.8) = 16$ m/s<br>แนวดิ่ง: $u_y = u\\sin 37^\\circ = 20(0.6) = 12$ m/s', {
+  why: 'การเคลื่อนที่ในแนวราบและแนวดิ่งเป็นอิสระต่อกัน จึงต้องแยกส่วนประกอบความเร็วต้นของแต่ละแกน'
+});
+
+var ball0 = document.createElementNS(SVGNS, 'circle');
+ball0.setAttribute('cx', '160');
+ball0.setAttribute('cy', '430');
+ball0.setAttribute('r', '10');
+ball0.setAttribute('fill', C.given);
+s1.appendChild(ball0);
+
+var arcAngle = document.createElementNS(SVGNS, 'path');
+arcAngle.setAttribute('d', 'M 200 430 A 40 40 0 0 0 192 406');
+arcAngle.setAttribute('fill', 'none');
+arcAngle.setAttribute('stroke', C.note);
+arcAngle.setAttribute('stroke-width', '1.5');
+s1.appendChild(arcAngle);
+
+Shell.label(s1, 215, 420, '$37^\\circ$', {role:'note', anchor:[192, 418], until:'end'});
+
+Shell.arrow(s1, 160, 430, 160 + 20 * PX_PER_VEL * 0.8, 430 - 20 * PX_PER_VEL * 0.6, {
+  role: 'given',
+  label: '$u = 20$ m/s',
+  value: 20,
+  unit: 'm/s',
+  until: 'end'
+});
+
+Shell.arrow(s1, 160, 430, 160 + 16 * PX_PER_VEL, 430, {
+  role: 'work',
+  label: '$u_x = 16$ m/s',
+  value: 16,
+  unit: 'm/s',
+  until: 'step'
+});
+
+Shell.arrow(s1, 160, 430, 160, 430 - 12 * PX_PER_VEL, {
+  role: 'work',
+  label: '$u_y = 12$ m/s',
+  value: 12,
+  unit: 'm/s',
+  until: 'step'
+});
+
+Shell.group('คำนวณความสูงสูงสุด');
+
+var s2 = Shell.step('พิจารณาแนวดิ่งที่จุดสูงสุด ความเร็วแนวดิ่ง $v_y = 0$<br>จากสมการ $v_y^2 = u_y^2 - 2gH$<br>$0 = (12)^2 - 2(10)H \\implies 20H = 144 \\implies H = 7.2$ m', {
+  why: 'ที่จุดสูงสุดของวิถีโค้ง ลูกบอลจะหยุดเคลื่อนที่ในแนวดิ่งชั่วขณะทำให้ $v_y = 0$',
+  uses: [1]
+});
+
+var halfTraj = document.createElementNS(SVGNS, 'path');
+halfTraj.setAttribute('d', 'M 160 430 Q 320 250 480 250');
+halfTraj.setAttribute('fill', 'none');
+halfTraj.setAttribute('stroke', C.work);
+halfTraj.setAttribute('stroke-width', '2.5');
+halfTraj.setAttribute('stroke-dasharray', '6,6');
+s2.appendChild(halfTraj);
+
+var ballTop = document.createElementNS(SVGNS, 'circle');
+ballTop.setAttribute('cx', '480');
+ballTop.setAttribute('cy', '250');
+ballTop.setAttribute('r', '10');
+ballTop.setAttribute('fill', C.work);
+s2.appendChild(ballTop);
+
+Shell.arrow(s2, 480, 250, 480 + 16 * PX_PER_VEL, 250, {
+  role: 'work',
+  label: '$v_x = 16$ m/s',
+  value: 16,
+  unit: 'm/s',
+  until: 'step'
+});
+
+Shell.label(s2, 480, 230, '$v_y = 0$', {role:'note', anchor:[480, 250], until:'step'});
+
+var hLineRef = document.createElementNS(SVGNS, 'line');
+hLineRef.setAttribute('x1', '440');
+hLineRef.setAttribute('y1', '250');
+hLineRef.setAttribute('x2', '520');
+hLineRef.setAttribute('y2', '250');
+hLineRef.setAttribute('stroke', C.note);
+hLineRef.setAttribute('stroke-width', '1');
+hLineRef.setAttribute('stroke-dasharray', '4,4');
+s2.appendChild(hLineRef);
+
+Shell.arrow(s2, 440, 430, 440, 250, {
+  role: 'answer',
+  label: '$H = 7.2$ m',
+  value: 7.2,
+  unit: 'm',
+  until: 'end'
+});
+
+Shell.group('คำนวณระยะทางตามแนวราบ');
+
+var s3 = Shell.step('หาเวลาทั้งหมดที่ลูกบอลลอยอยู่ในอากาศ ($T$)<br>หาเวลาขึ้นถึงจุดสูงสุด: $v_y = u_y - gt_{\\text{top}} \\implies 0 = 12 - 10t_{\\text{top}} \\implies t_{\\text{top}} = 1.2$ s<br>เวลาทั้งหมด $T = 2t_{\\text{top}} = 2(1.2) = 2.4$ s', {
+  why: 'การเคลื่อนที่ขึ้นและตกกลับลงมาสู่ระดับเดิมมีความสมมาตร เวลาทั้งหมดจึงเป็น $2$ เท่าของเวลาขาขึ้น',
+  uses: [1]
+});
+
+Shell.label(s3, 320, 290, 'เวลาขาขึ้น $t = 1.2$ s', {role:'work', anchor:[320, 310], until:'step'});
+Shell.label(s3, 640, 290, 'เวลาขาลง $t = 1.2$ s', {role:'work', anchor:[640, 310], until:'step'});
+
+var s4 = Shell.step('หาระยะทางตามแนวราบ ($R$) จากการเคลื่อนที่ด้วยความเร็วคงตัว<br>$R = u_x T = (16)(2.4) = 38.4$ m', {
+  why: 'แนวราบไม่มีแรงลัพธ์กระทำ ความเร่ง $a_x = 0$ ความเร็วคงตัว จึงใช้ $S_x = u_x t$',
+  uses: [1, 3]
+});
+
+var fullTraj = document.createElementNS(SVGNS, 'path');
+fullTraj.setAttribute('d', 'M 160 430 Q 480 70 800 430');
+fullTraj.setAttribute('fill', 'none');
+fullTraj.setAttribute('stroke', C.answer);
+fullTraj.setAttribute('stroke-width', '3');
+s4.appendChild(fullTraj);
+
+var ballEnd = document.createElementNS(SVGNS, 'circle');
+ballEnd.setAttribute('cx', '800');
+ballEnd.setAttribute('cy', '430');
+ballEnd.setAttribute('r', '10');
+ballEnd.setAttribute('fill', C.answer);
+s4.appendChild(ballEnd);
+
+var vLandingLine = document.createElementNS(SVGNS, 'line');
+vLandingLine.setAttribute('x1', '800');
+vLandingLine.setAttribute('y1', '430');
+vLandingLine.setAttribute('x2', '800');
+vLandingLine.setAttribute('y2', '490');
+vLandingLine.setAttribute('stroke', C.note);
+vLandingLine.setAttribute('stroke-width', '1');
+vLandingLine.setAttribute('stroke-dasharray', '3,3');
+s4.appendChild(vLandingLine);
+
+var vStartLine = document.createElementNS(SVGNS, 'line');
+vStartLine.setAttribute('x1', '160');
+vStartLine.setAttribute('y1', '430');
+vStartLine.setAttribute('x2', '160');
+vStartLine.setAttribute('y2', '490');
+vStartLine.setAttribute('stroke', C.note);
+vStartLine.setAttribute('stroke-width', '1');
+vStartLine.setAttribute('stroke-dasharray', '3,3');
+s4.appendChild(vStartLine);
+
+Shell.arrow(s4, 160, 480, 800, 480, {
+  role: 'answer',
+  label: '$R = 38.4$ m',
+  value: 38.4,
+  unit: 'm',
+  until: 'end'
+});
+
+Shell.answer('ความสูงสูงสุดของลูกบอล', '$H = 7.2$ m', {
+  sanity: 'น้อยกว่ากรณีขว้างขึ้นตรง ๆ ($H_{\\max} = \\frac{u^2}{2g} = 20$ m) เนื่องจากความเร็วส่วนหนึ่งอยู่ในแนวราบ'
+});
+
+Shell.answer('ระยะทางตามแนวราบที่ตกถึงพื้น', '$R = 38.4$ m', {
+  sanity: 'น้อยกว่าระยะไกลสุดที่มุม $45^\\circ$ ($R_{\\max} = \\frac{u^2}{g} = 40$ m) ตามทฤษฎีโพรเจกไทล์'
+});
+
+Shell.done();
+</script>
+</body></html>

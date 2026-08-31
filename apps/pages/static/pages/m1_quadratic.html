@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>กราฟของฟังก์ชันพาราโบลา</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+var SVGNS = 'http://www.w3.org/2000/svg';
+
+Shell.page({
+  title: 'กราฟของฟังก์ชันพาราโบลา $y = -x^2 + 3x + 4$',
+  problem: 'จงวาดกราฟของฟังก์ชัน $y = -x^2 + 3x + 4$ พร้อมหาจุดตัดแกน x จุดตัดแกน y และจุดยอดของพาราโบลา',
+  level: 'ม.3'
+});
+
+var g = Shell.canvas();
+var C = Shell.C;
+
+// มาตราส่วนและฟังก์ชันแปลงพิกัด (Scale & Coordinate Transformation)
+var ORIGIN_X = 400;
+var ORIGIN_Y = 370;
+var SCALE = 42; // 42 พิกเซล ต่อ 1 หน่วยคณิตศาสตร์
+
+function toX(x) { return ORIGIN_X + x * SCALE; }
+function toY(y) { return ORIGIN_Y - y * SCALE; }
+
+// สร้างแกนพิกัดฉากและเส้นตาราง (Coordinate axes & grid)
+var gridGroup = document.createElementNS(SVGNS, 'g');
+gridGroup.setAttribute('opacity', '0.35');
+
+for (var xVal = -3; xVal <= 6; xVal++) {
+  var lineX = document.createElementNS(SVGNS, 'line');
+  lineX.setAttribute('x1', toX(xVal));
+  lineX.setAttribute('y1', toY(-3));
+  lineX.setAttribute('x2', toX(xVal));
+  lineX.setAttribute('y2', toY(8));
+  lineX.setAttribute('stroke', C.note);
+  lineX.setAttribute('stroke-width', xVal === 0 ? '2' : '1');
+  if (xVal !== 0) lineX.setAttribute('stroke-dasharray', '3,3');
+  gridGroup.appendChild(lineX);
+}
+
+for (var yVal = -3; yVal <= 8; yVal++) {
+  var lineY = document.createElementNS(SVGNS, 'line');
+  lineY.setAttribute('x1', toX(-3));
+  lineY.setAttribute('y1', toY(yVal));
+  lineY.setAttribute('x2', toX(6));
+  lineY.setAttribute('y2', toY(yVal));
+  lineY.setAttribute('stroke', C.note);
+  lineY.setAttribute('stroke-width', yVal === 0 ? '2' : '1');
+  if (yVal !== 0) lineY.setAttribute('stroke-dasharray', '3,3');
+  gridGroup.appendChild(lineY);
+}
+g.appendChild(gridGroup);
+
+// ป้ายชื่อแกน
+Shell.label(g, toX(6.2), toY(0), 'x', {role: 'note', anchor: [toX(6.2), toY(0)], until: 'end'});
+Shell.label(g, toX(0), toY(8.3), 'y', {role: 'note', anchor: [toX(0), toY(8.3)], until: 'end'});
+
+// จุดกำเนิด (0,0)
+var originDot = document.createElementNS(SVGNS, 'circle');
+originDot.setAttribute('cx', toX(0));
+originDot.setAttribute('cy', toY(0));
+originDot.setAttribute('r', '3');
+originDot.setAttribute('fill', C.note);
+g.appendChild(originDot);
+
+Shell.setup('เทียบสมการกับรูปทั่วไป $y = ax^2 + bx + c$ เพื่อหาค่าสัมประสิทธิ์ $a, b, c$ ซึ่งจะบอกลักษณะความคว่ำหงาย จุดตัด และจุดยอด');
+
+Shell.group('วิเคราะห์สัมประสิทธิ์และลักษณะกราฟ');
+
+var s1 = Shell.step('จากสมการ $y = -x^2 + 3x + 4$ จะได้สัมประสิทธิ์ $a = -1$, $b = 3$, $c = 4$<br>เนื่องจาก $a < 0$ กราฟจึงเป็น <b>พาราโบลาคว่ำ</b> (มีจุดยอดเป็นจุดสูงสุด)', {
+  why: 'สัมประสิทธิ์หน้า $x^2$ คือ $a$ มีค่าน้อยกว่าศูนย์ กราฟจะเปิดลงด้านล่างเสมอ'
+});
+
+Shell.group('หาจุดตัดแกนพิกัด');
+
+var s2 = Shell.step('<b>หาจุดตัดแกน y</b>: แทนค่า $x = 0$ ในสมการ<br>$y = -(0)^2 + 3(0) + 4 = 4$<br>ดังนั้น จุดตัดแกน y คือ $(0, 4)$', {
+  why: 'ทุกจุดบนแกน y มีพิกัด x เป็นศูนย์เสมอ'
+});
+
+var dotY = document.createElementNS(SVGNS, 'circle');
+dotY.setAttribute('cx', toX(0));
+dotY.setAttribute('cy', toY(4));
+dotY.setAttribute('r', '5');
+dotY.setAttribute('fill', C.work);
+s2.appendChild(dotY);
+
+Shell.label(s2, toX(0) - 25, toY(4), '$(0, 4)$', {
+  role: 'work',
+  anchor: [toX(0), toY(4)],
+  until: 'end'
+});
+
+var s3 = Shell.step('<b>หาจุดตัดแกน x</b>: แทนค่า $y = 0$ ในสมการ<br>$-x^2 + 3x + 4 = 0$<br>$x^2 - 3x - 4 = 0$<br>$(x - 4)(x + 1) = 0$<br>จะได้ $x = -1$ หรือ $x = 4$<br>ดังนั้น จุดตัดแกน x คือ $(-1, 0)$ และ $(4, 0)$', {
+  why: 'ทุกจุดบนแกน x มีพิกัด y เป็นศูนย์เสมอ'
+});
+
+var dotX1 = document.createElementNS(SVGNS, 'circle');
+dotX1.setAttribute('cx', toX(-1));
+dotX1.setAttribute('cy', toY(0));
+dotX1.setAttribute('r', '5');
+dotX1.setAttribute('fill', C.work);
+s3.appendChild(dotX1);
+
+var dotX2 = document.createElementNS(SVGNS, 'circle');
+dotX2.setAttribute('cx', toX(4));
+dotX2.setAttribute('cy', toY(0));
+dotX2.setAttribute('r', '5');
+dotX2.setAttribute('fill', C.work);
+s3.appendChild(dotX2);
+
+Shell.label(s3, toX(-1), toY(0) + 22, '$(-1, 0)$', {
+  role: 'work',
+  anchor: [toX(-1), toY(0)],
+  until: 'end'
+});
+
+Shell.label(s3, toX(4), toY(0) + 22, '$(4, 0)$', {
+  role: 'work',
+  anchor: [toX(4), toY(0)],
+  until: 'end'
+});
+
+Shell.group('หาจุดยอดและแกนสมมาตร');
+
+var s4 = Shell.step('<b>หาจุดยอด $(h, k)$</b> ของพาราโบลา:<br>พิกัด $h = -\\frac{b}{2a} = -\\frac{3}{2(-1)} = \\frac{3}{2} = 1.5$<br>พิกัด $k = f(1.5) = -(1.5)^2 + 3(1.5) + 4 = -2.25 + 4.5 + 4 = 6.25$<br>ดังนั้น จุดยอดคือ $(1.5, 6.25)$ และแกนสมมาตรคือเส้นตรง $x = 1.5$', {
+  why: 'จุดยอดของพาราโบลา $y=ax^2+bx+c$ อยู่ที่ตำแหน่ง $x = -b/(2a)$ ซึ่งเป็นกึ่งกลางระหว่างจุดตัดแกน x ทั้งสอง',
+  uses: [1, 3]
+});
+
+// เส้นแกนสมมาตร x = 1.5
+var symLine = document.createElementNS(SVGNS, 'line');
+symLine.setAttribute('x1', toX(1.5));
+symLine.setAttribute('y1', toY(-2));
+symLine.setAttribute('x2', toX(1.5));
+symLine.setAttribute('y2', toY(7.5));
+symLine.setAttribute('stroke', C.warn);
+symLine.setAttribute('stroke-width', '1.5');
+symLine.setAttribute('stroke-dasharray', '5,5');
+s4.appendChild(symLine);
+
+Shell.label(s4, toX(1.5), toY(7.6), 'แกนสมมาตร $x = 1.5$', {
+  role: 'warn',
+  anchor: [toX(1.5), toY(7.5)],
+  until: 'step'
+});
+
+var dotVertex = document.createElementNS(SVGNS, 'circle');
+dotVertex.setAttribute('cx', toX(1.5));
+dotVertex.setAttribute('cy', toY(6.25));
+dotVertex.setAttribute('r', '6');
+dotVertex.setAttribute('fill', C.answer);
+s4.appendChild(dotVertex);
+
+Shell.label(s4, toX(1.5), toY(6.25) - 20, 'จุดยอด $(1.5, 6.25)$', {
+  role: 'answer',
+  anchor: [toX(1.5), toY(6.25)],
+  until: 'end'
+});
+
+Shell.group('วาดเส้นโค้งพาราโบลา');
+
+var s5 = Shell.step('ลากเส้นโค้งพาราโบลาผ่านจุดยอด $(1.5, 6.25)$, จุดตัดแกน y $(0, 4)$ และจุดตัดแกน x $(-1, 0), (4, 0)$', {
+  uses: [2, 3, 4]
+});
+
+// สร้างเส้นโค้งพาราโบลา y = -x^2 + 3x + 4
+var pathData = [];
+var startX = -2.2;
+var endX = 5.2;
+var steps = 100;
+for (var i = 0; i <= steps; i++) {
+  var curX = startX + (endX - startX) * (i / steps);
+  var curY = -Math.pow(curX, 2) + 3 * curX + 4;
+  var cmd = (i === 0 ? 'M' : 'L') + ' ' + toX(curX).toFixed(2) + ' ' + toY(curY).toFixed(2);
+  pathData.push(cmd);
+}
+
+var curve = document.createElementNS(SVGNS, 'path');
+curve.setAttribute('d', pathData.join(' '));
+curve.setAttribute('fill', 'none');
+curve.setAttribute('stroke', C.answer);
+curve.setAttribute('stroke-width', '3.5');
+s5.appendChild(curve);
+
+Shell.label(s5, toX(3.5), toY(3.5), '$y = -x^2 + 3x + 4$', {
+  role: 'answer',
+  anchor: [toX(3.5), toY(2.25)],
+  until: 'end'
+});
+
+Shell.answer('จุดตัดแกน x คือ $(-1, 0), (4, 0)$<br>จุดตัดแกน y คือ $(0, 4)$<br>จุดยอดคือ $(1.5, 6.25)$ (จุดสูงสุด)',
+  'จุดยอด $(1.5, 6.25)$', {
+    sanity: 'จุดยอดมีค่า $x = 1.5$ อยู่กึ่งกลางระหว่างจุดตัดแกน x ทั้งสองพอดี $(-1 + 4)/2 = 1.5$'
+});
+
+Shell.done();
+</script>
+</body></html>

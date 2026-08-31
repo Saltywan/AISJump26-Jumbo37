@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>วงกลมแนบในสามเหลี่ยมมุมฉาก</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/jsxgraph.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/jsxgraphcore.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+Shell.page({
+  title: 'วงกลมแนบในของรูปสามเหลี่ยม',
+  problem: 'สามเหลี่ยม $ABC$ มีจุดยอด $A(0, 0)$, $B(8, 0)$, $C(0, 6)$ จงสร้างวงกลมแนบในสามเหลี่ยมนี้ และหาพิกัดจุดศูนย์กลางกับรัศมีของวงกลมแนบใน',
+  level: 'ม.4'
+});
+
+var b = Shell.board({box: [-2, 8, 10, -2], axis: true, grid: true, keepaspect: true});
+var C = Shell.C;
+
+Shell.setup('จุดศูนย์กลางวงกลมแนบใน (Incenter) คือจุดตัดของเส้นแบ่งครึ่งมุมภายในทั้งสาม ซึ่งมีระยะห่างตั้งฉากไปยังด้านทั้งสามเท่ากันพอดีเท่ากับรัศมี $r$');
+
+Shell.group('กำหนดจุดยอดและสร้างสามเหลี่ยม');
+
+var A = b.create('point', [0, 0], {strokeColor: C.given, fillColor: C.given, size: 4, fixed: true, withLabel: false});
+var B = b.create('point', [8, 0], {strokeColor: C.given, fillColor: C.given, size: 4, fixed: true, withLabel: false});
+var Cp = b.create('point', [0, 6], {strokeColor: C.given, fillColor: C.given, size: 4, fixed: true, withLabel: false});
+var tri = b.create('polygon', [A, B, Cp], {
+  fillColor: C.given,
+  fillOpacity: 0.08,
+  borders: {strokeColor: C.given, strokeWidth: 2.5}
+});
+
+var s1 = Shell.step('วางจุดยอด $A(0, 0)$, $B(8, 0)$, $C(0, 6)$ และลากรูปสามเหลี่ยมมุมฉาก $ABC$');
+Shell.on(s1, A, B, Cp, tri);
+Shell.tag(s1, A, 'A(0, 0)', {role: 'given', until: 'end'});
+Shell.tag(s1, B, 'B(8, 0)', {role: 'given', until: 'end'});
+Shell.tag(s1, Cp, 'C(0, 6)', {role: 'given', until: 'end'});
+
+var s2 = Shell.step('คำนวณความยาวด้านตรงข้ามมุมฉาก $BC = \\sqrt{8^2 + 6^2} = 10$ หน่วย', {
+  why: 'ต้องทราบความยาวด้านทั้งสามของสามเหลี่ยมเพื่อนำไปคำนวณรัศมีและตรวจสอบพิกัด',
+  uses: [1]
+});
+
+Shell.group('สร้างจุดศูนย์กลางและวงกลมแนบใน');
+
+var bisA = b.create('bisector', [B, A, Cp], {strokeColor: C.work, strokeWidth: 1.5, dash: 2, withLabel: false});
+var bisB = b.create('bisector', [A, B, Cp], {strokeColor: C.work, strokeWidth: 1.5, dash: 2, withLabel: false});
+
+var s3 = Shell.step('สร้างเส้นแบ่งครึ่งมุมภายในของ $\\angle A$ และ $\\angle B$', {
+  why: 'ทุกจุดบนเส้นแบ่งครึ่งมุมมีระยะห่างตั้งฉากไปยังแขนของมุมทั้งสองข้างเท่ากัน'
+});
+Shell.on(s3, bisA, bisB, {until: 'step'});
+
+var I = b.create('intersection', [bisA, bisB, 0], {
+  strokeColor: C.answer,
+  fillColor: C.answer,
+  size: 5,
+  withLabel: false
+});
+
+var s4 = Shell.step('จุดตัดของเส้นแบ่งครึ่งมุมคือจุดศูนย์กลางแนบใน $I$', {
+  why: 'เป็นจุดร่วมที่ห่างจากด้านทั้งสามด้านเท่ากันพอดี',
+  uses: [3]
+});
+Shell.on(s4, I);
+Shell.tag(s4, I, 'I(2, 2)', {role: 'answer', until: 'end'});
+
+var lineAB = b.create('line', [A, B], {visible: false});
+var perp = b.create('perpendicular', [lineAB, I], {strokeColor: C.note, strokeWidth: 1, dash: 3, withLabel: false});
+var D = b.create('intersection', [perp, lineAB, 0], {
+  strokeColor: C.work,
+  fillColor: C.work,
+  size: 3,
+  withLabel: false
+});
+var radSeg = b.create('segment', [I, D], {strokeColor: C.work, strokeWidth: 2, withLabel: false});
+
+var s5 = Shell.step('ลากเส้นตั้งฉากจาก $I$ มายังด้าน $AB$ จะได้รัศมี $r = 2$ หน่วย และจุดสัมผัส $D(2, 0)$', {
+  why: 'รัศมีของวงกลมแนบในจะตั้งฉากกับด้านที่สัมผัสเสมอ',
+  uses: [4]
+});
+Shell.on(s5, perp, D, radSeg, {until: 'step'});
+Shell.tag(s5, D, 'D(2, 0)', {role: 'work', until: 'step'});
+
+var incircle = b.create('circle', [I, D], {
+  strokeColor: C.answer,
+  strokeWidth: 2.5,
+  fillColor: C.answer,
+  fillOpacity: 0.12,
+  withLabel: false
+});
+
+var s6 = Shell.step('สร้างวงกลมแนบในที่มีจุดศูนย์กลางที่ $I(2, 2)$ และรัศมี $r = 2$ หน่วย', {
+  uses: [4, 5]
+});
+Shell.on(s6, incircle);
+
+Shell.answer(
+  'พิกัดจุดศูนย์กลางและรัศมีของวงกลมแนบใน',
+  'จุดศูนย์กลาง $I(2, 2)$ และรัศมี $r = 2$ หน่วย',
+  {
+    sanity: 'สำหรับสามเหลี่ยมมุมฉาก $r = \\frac{a+b-c}{2} = \\frac{8+6-10}{2} = 2$ และด้านประกอบมุมฉากอยู่บนแกนพิกัด ดังนั้นจุดศูนย์กลางจึงอยู่ที่ $(r, r) = (2, 2)$'
+  }
+);
+
+Shell.done();
+</script>
+</body></html>
