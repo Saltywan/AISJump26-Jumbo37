@@ -729,6 +729,8 @@
       try { checks.latex = lintLatex(); } catch (e) { checks.latex = null; }
       try { checks.jsx = lintJsx(); } catch (e) { checks.jsx = null; }
       try { checks.drawn = armStrokeDraw(); } catch (e) { checks.drawn = 0; }
+      try { checks.contrast = scanContrast(state.stage).slice(0, 6); }
+      catch (e) { checks.contrast = []; }
       root.__shellCheck = checks;
       root.__scaleWarnings = checks.magnitude;
       Shell.replay();
@@ -1830,6 +1832,83 @@
       }
       finally { creating--; }
     };
+  }
+
+  /* Contrast, not palette membership. The first version of this flagged any
+     colour outside Shell.C and lit up 5 of 16 golden pages — the light blue of
+     a cart, the yellow of a beam load, the grey of ground hatching. All fine,
+     all readable. The actual defect n3_pulley had is narrower and worse: it
+     filled its blocks with a near-black navy and the shell then drew its own
+     dark label text on top, so the labels were invisible. That is a contrast
+     failure, and palette membership cannot see it while flagging things that
+     read perfectly. Measure what goes wrong: a label sitting on a dark fill. */
+  function luminance(rgb) {
+    var m = /rgb\((\d+), (\d+), (\d+)\)/.exec(rgb);
+    if (!m) return null;
+    var c = [+m[1], +m[2], +m[3]].map(function (v) {
+      v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+    });
+    return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+  }
+
+  function scanContrast(rootEl) {
+    var bad = [];
+    if (!rootEl) return bad;
+    try {
+      var labels = rootEl.querySelectorAll('[data-label]');
+      var shapes = rootEl.querySelectorAll('svg path,svg circle,svg ellipse,svg polygon,svg rect');
+      for (var i = 0; i < labels.length; i++) {
+        var lb = labels[i];
+        if (lb.style.opacity === '0') continue;
+        var inner = lb.querySelector('foreignObject') ? lb.querySelector('foreignObject').firstElementChild
+                                                      : lb.querySelector('text');
+        if (!inner) continue;
+        var r = inner.getBoundingClientRect();
+        if (r.width < 1) continue;
+        var cx = r.x + r.width / 2, cy = r.y + r.height / 2;
+        /* Take the SMALLEST shape under the label, not the first one found.
+           A first-match scan blamed whatever happened to be early in document
+           order, and picked up every stroke-only path on the page: an SVG
+           element that never sets fill explicitly computes to rgb(0,0,0), so
+           lines and curves all looked like black fills and 8 of 16 golden pages
+           were reported unreadable. Skip anything not actually painted, and let
+           the tightest enclosing shape be the background that matters. */
+        var best = null, bestArea = Infinity, bestAlpha = 1;
+        for (var j = 0; j < shapes.length; j++) {
+          var cs = getComputedStyle(shapes[j]);
+          if (!cs.fill || cs.fill === 'none' || /rgba\(0, 0, 0, 0\)/.test(cs.fill)) continue;
+          var fo = parseFloat(cs.fillOpacity);
+          if (fo === 0) continue;
+          var tag = shapes[j].tagName.toLowerCase();
+          if (tag === 'path' && !shapes[j].getAttribute('fill')
+              && !(shapes[j].style && shapes[j].style.fill)) continue;   // stroke-only path
+          var q = shapes[j].getBoundingClientRect();
+          if (cx < q.x || cx > q.x + q.width || cy < q.y || cy > q.y + q.height) continue;
+          /* It has to be a BACKGROUND, not a speck. A 6px point marker in
+             answer-green sits under the centre of the label naming that point on
+             nearly every construction page, and blaming it reported two golden
+             pages as unreadable when the text is almost entirely on white. Only
+             consider a shape at least half the area of the label it is behind. */
+          var area = q.width * q.height;
+          if (area < 0.5 * (r.width * r.height)) continue;
+          if (area < bestArea) { bestArea = area; best = cs.fill; bestAlpha = isFinite(fo) ? fo : 1; }
+        }
+        if (best) {
+          /* Composite against the paper before judging. A shape filled with a
+             saturated colour at 0.1 opacity reads as near-white, but
+             getComputedStyle reports the raw colour — so a translucent tint
+             behind a label looked as dark as an opaque block, and two golden
+             pages with a lightly shaded circle came back "unreadable". */
+          var L = luminance(best);
+          if (L !== null) L = L * bestAlpha + 1 * (1 - bestAlpha);
+          if (L !== null && L <= 0.3) {
+            var txt = (inner.textContent || '').trim().slice(0, 14);
+            bad.push(txt + ' on ' + best);
+          }
+        }
+      }
+    } catch (e) { }
+    return bad;
   }
 
   function hexToRgb(hx) {

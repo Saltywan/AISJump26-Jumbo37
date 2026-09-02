@@ -98,6 +98,7 @@ for (const f of files) {
     const lab = (window.__shellCheck || {}).labels || {};
     return { N, per, total, moved: lab.leaders || 0, far: lab.far || 0, nlabels: lab.n || 0,
              decrowded: lab.decrowded || 0,
+             contrast: (window.__shellCheck || {}).contrast || [],
              explain: (window.__shellCheck || {}).explain || null,
              latex: (window.__shellCheck || {}).latex || null,
              jsx: (window.__shellCheck || {}).jsx || null };
@@ -191,6 +192,17 @@ for (const r of rows) {
 /* Say it loudly. `leaked` reads 0 on every one of these, so a quiet extra
    column is exactly the kind of thing that gets skimmed past for a whole
    session while it is correctly reporting a real defect. */
+/* A label drawn on a dark fill, on either drawing path. Palette membership was
+   the wrong measure — it flagged legitimate light fills on 5 of 16 golden pages
+   while missing the page that was actually unreadable. */
+const withContrast = rows.filter(r => (r.contrast || []).length);
+if (withContrast.length) {
+  console.log(`\n  !! UNREADABLE LABEL on ${withContrast.length} page(s) — dark text on a dark fill.`);
+  console.log('     The shell draws label text in dark ink. A fill this dark hides it.');
+  for (const r of withContrast)
+    console.log(`     ${r.id.padEnd(18)} ${r.contrast.slice(0, 3).join('   ')}`);
+}
+
 const withCollapsed = rows.filter(r => (r.collapsed || []).length);
 if (withCollapsed.length) {
   const n = withCollapsed.reduce((a, r) => a + r.collapsed.length, 0);

@@ -6,16 +6,16 @@ Produced by kit/sync-to-app.sh in the research repo — do not hand-edit this
 file or the files beside it; re-run that script instead. Verify with
 packages/kit/check-version.sh in this repo.
 
-source-commit: a89976392291f97f7a501e5dec679420436e306b
+source-commit: e6fcf7097f5c41d1e40f7e67900ed4d34cf95750
 source-date:   2026-09-03
-synced:        2026-09-02 19:44:44 UTC
+synced:        2026-09-02 19:54:41 UTC
 tree:          DIRTY - vendored from uncommitted changes in kit/lib, kit/prompts or kit/checks/check.mjs
 
-shell.js:            sha256:37a03de69b3e0dfba1410cd4a73b7017f262cf92633073ed2dc553dc14061a2c
+shell.js:            sha256:731a7dba19514d092cb79cf7856d0657a8eebcf5a7ddaeb05043f4f56397d8d9
 shell.css:           sha256:a633e7aea292ec9561b85daa9b334edc678797b646bedce772cfddbc9e5f12e4
 shell-rules.th.txt:  sha256:0795455125268c3950e76e3cc3c38f08a317cb4f58a76f69522daa0498d5d46d
 poc-original.th.txt: sha256:e06ecaef250bd63bee48f1e216a3c1256b4b8f0c0280b129a2e2743a83e5a305
-check.mjs:           sha256:5d241328e1c43960a1a402fe81838aedc1a611da4c1d0b0c893dafbef54c66db
+check.mjs:           sha256:5bd19f1da621c9072e78c718dda087bd2be1bfa205d939f286f748e00e1279df
 
 jsxgraph:      1.13.2
 katex:         0.18.4
