@@ -6,12 +6,12 @@ Produced by kit/sync-to-app.sh in the research repo — do not hand-edit this
 file or the files beside it; re-run that script instead. Verify with
 packages/kit/check-version.sh in this repo.
 
-source-commit: eae524976d9d83ffdbfd235f2a387cfe21794920
+source-commit: a89976392291f97f7a501e5dec679420436e306b
 source-date:   2026-09-03
-synced:        2026-09-02 18:37:47 UTC
-tree:          clean
+synced:        2026-09-02 19:44:44 UTC
+tree:          DIRTY - vendored from uncommitted changes in kit/lib, kit/prompts or kit/checks/check.mjs
 
-shell.js:            sha256:b8435f17d83e618b51628e36f1cf963bee23af147fef6b58d6a84c9ffd6f4494
+shell.js:            sha256:37a03de69b3e0dfba1410cd4a73b7017f262cf92633073ed2dc553dc14061a2c
 shell.css:           sha256:a633e7aea292ec9561b85daa9b334edc678797b646bedce772cfddbc9e5f12e4
 shell-rules.th.txt:  sha256:0795455125268c3950e76e3cc3c38f08a317cb4f58a76f69522daa0498d5d46d
 poc-original.th.txt: sha256:e06ecaef250bd63bee48f1e216a3c1256b4b8f0c0280b129a2e2743a83e5a305

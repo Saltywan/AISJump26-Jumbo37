@@ -126,8 +126,32 @@
     /* ---- page chrome ----------------------------------------------------- */
     page: function (o) {
       o = o || {};
+      /* Calling Shell.board() or Shell.canvas() first is against the documented
+         order, but it happens — the model wrote it that way on 3 of 109 pages
+         checked, including one generated today. Those calls auto-init the frame
+         by calling this with no arguments, and this function then built a SECOND
+         complete frame when the page made its own Shell.page() call: a stray
+         empty header above the diagram, the real header stranded below it, two
+         button bars, and the steps repointed into a frame the board was not in.
+         Every check scored those pages clean, because a .sh-stage svg does
+         exist — it is just in the wrong one of two frames.
+         So fill the header in rather than building over the top of it. */
+      if (state.built) {
+        if (state.head) {
+          var hEl = state.head.querySelector('h1');
+          if (hEl && o.title) hEl.textContent = o.title;
+          var pEl = state.head.querySelector('.sh-problem');
+          if (pEl && o.problem) pEl.textContent = o.problem;
+          if (o.level && !state.head.querySelector('.sh-level'))
+            h('span', 'sh-level', state.head, 'ระดับชั้น: ' + o.level);
+        }
+        if (o.problem) state.problem = o.problem;
+        if (o.level) state.level = o.level;
+        return;
+      }
       var wrap = h('div', 'sh-wrap', document.body);
       var head = h('div', 'sh-head', wrap);
+      state.head = head;
       h('h1', null, head, o.title || '');
       h('p', 'sh-problem', head, o.problem || '');
       state.problem = o.problem || '';
