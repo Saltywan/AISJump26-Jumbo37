@@ -5,11 +5,16 @@ export default function Home() {
   return (
     <div className="home">
       <div className="home-head">
-        <p className="brand">
-          <span className="brand-mark">
-            Jump<span className="accent">AIS</span>
-          </span>
-        </p>
+        <div className="home-head-row">
+          <p className="brand">
+            <span className="brand-mark">
+              Jump<span className="accent">AIS</span>
+            </span>
+          </p>
+          <Link to="/teacher" className="ghost-btn">
+            สำหรับครู
+          </Link>
+        </div>
         <p className="home-sub">เลือกโจทย์เพื่อดูเฉลยแบบทีละขั้นตอน</p>
       </div>
       <div className="grid">

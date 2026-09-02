@@ -10,3 +10,6 @@ dist/
 .DS_Store
 .vscode/
 .idea/
+
+# TypeScript incremental build state — regenerated on every build
+apps/web/tsconfig.tsbuildinfo

@@ -1,0 +1,1161 @@
+[
+  {
+    "id": "m01_1",
+    "N": 4,
+    "total": 13,
+    "pre": 3,
+    "stepCounts": [
+      4,
+      2,
+      1,
+      3
+    ],
+    "zeroSteps": 0,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  },
+  {
+    "id": "m01_2",
+    "N": 6,
+    "total": 13,
+    "pre": 7,
+    "stepCounts": [
+      3,
+      0,
+      0,
+      1,
+      1,
+      1
+    ],
+    "zeroSteps": 2,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  },
+  {
+    "id": "m02_1",
+    "N": 3,
+    "total": 21,
+    "pre": 12,
+    "stepCounts": [
+      3,
+      3,
+      3
+    ],
+    "zeroSteps": 0,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  },
+  {
+    "id": "m02_2",
+    "N": 4,
+    "total": 24,
+    "pre": 14,
+    "stepCounts": [
+      4,
+      3,
+      3,
+      0
+    ],
+    "zeroSteps": 1,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  },
+  {
+    "id": "m03_1",
+    "N": 5,
+    "total": 22,
+    "pre": 9,
+    "stepCounts": [
+      6,
+      4,
+      1,
+      0,
+      2
+    ],
+    "zeroSteps": 1,
+    "neverRevealed": 0,
+    "retired": 1,
+    "errs": []
+  },
+  {
+    "id": "m03_2",
+    "N": 7,
+    "total": 32,
+    "pre": 0,
+    "stepCounts": [
+      3,
+      3,
+      5,
+      8,
+      2,
+      10,
+      1
+    ],
+    "zeroSteps": 0,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  },
+  {
+    "id": "m04_1",
+    "N": 5,
+    "total": 13,
+    "pre": 7,
+    "stepCounts": [
+      2,
+      2,
+      0,
+      0,
+      2
+    ],
+    "zeroSteps": 2,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  },
+  {
+    "id": "m04_2",
+    "N": 5,
+    "total": 24,
+    "pre": 16,
+    "stepCounts": [
+      5,
+      0,
+      2,
+      1,
+      0
+    ],
+    "zeroSteps": 2,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  },
+  {
+    "id": "m05_1",
+    "N": 6,
+    "total": 21,
+    "pre": 1,
+    "stepCounts": [
+      1,
+      5,
+      5,
+      2,
+      5,
+      2
+    ],
+    "zeroSteps": 0,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  },
+  {
+    "id": "m05_2",
+    "N": 6,
+    "total": 15,
+    "pre": 0,
+    "stepCounts": [
+      3,
+      0,
+      3,
+      3,
+      3,
+      3
+    ],
+    "zeroSteps": 1,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  },
+  {
+    "id": "m06_1",
+    "N": 5,
+    "total": 13,
+    "pre": 0,
+    "stepCounts": [
+      2,
+      3,
+      5,
+      2,
+      1
+    ],
+    "zeroSteps": 0,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  },
+  {
+    "id": "m06_2",
+    "N": 3,
+    "total": 22,
+    "pre": 12,
+    "stepCounts": [
+      4,
+      5,
+      1
+    ],
+    "zeroSteps": 0,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  },
+  {
+    "id": "m07_1",
+    "N": 5,
+    "total": 14,
+    "pre": 4,
+    "stepCounts": [
+      5,
+      3,
+      1,
+      1,
+      0
+    ],
+    "zeroSteps": 1,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  },
+  {
+    "id": "m07_2",
+    "N": 4,
+    "total": 23,
+    "pre": 10,
+    "stepCounts": [
+      8,
+      4,
+      0,
+      1
+    ],
+    "zeroSteps": 1,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  },
+  {
+    "id": "m08_1",
+    "N": 4,
+    "total": 36,
+    "pre": 0,
+    "stepCounts": [
+      34,
+      1,
+      0,
+      1
+    ],
+    "zeroSteps": 1,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  },
+  {
+    "id": "m08_2",
+    "N": 6,
+    "total": 61,
+    "pre": 52,
+    "stepCounts": [
+      2,
+      3,
+      2,
+      0,
+      0,
+      2
+    ],
+    "zeroSteps": 2,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  },
+  {
+    "id": "m09_1",
+    "N": 4,
+    "total": 59,
+    "pre": 20,
+    "stepCounts": [
+      15,
+      13,
+      3,
+      8
+    ],
+    "zeroSteps": 0,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  },
+  {
+    "id": "m09_2",
+    "N": 7,
+    "total": 8,
+    "pre": 0,
+    "stepCounts": [
+      1,
+      2,
+      2,
+      1,
+      1,
+      0,
+      1
+    ],
+    "zeroSteps": 1,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  },
+  {
+    "id": "m10_1",
+    "N": 5,
+    "total": 6,
+    "pre": 3,
+    "stepCounts": [
+      1,
+      0,
+      1,
+      0,
+      1
+    ],
+    "zeroSteps": 2,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  },
+  {
+    "id": "m10_2",
+    "N": 5,
+    "total": 17,
+    "pre": 11,
+    "stepCounts": [
+      3,
+      0,
+      2,
+      1,
+      0
+    ],
+    "zeroSteps": 2,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  },
+  {
+    "id": "m11_1",
+    "N": 5,
+    "total": 17,
+    "pre": 0,
+    "stepCounts": [
+      1,
+      1,
+      1,
+      14,
+      0
+    ],
+    "zeroSteps": 1,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  },
+  {
+    "id": "m11_2",
+    "N": 3,
+    "total": 18,
+    "pre": 14,
+    "stepCounts": [
+      2,
+      1,
+      1
+    ],
+    "zeroSteps": 0,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  },
+  {
+    "id": "m13_1",
+    "N": 7,
+    "total": 16,
+    "pre": 10,
+    "stepCounts": [
+      0,
+      2,
+      0,
+      0,
+      2,
+      0,
+      2
+    ],
+    "zeroSteps": 4,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  },
+  {
+    "id": "m14_1",
+    "N": 5,
+    "total": 9,
+    "pre": 6,
+    "stepCounts": [
+      0,
+      0,
+      1,
+      2,
+      0
+    ],
+    "zeroSteps": 3,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  },
+  {
+    "id": "m14_2",
+    "N": 5,
+    "total": 11,
+    "pre": 4,
+    "stepCounts": [
+      2,
+      1,
+      2,
+      1,
+      1
+    ],
+    "zeroSteps": 0,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  },
+  {
+    "id": "m16_1",
+    "N": 3,
+    "total": 9,
+    "pre": 2,
+    "stepCounts": [
+      1,
+      2,
+      4
+    ],
+    "zeroSteps": 0,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  },
+  {
+    "id": "m16_2",
+    "N": 5,
+    "total": 28,
+    "pre": 20,
+    "stepCounts": [
+      4,
+      2,
+      1,
+      1,
+      0
+    ],
+    "zeroSteps": 1,
+    "neverRevealed": 0,
+    "retired": 3,
+    "errs": []
+  },
+  {
+    "id": "m17_1",
+    "N": 5,
+    "total": 11,
+    "pre": 7,
+    "stepCounts": [
+      1,
+      1,
+      1,
+      0,
+      1
+    ],
+    "zeroSteps": 1,
+    "neverRevealed": 0,
+    "retired": 1,
+    "errs": []
+  },
+  {
+    "id": "m17_2",
+    "N": 5,
+    "total": 16,
+    "pre": 10,
+    "stepCounts": [
+      3,
+      0,
+      2,
+      1,
+      0
+    ],
+    "zeroSteps": 2,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  },
+  {
+    "id": "m18_1",
+    "N": 5,
+    "total": 15,
+    "pre": 3,
+    "stepCounts": [
+      4,
+      0,
+      1,
+      5,
+      2
+    ],
+    "zeroSteps": 1,
+    "neverRevealed": 0,
+    "retired": 5,
+    "errs": []
+  },
+  {
+    "id": "m19_1",
+    "N": 5,
+    "total": 4,
+    "pre": 2,
+    "stepCounts": [
+      1,
+      0,
+      0,
+      0,
+      1
+    ],
+    "zeroSteps": 3,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  },
+  {
+    "id": "m19_2",
+    "N": 5,
+    "total": 27,
+    "pre": 16,
+    "stepCounts": [
+      3,
+      1,
+      5,
+      2,
+      0
+    ],
+    "zeroSteps": 1,
+    "neverRevealed": 0,
+    "retired": 5,
+    "errs": []
+  },
+  {
+    "id": "m21_1",
+    "N": 4,
+    "total": 15,
+    "pre": 0,
+    "stepCounts": [
+      6,
+      1,
+      7,
+      1
+    ],
+    "zeroSteps": 0,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  },
+  {
+    "id": "m22_1",
+    "N": 6,
+    "total": 19,
+    "pre": 0,
+    "stepCounts": [
+      6,
+      1,
+      2,
+      6,
+      1,
+      3
+    ],
+    "zeroSteps": 0,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  },
+  {
+    "id": "m22_2",
+    "N": 9,
+    "total": 24,
+    "pre": 0,
+    "stepCounts": [
+      8,
+      2,
+      0,
+      0,
+      0,
+      2,
+      2,
+      3,
+      7
+    ],
+    "zeroSteps": 3,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  },
+  {
+    "id": "m23_1",
+    "N": 4,
+    "total": 4,
+    "pre": 0,
+    "stepCounts": [
+      2,
+      0,
+      1,
+      1
+    ],
+    "zeroSteps": 1,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  },
+  {
+    "id": "m23_2",
+    "N": 6,
+    "total": 7,
+    "pre": 0,
+    "stepCounts": [
+      3,
+      1,
+      1,
+      1,
+      0,
+      1
+    ],
+    "zeroSteps": 1,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  },
+  {
+    "id": "m23_3",
+    "N": 6,
+    "total": 3,
+    "pre": 0,
+    "stepCounts": [
+      3,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "zeroSteps": 5,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  },
+  {
+    "id": "m24_1",
+    "N": 4,
+    "total": 11,
+    "pre": 4,
+    "stepCounts": [
+      3,
+      4,
+      0,
+      0
+    ],
+    "zeroSteps": 2,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  },
+  {
+    "id": "m24_2",
+    "N": 4,
+    "total": 23,
+    "pre": 14,
+    "stepCounts": [
+      5,
+      2,
+      2,
+      0
+    ],
+    "zeroSteps": 1,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  },
+  {
+    "id": "m24_3",
+    "N": 5,
+    "total": 24,
+    "pre": 15,
+    "stepCounts": [
+      6,
+      2,
+      0,
+      1,
+      0
+    ],
+    "zeroSteps": 2,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  },
+  {
+    "id": "p01_1",
+    "N": 5,
+    "total": 8,
+    "pre": 3,
+    "stepCounts": [
+      1,
+      1,
+      1,
+      2,
+      0
+    ],
+    "zeroSteps": 1,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  },
+  {
+    "id": "p01_2",
+    "N": 6,
+    "total": 13,
+    "pre": 6,
+    "stepCounts": [
+      1,
+      2,
+      0,
+      2,
+      2,
+      0
+    ],
+    "zeroSteps": 2,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  },
+  {
+    "id": "p02_1",
+    "N": 6,
+    "total": 42,
+    "pre": 35,
+    "stepCounts": [
+      2,
+      2,
+      1,
+      0,
+      1,
+      1
+    ],
+    "zeroSteps": 1,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  },
+  {
+    "id": "p02_2",
+    "N": 6,
+    "total": 20,
+    "pre": 12,
+    "stepCounts": [
+      3,
+      3,
+      2,
+      0,
+      0,
+      0
+    ],
+    "zeroSteps": 3,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  },
+  {
+    "id": "p03_1",
+    "N": 4,
+    "total": 50,
+    "pre": 0,
+    "stepCounts": [
+      45,
+      1,
+      3,
+      1
+    ],
+    "zeroSteps": 0,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  },
+  {
+    "id": "p03_2",
+    "N": 5,
+    "total": 32,
+    "pre": 25,
+    "stepCounts": [
+      1,
+      2,
+      0,
+      4,
+      0
+    ],
+    "zeroSteps": 2,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  },
+  {
+    "id": "p04_1",
+    "N": 4,
+    "total": 53,
+    "pre": 0,
+    "stepCounts": [
+      41,
+      1,
+      1,
+      10
+    ],
+    "zeroSteps": 0,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  },
+  {
+    "id": "p05_1",
+    "N": 5,
+    "total": 23,
+    "pre": 0,
+    "stepCounts": [
+      19,
+      2,
+      0,
+      1,
+      1
+    ],
+    "zeroSteps": 1,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  },
+  {
+    "id": "p06_1",
+    "N": 6,
+    "total": 27,
+    "pre": 20,
+    "stepCounts": [
+      1,
+      2,
+      1,
+      2,
+      0,
+      1
+    ],
+    "zeroSteps": 1,
+    "neverRevealed": 0,
+    "retired": 1,
+    "errs": []
+  },
+  {
+    "id": "p07_1",
+    "N": 6,
+    "total": 39,
+    "pre": 35,
+    "stepCounts": [
+      1,
+      1,
+      2,
+      0,
+      0,
+      0
+    ],
+    "zeroSteps": 3,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  },
+  {
+    "id": "p07_2",
+    "N": 7,
+    "total": 17,
+    "pre": 11,
+    "stepCounts": [
+      2,
+      1,
+      1,
+      2,
+      0,
+      0,
+      0
+    ],
+    "zeroSteps": 3,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  },
+  {
+    "id": "p08_1",
+    "N": 5,
+    "total": 81,
+    "pre": 70,
+    "stepCounts": [
+      1,
+      1,
+      7,
+      1,
+      1
+    ],
+    "zeroSteps": 0,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  },
+  {
+    "id": "p08_2",
+    "N": 5,
+    "total": 36,
+    "pre": 0,
+    "stepCounts": [
+      23,
+      11,
+      1,
+      1,
+      0
+    ],
+    "zeroSteps": 1,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  },
+  {
+    "id": "p09_1",
+    "N": 4,
+    "total": 27,
+    "pre": 12,
+    "stepCounts": [
+      1,
+      7,
+      0,
+      7
+    ],
+    "zeroSteps": 1,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  },
+  {
+    "id": "p09_2",
+    "N": 5,
+    "total": 77,
+    "pre": 0,
+    "stepCounts": [
+      38,
+      37,
+      0,
+      1,
+      1
+    ],
+    "zeroSteps": 1,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  },
+  {
+    "id": "p10_1",
+    "N": 4,
+    "total": 15,
+    "pre": 0,
+    "stepCounts": [
+      9,
+      4,
+      1,
+      1
+    ],
+    "zeroSteps": 0,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  },
+  {
+    "id": "p10_2",
+    "N": 5,
+    "total": 11,
+    "pre": 0,
+    "stepCounts": [
+      5,
+      4,
+      1,
+      1,
+      0
+    ],
+    "zeroSteps": 1,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  },
+  {
+    "id": "p11_1",
+    "N": 6,
+    "total": 12,
+    "pre": 2,
+    "stepCounts": [
+      3,
+      1,
+      3,
+      0,
+      0,
+      3
+    ],
+    "zeroSteps": 2,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  },
+  {
+    "id": "p12_1",
+    "N": 5,
+    "total": 13,
+    "pre": 0,
+    "stepCounts": [
+      9,
+      1,
+      1,
+      1,
+      1
+    ],
+    "zeroSteps": 0,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  },
+  {
+    "id": "p12_2",
+    "N": 5,
+    "total": 52,
+    "pre": 0,
+    "stepCounts": [
+      9,
+      5,
+      0,
+      6,
+      32
+    ],
+    "zeroSteps": 1,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  },
+  {
+    "id": "p13_1",
+    "N": 6,
+    "total": 17,
+    "pre": 0,
+    "stepCounts": [
+      13,
+      0,
+      0,
+      1,
+      1,
+      2
+    ],
+    "zeroSteps": 2,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  },
+  {
+    "id": "p14_1",
+    "N": 5,
+    "total": 11,
+    "pre": 0,
+    "stepCounts": [
+      6,
+      3,
+      1,
+      1,
+      0
+    ],
+    "zeroSteps": 1,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  },
+  {
+    "id": "p14_2",
+    "N": 5,
+    "total": 179,
+    "pre": 168,
+    "stepCounts": [
+      3,
+      0,
+      3,
+      1,
+      4
+    ],
+    "zeroSteps": 1,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  },
+  {
+    "id": "p15_1",
+    "N": 4,
+    "total": 15,
+    "pre": 13,
+    "stepCounts": [
+      0,
+      0,
+      1,
+      1
+    ],
+    "zeroSteps": 2,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  },
+  {
+    "id": "p15_2",
+    "N": 7,
+    "total": 9,
+    "pre": 1,
+    "stepCounts": [
+      4,
+      2,
+      0,
+      0,
+      0,
+      2,
+      0
+    ],
+    "zeroSteps": 4,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  },
+  {
+    "id": "p16_1",
+    "N": 4,
+    "total": 24,
+    "pre": 0,
+    "stepCounts": [
+      12,
+      3,
+      2,
+      7
+    ],
+    "zeroSteps": 0,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  },
+  {
+    "id": "p17_1",
+    "N": 3,
+    "total": 9,
+    "pre": 6,
+    "stepCounts": [
+      1,
+      1,
+      1
+    ],
+    "zeroSteps": 0,
+    "neverRevealed": 0,
+    "retired": 0,
+    "errs": []
+  }
+]
