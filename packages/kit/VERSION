@@ -2,9 +2,20 @@ Vendored from the JumpAIS research repo. Pin this — every generated page
 records the version it was made against, so the shell can be improved and
 past pages re-executed to pick up the fix at no model cost.
 
-source-commit: ceec8578a5a182d6f4f7b5bba4a05094a0f0f37b
-source-date:   2026-08-31
-shell.js:      sha256:53325a3fce935945754be30db44dc2147173eb51cf793bf0c2e45e2f64d77e20
-rules.th.txt:  sha256:6f4a5450aa0bc2af711b8fca67546e6317e899e6ab721f265db17d352c1dfece
+Produced by kit/sync-to-app.sh in the research repo — do not hand-edit this
+file or the files beside it; re-run that script instead. Verify with
+packages/kit/check-version.sh in this repo.
+
+source-commit: eae524976d9d83ffdbfd235f2a387cfe21794920
+source-date:   2026-09-03
+synced:        2026-09-02 18:37:47 UTC
+tree:          clean
+
+shell.js:            sha256:b8435f17d83e618b51628e36f1cf963bee23af147fef6b58d6a84c9ffd6f4494
+shell.css:           sha256:a633e7aea292ec9561b85daa9b334edc678797b646bedce772cfddbc9e5f12e4
+shell-rules.th.txt:  sha256:0795455125268c3950e76e3cc3c38f08a317cb4f58a76f69522daa0498d5d46d
+poc-original.th.txt: sha256:e06ecaef250bd63bee48f1e216a3c1256b4b8f0c0280b129a2e2743a83e5a305
+check.mjs:           sha256:5d241328e1c43960a1a402fe81838aedc1a611da4c1d0b0c893dafbef54c66db
+
 jsxgraph:      1.13.2
 katex:         0.18.4

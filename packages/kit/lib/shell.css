@@ -69,19 +69,25 @@ body{background:var(--sh-bg);color:var(--sh-ink);
 .sh-stage svg{display:block;width:100%;height:auto;object-fit:contain;
   max-height:calc(100vh - (var(--sh-stage-top) * 2) - 20px)} /* minus the stage's 10px+10px padding */
 .sh-steps{display:grid;gap:9px;align-content:start}
+/* breathing room when a step is scrolled into view, so it does not land flush
+   against the edge of the viewport with the next step already cut off */
+.sh-step{scroll-margin-block:26px}
+.sh-answer{scroll-margin-block:26px}
 @media (max-width:900px){
   .sh-main{grid-template-columns:1fr}
-  /* Below 900px the grid collapses to one column, so the stage and the steps
-     stack in normal document flow instead of sitting side by side. A sticky
-     diagram would then pin itself over part of the viewport while the reader
-     tries to scroll through the (now full-width, still often much taller)
-     steps beneath it — on a phone-sized viewport that eats a large fraction of
-     the visible height for no benefit, since there's no second column for it
-     to keep pace with. So sticky is switched off here and the height cap is
-     lifted, letting the diagram render at its natural size and scroll away
-     like any other block. */
-  .sh-stage{position:static;top:auto;max-height:none}
-  .sh-stage svg{max-height:none}
+  /* Below 900px the grid collapses to one column and the stage stacks above the
+     steps. Sticky used to be switched OFF here, on the reasoning that pinning a
+     diagram over part of a phone viewport costs height for no benefit when the
+     reader is scrolling freely. That reasoning stopped holding the moment steps
+     began auto-scrolling: measured on every golden page at 390px, by the last
+     step the diagram was entirely off screen, so the student was reading an
+     explanation of a picture they could not see. The picture is the point.
+     Sticky is back, capped to 40vh so the current step still has room beneath
+     it, and steps carry a scroll-margin equal to that so auto-scroll seats them
+     below the pinned diagram instead of behind it. */
+  .sh-stage{position:sticky;top:0;max-height:40vh;z-index:2}
+  .sh-stage svg{max-height:calc(40vh - 22px)}
+  .sh-step,.sh-answer{scroll-margin-top:calc(40vh + 14px)}
 }
 
 /* Fix 2: an un-revealed step is a real, muted, clickable placeholder — not
@@ -170,6 +176,16 @@ body{background:var(--sh-bg);color:var(--sh-ink);
   .sh-step,.sh-answer,.sh-reveal{transition:none}
 }
 
+/* KaTeX ships Latin-only faces. Thai inside \text{} therefore falls back to
+   whatever the browser picks, which is legible but a different typeface mid-line.
+   Naming Sarabun after each KaTeX face keeps Latin and maths in KaTeX and lets
+   Thai glyphs resolve to the page's own Thai font. The lint still flags Thai in
+   maths mode — mixing scripts inside $...$ is a style problem — but it now looks
+   right when the model does it anyway. */
+.katex .mord.text, .katex .textrm, .katex .mathrm, .katex .mord.cjk_fallback{
+  font-family:KaTeX_Main,Sarabun,"Noto Sans Thai",system-ui,sans-serif}
+.katex .textbf{font-family:KaTeX_Main,Sarabun,"Noto Sans Thai",system-ui,sans-serif;font-weight:700}
+
 /* ---- JSXGraph board ------------------------------------------------------
    JSXGraph needs a real pixel-sized element to map user coordinates onto, so
    the board is pinned at exactly 960 x 540 — the same frame every other page
@@ -191,3 +207,22 @@ body{background:var(--sh-bg);color:var(--sh-ink);
    slab under the diagram, so the board stays transparent and inherits the card. */
 .sh-board .JXGtext{font-family:Sarabun,"Noto Sans Thai",system-ui,sans-serif}
 @media (max-width:900px){.sh-scale{max-width:none}}
+
+/* ---- motion --------------------------------------------------------------
+   Two changes, both automatic. A revealed step used to simply appear at full
+   opacity and stay there, so a finished page was a wall of everything at once.
+   Now the current step is at full strength and earlier work recedes — legible,
+   but clearly secondary — returning to full on the last frame so the finished
+   picture is unchanged. And stroked geometry is drawn rather than faded, which
+   is the difference between a diagram appearing and a diagram being made. */
+.sh-stage .sh-reveal{transition:opacity .3s ease}
+.sh-stage .sh-past{opacity:.42}
+.sh-stage .sh-now{opacity:1}
+.sh-stage .sh-draw{stroke-dashoffset:var(--sh-len);
+  transition:stroke-dashoffset .85s cubic-bezier(.25,.6,.3,1)}
+.sh-stage .sh-on .sh-draw,.sh-stage .sh-draw.sh-on{stroke-dashoffset:0}
+.sh-stage .sh-reveal.sh-on .sh-draw{stroke-dashoffset:0}
+@media (prefers-reduced-motion:reduce){
+  .sh-stage .sh-past{opacity:1}
+  .sh-stage .sh-draw{stroke-dashoffset:0;transition:none}
+}
