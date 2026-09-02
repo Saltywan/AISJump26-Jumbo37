@@ -1,0 +1,237 @@
+/* App chrome. Colours and type match apps/pages/static/lib/shell.css so the
+   surrounding app doesn't fight the pages it frames — same ink/rule/given
+   tokens, same Sarabun stack, just without the shell's own component classes
+   (those belong to the generated pages, not to us). */
+
+:root {
+  --bg: #f4f6f9;
+  --card: #ffffff;
+  --sunk: #edf1f6;
+  --rule: #d8e0ea;
+  --ink: #131a24;
+  --ink-2: #4a5666;
+  --ink-3: #7c8899;
+  --given: #1f5fbf;
+  --given-bg: #e5eefb;
+  --radius: 10px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: Sarabun, "Noto Sans Thai", system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior-y: none;
+}
+
+a {
+  color: inherit;
+}
+
+/* ---- home -------------------------------------------------------------- */
+
+.home {
+  min-height: 100%;
+  padding: 20px 16px 40px;
+}
+
+.home-head {
+  max-width: 900px;
+  margin: 0 auto 18px;
+}
+
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0 0 4px;
+}
+
+.brand-mark {
+  font-weight: 700;
+  font-size: 20px;
+  letter-spacing: -0.01em;
+}
+
+.brand-mark .accent {
+  color: var(--given);
+}
+
+.home-sub {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 15px;
+}
+
+.grid {
+  max-width: 900px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.card {
+  display: block;
+  text-align: left;
+  background: var(--card);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--given);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 0.15s ease, transform 0.1s ease;
+}
+
+.card:hover,
+.card:focus-visible {
+  border-color: var(--given);
+  outline: none;
+}
+
+.card:active {
+  transform: scale(0.99);
+}
+
+.card-title {
+  margin: 0 0 8px;
+  font-size: 15.5px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.card-level {
+  display: inline-block;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ink-3);
+  background: var(--sunk);
+  border-radius: 3px;
+  padding: 2px 8px;
+}
+
+/* ---- viewer -------------------------------------------------------------
+   Chrome is deliberately thin: the generated page is the product, and on a
+   phone it should get essentially the whole screen. */
+
+.viewer {
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.viewer-bar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  padding-top: max(8px, env(safe-area-inset-top));
+  background: var(--card);
+  border-bottom: 1px solid var(--rule);
+}
+
+.back-btn {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid var(--rule);
+  background: var(--sunk);
+  color: var(--ink);
+  text-decoration: none;
+  font-size: 18px;
+}
+
+.back-btn:hover {
+  border-color: var(--given);
+}
+
+.viewer-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 14.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.viewer-level {
+  flex: 0 0 auto;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ink-3);
+  background: var(--sunk);
+  border-radius: 3px;
+  padding: 3px 8px;
+}
+
+.viewer-stage {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  background: var(--bg);
+}
+
+.viewer-frame {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: var(--card);
+}
+
+.viewer-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--ink-3);
+  font-size: 14px;
+  background: var(--bg);
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid var(--rule);
+  border-top-color: var(--given);
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.not-found {
+  max-width: 500px;
+  margin: 60px auto;
+  text-align: center;
+  color: var(--ink-2);
+  padding: 0 16px;
+}
