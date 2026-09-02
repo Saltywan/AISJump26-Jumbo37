@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>พาราโบลาและค่าสูงสุดของฟังก์ชัน</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/jsxgraph.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/jsxgraphcore.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+Shell.page({
+  title: 'พาราโบลาและค่าสูงสุดของฟังก์ชัน',
+  problem: 'กำหนด $y = -2x^2 + 8x - 5$ จงหาค่าสูงสุดของฟังก์ชัน พิกัดจุดยอด และวาดกราฟพาราโบลา'
+});
+
+var b = Shell.board({
+  box: [-8, 4.5, 12, -6.75],
+  axis: true,
+  grid: true,
+  keepaspect: true
+});
+var C = Shell.C;
+
+Shell.setup('สมการอยู่ในรูป $y = ax^2 + bx + c$ ซึ่ง $a = -2 < 0$ กราฟจึงเป็นพาราโบลาคว่ำและมีจุดยอดเป็นจุดสูงสุด สามารถหาพิกัดจุดยอด $(h, k)$ ได้จากสูตรแกนสมมาตร $h = -\\frac{b}{2a}$ แล้วแทนค่ากลับลงในสมการเพื่อหาค่าสูงสุด $k$');
+
+Shell.group('หาพิกัดจุดยอดและค่าสูงสุด');
+
+var s1 = Shell.step('เทียบรูปสมการมาตรฐาน $y = ax^2 + bx + c$<br>จะได้สัมประสิทธิ์ $a = -2$, $b = 8$ และ $c = -5$<br>เนื่องจาก $a < 0$ กราฟจึงเป็น <b>พาราโบลาคว่ำ</b> ซึ่งมีจุดยอดเป็น <b>จุดสูงสุด</b>', {
+  why: 'เครื่องหมายของสัมประสิทธิ์ $a$ หน้า $x^2$ เป็นตัวกำหนดความเว้าของกราฟ โดย $a < 0$ กราฟจะคว่ำลงและมีค่าสูงสุด'
+});
+
+var axisLine = b.create('line', [[2, 0], [2, 1]], {
+  dash: 2,
+  strokeColor: C.note,
+  strokeWidth: 1.5,
+  name: '',
+  withLabel: false
+});
+
+var s2 = Shell.step('หาพิกัด $x$ ของจุดยอด (แกนสมมาตร):<br>$$h = -\\frac{b}{2a} = -\\frac{8}{2(-2)} = -\\frac{8}{-4} = 2$$ดังนั้น แกนสมมาตรคือเส้นตรง $x = 2$', {
+  why: 'จุดยอดของพาราโบลาจะอยู่บนแกนสมมาตรเสมอ ซึ่งคำนวณได้จากสูตร $x = -\\frac{b}{2a}$',
+  uses: [1]
+});
+Shell.on(s2, axisLine);
+Shell.tag(s2, [2, 4], 'แกนสมมาตร $x = 2$', {role: 'note', until: 'end'});
+
+var V = b.create('point', [2, 3], {
+  strokeColor: C.answer,
+  fillColor: C.answer,
+  size: 5,
+  name: '',
+  withLabel: false
+});
+var maxGuide = b.create('segment', [[0, 3], [2, 3]], {
+  dash: 3,
+  strokeColor: C.work,
+  strokeWidth: 1.5,
+  name: '',
+  withLabel: false
+});
+
+var s3 = Shell.step('หาพิกัด $y$ ของจุดยอด โดยแทน $x = 2$ ในสมการ:<br>$$k = -2(2)^2 + 8(2) - 5 = -8 + 16 - 5 = 3$$ดังนั้น <b>พิกัดจุดยอดคือ $(2, 3)$</b> และมี <b>ค่าสูงสุดคือ $3$</b>', {
+  why: 'ค่าสูงสุดของฟังก์ชันพาราโบลาคว่ำคือค่า $y$ ณ ตำแหน่งจุดยอด',
+  uses: [2]
+});
+Shell.on(s3, V);
+Shell.on(s3, maxGuide, {until: 'step'});
+Shell.tag(s3, V, 'จุดยอด $(2, 3)$ (จุดสูงสุด)', {role: 'answer', until: 'end'});
+Shell.tag(s3, [0, 3], 'ค่าสูงสุด $y = 3$', {role: 'answer', until: 'step'});
+
+Shell.group('หาจุดสำคัญและวาดกราฟ');
+
+var Py = b.create('point', [0, -5], {
+  strokeColor: C.work,
+  fillColor: C.work,
+  size: 4,
+  name: '',
+  withLabel: false
+});
+var Psym = b.create('point', [4, -5], {
+  strokeColor: C.work,
+  fillColor: C.work,
+  size: 4,
+  name: '',
+  withLabel: false
+});
+var symGuide = b.create('segment', [[0, -5], [4, -5]], {
+  dash: 3,
+  strokeColor: C.note,
+  strokeWidth: 1,
+  name: '',
+  withLabel: false
+});
+
+var s4 = Shell.step('หาจุดช่วยวาดกราฟ:<br>• แทน $x = 0$ ได้ $y = -5$ นั่นคือจุดตัดแกน $y$ ที่ $(0, -5)$<br>• สมมาตรรอบแกน $x = 2$ จะได้จุดคู่สมมาตรที่ $(4, -5)$', {
+  why: 'จุดตัดแกน $y$ และจุดคู่สมมาตรช่วยกำหนดความกว้างและความโค้งของพาราโบลาให้แม่นยำ',
+  uses: [2]
+});
+Shell.on(s4, Py, Psym);
+Shell.on(s4, symGuide, {until: 'step'});
+Shell.tag(s4, Py, 'จุดตัดแกน y $(0, -5)$', {role: 'work', until: 'step'});
+Shell.tag(s4, Psym, 'จุดสมมาตร $(4, -5)$', {role: 'work', until: 'step'});
+
+var parabola = b.create('functiongraph', [
+  function(x) { return -2 * x * x + 8 * x - 5; }
+], {
+  strokeColor: C.answer,
+  strokeWidth: 2.5,
+  name: '',
+  withLabel: false
+});
+
+var s5 = Shell.step('วาดเส้นโค้งพาราโบลา $y = -2x^2 + 8x - 5$ ให้ผ่านจุดยอด $(2, 3)$ และจุดสำคัญทั้งสอง', {
+  why: 'เมื่อทราบตำแหน่งจุดยอดและจุดสำคัญซ้ายขวา จะลากเส้นโค้งพาราโบลาคว่ำได้อย่างถูกต้อง',
+  uses: [3, 4]
+});
+Shell.on(s5, parabola);
+Shell.tag(s5, [3.2, 1], '$y = -2x^2 + 8x - 5$', {role: 'answer', until: 'end'});
+
+Shell.answer(
+  'พิกัดจุดยอดและค่าสูงสุดของฟังก์ชัน',
+  'พิกัดจุดยอดคือ $(2, 3)$ และค่าสูงสุดคือ $3$',
+  {sanity: 'เนื่องจาก $a = -2 < 0$ กราฟจึงคว่ำลงและมีค่าสูงสุดจริง โดยค่า $y$ อื่น ๆ เช่น ที่ $x = 0$ จะได้ $y = -5 < 3$ เสมอ'}
+);
+
+Shell.done();
+</script>
+</body></html>

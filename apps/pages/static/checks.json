@@ -1,0 +1,5533 @@
+[
+  {
+    "id": "m01_1",
+    "errs": [],
+    "collapsed": [],
+    "N": 4,
+    "per": [
+      {
+        "n": 1,
+        "labels": 3,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 5,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 6,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 4,
+        "labels": 7,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 7,
+    "moved": 0,
+    "far": 0,
+    "nlabels": 7,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 4,
+      "withWhy": 3,
+      "withUses": 3,
+      "hasSetup": true,
+      "groups": 3,
+      "hasSanity": true,
+      "missingWhy": [],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": {
+      "elements": 18,
+      "constructed": 6,
+      "freePoints": 3,
+      "nanEls": [],
+      "ownLabels": 0,
+      "tied": 13,
+      "unknown": [],
+      "failed": [],
+      "aliased": [],
+      "rerouted": [],
+      "view3d": false,
+      "offPalette": [],
+      "kinds": {
+        "point": 6,
+        "line": 2,
+        "circle": 3,
+        "intersection": 5,
+        "angle": 1,
+        "arc": 1
+      }
+    }
+  },
+  {
+    "id": "m01_2",
+    "errs": [],
+    "collapsed": [],
+    "N": 6,
+    "per": [
+      {
+        "n": 1,
+        "labels": 3,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 3,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 3,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 4,
+        "labels": 4,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 5,
+        "labels": 5,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 6,
+        "labels": 6,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 6,
+    "moved": 0,
+    "far": 0,
+    "nlabels": 6,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 6,
+      "withWhy": 6,
+      "withUses": 5,
+      "hasSetup": true,
+      "groups": 2,
+      "hasSanity": true,
+      "missingWhy": [],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": {
+      "elements": 19,
+      "constructed": 5,
+      "freePoints": 3,
+      "nanEls": [],
+      "ownLabels": 0,
+      "tied": 11,
+      "unknown": [],
+      "failed": [],
+      "aliased": [],
+      "rerouted": [],
+      "view3d": false,
+      "offPalette": [],
+      "kinds": {
+        "point": 7,
+        "segment": 4,
+        "polygon": 1,
+        "bisector": 2,
+        "intersection": 2,
+        "line": 1,
+        "perpendicular": 1,
+        "circle": 1
+      }
+    }
+  },
+  {
+    "id": "m02_1",
+    "errs": [],
+    "collapsed": [],
+    "N": 3,
+    "per": [
+      {
+        "n": 1,
+        "labels": 4,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 7,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 7,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 10,
+    "moved": 0,
+    "far": 0,
+    "nlabels": 10,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 3,
+      "withWhy": 3,
+      "withUses": 2,
+      "hasSetup": true,
+      "groups": 3,
+      "hasSanity": true,
+      "missingWhy": [],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": {
+      "elements": 31,
+      "constructed": 6,
+      "freePoints": 6,
+      "nanEls": [],
+      "ownLabels": 0,
+      "tied": 18,
+      "unknown": [],
+      "failed": [],
+      "aliased": [
+        "mirrorpoint",
+        "mirrorpoint",
+        "mirrorpoint"
+      ],
+      "rerouted": [],
+      "view3d": false,
+      "offPalette": [],
+      "kinds": {
+        "point": 9,
+        "segment": 12,
+        "polygon": 3,
+        "line": 1,
+        "reflection": 3,
+        "arc": 3
+      }
+    }
+  },
+  {
+    "id": "m02_2",
+    "errs": [],
+    "collapsed": [],
+    "N": 4,
+    "per": [
+      {
+        "n": 1,
+        "labels": 4,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 7,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 7,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 4,
+        "labels": 7,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 10,
+    "moved": 1,
+    "far": 0,
+    "nlabels": 10,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 4,
+      "withWhy": 3,
+      "withUses": 3,
+      "hasSetup": true,
+      "groups": 1,
+      "hasSanity": true,
+      "missingWhy": [],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": {
+      "elements": 48,
+      "constructed": 12,
+      "freePoints": 12,
+      "nanEls": [],
+      "ownLabels": 0,
+      "tied": 19,
+      "unknown": [],
+      "failed": [],
+      "aliased": [
+        "mirrorpoint",
+        "mirrorpoint",
+        "mirrorpoint"
+      ],
+      "rerouted": [],
+      "view3d": false,
+      "offPalette": [],
+      "kinds": {
+        "point": 12,
+        "segment": 15,
+        "polygon": 3,
+        "line": 6,
+        "parallel": 6,
+        "intersection": 3,
+        "mirrorelement": 3
+      }
+    }
+  },
+  {
+    "id": "m03_1",
+    "errs": [],
+    "collapsed": [],
+    "N": 5,
+    "per": [
+      {
+        "n": 1,
+        "labels": 5,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 6,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 5,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 4,
+        "labels": 6,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 5,
+        "labels": 6,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 13,
+    "moved": 0,
+    "far": 0,
+    "nlabels": 13,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 5,
+      "withWhy": 4,
+      "withUses": 3,
+      "hasSetup": true,
+      "groups": 1,
+      "hasSanity": true,
+      "missingWhy": [],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": {
+      "elements": 29,
+      "constructed": 4,
+      "freePoints": 3,
+      "nanEls": [],
+      "ownLabels": 0,
+      "tied": 15,
+      "unknown": [],
+      "failed": [],
+      "aliased": [],
+      "rerouted": [],
+      "view3d": false,
+      "offPalette": [],
+      "kinds": {
+        "point": 8,
+        "segment": 13,
+        "bisector": 1,
+        "intersection": 1,
+        "angle": 2,
+        "arc": 2,
+        "polygon": 2
+      }
+    }
+  },
+  {
+    "id": "m03_2",
+    "errs": [],
+    "collapsed": [],
+    "N": 7,
+    "per": [
+      {
+        "n": 1,
+        "labels": 5,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 5,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 5,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 4,
+        "labels": 5,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 5,
+        "labels": 5,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 6,
+        "labels": 5,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 7,
+        "labels": 5,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 5,
+    "moved": 2,
+    "far": 0,
+    "nlabels": 5,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 7,
+      "withWhy": 5,
+      "withUses": 6,
+      "hasSetup": true,
+      "groups": 3,
+      "hasSanity": true,
+      "missingWhy": [],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": null
+  },
+  {
+    "id": "m04_1",
+    "errs": [],
+    "collapsed": [],
+    "N": 5,
+    "per": [
+      {
+        "n": 1,
+        "labels": 10,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 10,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 10,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 4,
+        "labels": 10,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 5,
+        "labels": 10,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 12,
+    "moved": 1,
+    "far": 0,
+    "nlabels": 12,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 5,
+      "withWhy": 1,
+      "withUses": 3,
+      "hasSetup": true,
+      "groups": 2,
+      "hasSanity": true,
+      "missingWhy": [
+        {
+          "step": 4,
+          "newValues": [
+            40,
+            40,
+            20
+          ],
+          "reason": "ขั้นนี้สร้างค่าใหม่แต่ไม่มีคำอธิบายว่าทำไม"
+        },
+        {
+          "step": 5,
+          "newValues": [
+            60,
+            70,
+            100,
+            70
+          ],
+          "reason": "ขั้นนี้สร้างค่าใหม่แต่ไม่มีคำอธิบายว่าทำไม"
+        }
+      ],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": null
+  },
+  {
+    "id": "m04_2",
+    "errs": [],
+    "collapsed": [],
+    "N": 5,
+    "per": [
+      {
+        "n": 1,
+        "labels": 5,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 6,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 7,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 4,
+        "labels": 6,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 5,
+        "labels": 5,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 9,
+    "moved": 1,
+    "far": 0,
+    "nlabels": 9,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 5,
+      "withWhy": 4,
+      "withUses": 3,
+      "hasSetup": true,
+      "groups": 3,
+      "hasSanity": true,
+      "missingWhy": [],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": {
+      "elements": 37,
+      "constructed": 9,
+      "freePoints": 10,
+      "nanEls": [],
+      "ownLabels": 0,
+      "tied": 15,
+      "unknown": [],
+      "failed": [],
+      "aliased": [],
+      "rerouted": [],
+      "view3d": false,
+      "offPalette": [],
+      "kinds": {
+        "point": 16,
+        "line": 5,
+        "intersection": 3,
+        "segment": 3,
+        "polygon": 1,
+        "parallel": 3,
+        "angle": 3,
+        "arc": 3
+      }
+    }
+  },
+  {
+    "id": "m05_1",
+    "errs": [],
+    "collapsed": [],
+    "N": 6,
+    "per": [
+      {
+        "n": 1,
+        "labels": 4,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 7,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 7,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 4,
+        "labels": 7,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 5,
+        "labels": 8,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 6,
+        "labels": 9,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 18,
+    "moved": 10,
+    "far": 0,
+    "nlabels": 18,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 6,
+      "withWhy": 3,
+      "withUses": 2,
+      "hasSetup": true,
+      "groups": 2,
+      "hasSanity": true,
+      "missingWhy": [],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": null
+  },
+  {
+    "id": "m05_2",
+    "errs": [],
+    "collapsed": [],
+    "N": 6,
+    "per": [
+      {
+        "n": 1,
+        "labels": 5,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 5,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 6,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 4,
+        "labels": 7,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 5,
+        "labels": 7,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 6,
+        "labels": 7,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 15,
+    "moved": 9,
+    "far": 1,
+    "nlabels": 15,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 6,
+      "withWhy": 5,
+      "withUses": 3,
+      "hasSetup": true,
+      "groups": 3,
+      "hasSanity": true,
+      "missingWhy": [],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": null
+  },
+  {
+    "id": "m06_1",
+    "errs": [],
+    "collapsed": [],
+    "N": 5,
+    "per": [
+      {
+        "n": 1,
+        "labels": 8,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 9,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 10,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 4,
+        "labels": 9,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 5,
+        "labels": 9,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 13,
+    "moved": 5,
+    "far": 0,
+    "nlabels": 13,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 5,
+      "withWhy": 4,
+      "withUses": 4,
+      "hasSetup": true,
+      "groups": 4,
+      "hasSanity": true,
+      "missingWhy": [],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": null
+  },
+  {
+    "id": "m06_2",
+    "errs": [],
+    "collapsed": [],
+    "N": 3,
+    "per": [
+      {
+        "n": 1,
+        "labels": 7,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 10,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 11,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 12,
+    "moved": 8,
+    "far": 0,
+    "nlabels": 12,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 3,
+      "withWhy": 3,
+      "withUses": 1,
+      "hasSetup": true,
+      "groups": 3,
+      "hasSanity": true,
+      "missingWhy": [],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": null
+  },
+  {
+    "id": "m07_1",
+    "errs": [],
+    "collapsed": [],
+    "N": 5,
+    "per": [
+      {
+        "n": 1,
+        "labels": 4,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 5,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 6,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 4,
+        "labels": 6,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 5,
+        "labels": 6,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 9,
+    "moved": 1,
+    "far": 0,
+    "nlabels": 9,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 5,
+      "withWhy": 4,
+      "withUses": 3,
+      "hasSetup": true,
+      "groups": 2,
+      "hasSanity": true,
+      "missingWhy": [],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": {
+      "elements": 17,
+      "constructed": 2,
+      "freePoints": 3,
+      "nanEls": [],
+      "ownLabels": 0,
+      "tied": 11,
+      "unknown": [],
+      "failed": [],
+      "aliased": [],
+      "rerouted": [],
+      "view3d": false,
+      "offPalette": [],
+      "kinds": {
+        "point": 5,
+        "circle": 1,
+        "segment": 7,
+        "midpoint": 1,
+        "angle": 1,
+        "arc": 1,
+        "polygon": 1
+      }
+    }
+  },
+  {
+    "id": "m07_2",
+    "errs": [],
+    "collapsed": [],
+    "N": 4,
+    "per": [
+      {
+        "n": 1,
+        "labels": 5,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 7,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 7,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 4,
+        "labels": 6,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 8,
+    "moved": 0,
+    "far": 0,
+    "nlabels": 8,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 4,
+      "withWhy": 2,
+      "withUses": 3,
+      "hasSetup": true,
+      "groups": 2,
+      "hasSanity": true,
+      "missingWhy": [
+        {
+          "step": 4,
+          "newValues": [
+            230,
+            130,
+            180,
+            130
+          ],
+          "reason": "ขั้นนี้สร้างค่าใหม่แต่ไม่มีคำอธิบายว่าทำไม"
+        }
+      ],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": {
+      "elements": 32,
+      "constructed": 7,
+      "freePoints": 2,
+      "nanEls": [],
+      "ownLabels": 0,
+      "tied": 14,
+      "unknown": [],
+      "failed": [],
+      "aliased": [],
+      "rerouted": [],
+      "view3d": false,
+      "offPalette": [],
+      "kinds": {
+        "point": 10,
+        "circle": 2,
+        "midpoint": 1,
+        "intersection": 2,
+        "segment": 8,
+        "polygon": 1,
+        "angle": 4,
+        "arc": 4
+      }
+    }
+  },
+  {
+    "id": "m08_1",
+    "errs": [],
+    "collapsed": [],
+    "N": 4,
+    "per": [
+      {
+        "n": 1,
+        "labels": 3,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 6,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 7,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 4,
+        "labels": 6,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 9,
+    "moved": 5,
+    "far": 0,
+    "nlabels": 9,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 4,
+      "withWhy": 1,
+      "withUses": 2,
+      "hasSetup": true,
+      "groups": 2,
+      "hasSanity": true,
+      "missingWhy": [
+        {
+          "step": 4,
+          "newValues": [
+            0.5736,
+            6.88
+          ],
+          "reason": "ขั้นนี้สร้างค่าใหม่แต่ไม่มีคำอธิบายว่าทำไม"
+        }
+      ],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": null
+  },
+  {
+    "id": "m08_2",
+    "errs": [],
+    "collapsed": [],
+    "N": 6,
+    "per": [
+      {
+        "n": 1,
+        "labels": 6,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 7,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 8,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 4,
+        "labels": 9,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 5,
+        "labels": 8,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 6,
+        "labels": 9,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 10,
+    "moved": 4,
+    "far": 1,
+    "nlabels": 10,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 6,
+      "withWhy": 2,
+      "withUses": 3,
+      "hasSetup": true,
+      "groups": 3,
+      "hasSanity": true,
+      "missingWhy": [
+        {
+          "step": 6,
+          "newValues": [
+            25,
+            43.3
+          ],
+          "reason": "ขั้นนี้สร้างค่าใหม่แต่ไม่มีคำอธิบายว่าทำไม"
+        }
+      ],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 1,
+      "thaiSamples": [
+        "\\text{ เมตร}"
+      ],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": null
+  },
+  {
+    "id": "m09_1",
+    "errs": [],
+    "collapsed": [],
+    "N": 4,
+    "per": [
+      {
+        "n": 1,
+        "labels": 10,
+        "collisions": 1,
+        "pairs": [
+          "\"5\"×\"52+y12​=132⟹y1​=\""
+        ]
+      },
+      {
+        "n": 2,
+        "labels": 13,
+        "collisions": 1,
+        "pairs": [
+          "\"5\"×\"52+y12​=132⟹y1​=\""
+        ]
+      },
+      {
+        "n": 3,
+        "labels": 19,
+        "collisions": 2,
+        "pairs": [
+          "\"5\"×\"52+y12​=132⟹y1​=\"",
+          "\"52+y12​=132⟹y1​=\"×\"7\""
+        ]
+      },
+      {
+        "n": 4,
+        "labels": 37,
+        "collisions": 2,
+        "pairs": [
+          "\"5\"×\"52+y12​=132⟹y1​=\"",
+          "\"52+y12​=132⟹y1​=\"×\"7\""
+        ]
+      }
+    ],
+    "total": 37,
+    "moved": 9,
+    "far": 0,
+    "nlabels": 37,
+    "decrowded": 4,
+    "contrast": [],
+    "explain": {
+      "steps": 4,
+      "withWhy": 4,
+      "withUses": 3,
+      "hasSetup": true,
+      "groups": 3,
+      "hasSanity": true,
+      "missingWhy": [],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": null
+  },
+  {
+    "id": "m09_2",
+    "errs": [],
+    "collapsed": [],
+    "N": 7,
+    "per": [
+      {
+        "n": 1,
+        "labels": 6,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 8,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 9,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 4,
+        "labels": 9,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 5,
+        "labels": 9,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 6,
+        "labels": 9,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 7,
+        "labels": 9,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 13,
+    "moved": 2,
+    "far": 0,
+    "nlabels": 13,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 7,
+      "withWhy": 4,
+      "withUses": 5,
+      "hasSetup": true,
+      "groups": 3,
+      "hasSanity": true,
+      "missingWhy": [
+        {
+          "step": 6,
+          "newValues": [
+            196,
+            28,
+            29,
+            28
+          ],
+          "reason": "ขั้นนี้สร้างค่าใหม่แต่ไม่มีคำอธิบายว่าทำไม"
+        },
+        {
+          "step": 7,
+          "newValues": [
+            25,
+            144,
+            144,
+            12
+          ],
+          "reason": "ขั้นนี้สร้างค่าใหม่แต่ไม่มีคำอธิบายว่าทำไม"
+        }
+      ],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": null
+  },
+  {
+    "id": "m10_1",
+    "errs": [],
+    "collapsed": [],
+    "N": 5,
+    "per": [
+      {
+        "n": 1,
+        "labels": 1,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 1,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 2,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 4,
+        "labels": 2,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 5,
+        "labels": 3,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 3,
+    "moved": 1,
+    "far": 0,
+    "nlabels": 3,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 5,
+      "withWhy": 3,
+      "withUses": 3,
+      "hasSetup": true,
+      "groups": 1,
+      "hasSanity": true,
+      "missingWhy": [],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [
+        "L1:y=3x+1L_1: y = 3x + 1L1​:y=",
+        "L2:y=3x−1L_2: y = 3x - 1L2​:y="
+      ],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": {
+      "elements": 6,
+      "constructed": 1,
+      "freePoints": 4,
+      "nanEls": [],
+      "ownLabels": 0,
+      "tied": 3,
+      "unknown": [],
+      "failed": [],
+      "aliased": [],
+      "rerouted": [],
+      "view3d": false,
+      "offPalette": [],
+      "kinds": {
+        "point": 4,
+        "line": 1,
+        "parallel": 1
+      }
+    }
+  },
+  {
+    "id": "m10_2",
+    "errs": [],
+    "collapsed": [],
+    "N": 5,
+    "per": [
+      {
+        "n": 1,
+        "labels": 3,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 3,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 3,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 4,
+        "labels": 4,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 5,
+        "labels": 5,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 6,
+    "moved": 0,
+    "far": 0,
+    "nlabels": 6,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 5,
+      "withWhy": 5,
+      "withUses": 4,
+      "hasSetup": true,
+      "groups": 3,
+      "hasSanity": true,
+      "missingWhy": [],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": {
+      "elements": 24,
+      "constructed": 5,
+      "freePoints": 5,
+      "nanEls": [],
+      "ownLabels": 0,
+      "tied": 9,
+      "unknown": [],
+      "failed": [],
+      "aliased": [],
+      "rerouted": [],
+      "view3d": false,
+      "offPalette": [],
+      "kinds": {
+        "point": 9,
+        "line": 3,
+        "intersection": 3,
+        "perpendicular": 1,
+        "angle": 1,
+        "arc": 1,
+        "segment": 5,
+        "polygon": 1
+      }
+    }
+  },
+  {
+    "id": "m11_1",
+    "errs": [],
+    "collapsed": [],
+    "N": 5,
+    "per": [
+      {
+        "n": 1,
+        "labels": 4,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 7,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 10,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 4,
+        "labels": 21,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 5,
+        "labels": 21,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 25,
+    "moved": 6,
+    "far": 0,
+    "nlabels": 25,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 5,
+      "withWhy": 5,
+      "withUses": 4,
+      "hasSetup": true,
+      "groups": 2,
+      "hasSanity": true,
+      "missingWhy": [],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": null
+  },
+  {
+    "id": "m11_2",
+    "errs": [],
+    "collapsed": [],
+    "N": 3,
+    "per": [
+      {
+        "n": 1,
+        "labels": 17,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 19,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 22,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 24,
+    "moved": 5,
+    "far": 2,
+    "nlabels": 24,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 3,
+      "withWhy": 3,
+      "withUses": 1,
+      "hasSetup": true,
+      "groups": 3,
+      "hasSanity": true,
+      "missingWhy": [],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": null
+  },
+  {
+    "id": "m13_1",
+    "errs": [],
+    "collapsed": [],
+    "N": 7,
+    "per": [
+      {
+        "n": 1,
+        "labels": 1,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 3,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 3,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 4,
+        "labels": 3,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 5,
+        "labels": 7,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 6,
+        "labels": 7,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 7,
+        "labels": 9,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 9,
+    "moved": 1,
+    "far": 0,
+    "nlabels": 9,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 7,
+      "withWhy": 7,
+      "withUses": 5,
+      "hasSetup": true,
+      "groups": 3,
+      "hasSanity": true,
+      "missingWhy": [],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": {
+      "elements": 22,
+      "constructed": 5,
+      "freePoints": 11,
+      "nanEls": [],
+      "ownLabels": 0,
+      "tied": 12,
+      "unknown": [],
+      "failed": [],
+      "aliased": [],
+      "rerouted": [],
+      "view3d": false,
+      "offPalette": [],
+      "kinds": {
+        "point": 11,
+        "line": 5,
+        "curve": 4,
+        "reflection": 1,
+        "segment": 1
+      }
+    }
+  },
+  {
+    "id": "m14_1",
+    "errs": [],
+    "collapsed": [],
+    "N": 5,
+    "per": [
+      {
+        "n": 1,
+        "labels": 0,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 1,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 3,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 4,
+        "labels": 4,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 5,
+        "labels": 3,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 6,
+    "moved": 2,
+    "far": 1,
+    "nlabels": 6,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 5,
+      "withWhy": 5,
+      "withUses": 4,
+      "hasSetup": true,
+      "groups": 2,
+      "hasSanity": true,
+      "missingWhy": [],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": {
+      "elements": 13,
+      "constructed": 1,
+      "freePoints": 9,
+      "nanEls": [],
+      "ownLabels": 0,
+      "tied": 7,
+      "unknown": [],
+      "failed": [],
+      "aliased": [],
+      "rerouted": [],
+      "view3d": false,
+      "offPalette": [],
+      "kinds": {
+        "point": 9,
+        "line": 1,
+        "segment": 2,
+        "curve": 1
+      }
+    }
+  },
+  {
+    "id": "m14_2",
+    "errs": [],
+    "collapsed": [],
+    "N": 5,
+    "per": [
+      {
+        "n": 1,
+        "labels": 3,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 4,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 5,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 4,
+        "labels": 6,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 5,
+        "labels": 6,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 8,
+    "moved": 2,
+    "far": 0,
+    "nlabels": 8,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 5,
+      "withWhy": 5,
+      "withUses": 2,
+      "hasSetup": true,
+      "groups": 2,
+      "hasSanity": true,
+      "missingWhy": [],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": {
+      "elements": 13,
+      "constructed": 1,
+      "freePoints": 10,
+      "nanEls": [],
+      "ownLabels": 0,
+      "tied": 9,
+      "unknown": [],
+      "failed": [],
+      "aliased": [],
+      "rerouted": [],
+      "view3d": false,
+      "offPalette": [],
+      "kinds": {
+        "curve": 1,
+        "point": 10,
+        "segment": 2
+      }
+    }
+  },
+  {
+    "id": "m16_1",
+    "errs": [],
+    "collapsed": [],
+    "N": 3,
+    "per": [
+      {
+        "n": 1,
+        "labels": 1,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 3,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 5,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 5,
+    "moved": 1,
+    "far": 0,
+    "nlabels": 5,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 3,
+      "withWhy": 2,
+      "withUses": 2,
+      "hasSetup": true,
+      "groups": 2,
+      "hasSanity": true,
+      "missingWhy": [],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": {
+      "elements": 11,
+      "constructed": 2,
+      "freePoints": 6,
+      "nanEls": [],
+      "ownLabels": 0,
+      "tied": 9,
+      "unknown": [],
+      "failed": [],
+      "aliased": [],
+      "rerouted": [],
+      "view3d": false,
+      "offPalette": [],
+      "kinds": {
+        "curve": 2,
+        "point": 6,
+        "segment": 3
+      }
+    }
+  },
+  {
+    "id": "m16_2",
+    "errs": [],
+    "collapsed": [],
+    "N": 5,
+    "per": [
+      {
+        "n": 1,
+        "labels": 1,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 1,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 1,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 4,
+        "labels": 1,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 5,
+        "labels": 1,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 6,
+    "moved": 0,
+    "far": 0,
+    "nlabels": 6,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 5,
+      "withWhy": 4,
+      "withUses": 4,
+      "hasSetup": true,
+      "groups": 2,
+      "hasSanity": true,
+      "missingWhy": [],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 5,
+        "tags": 0
+      }
+    },
+    "jsx": {
+      "elements": 38,
+      "constructed": 1,
+      "freePoints": 27,
+      "nanEls": [],
+      "ownLabels": 0,
+      "tied": 18,
+      "unknown": [],
+      "failed": [],
+      "aliased": [],
+      "rerouted": [],
+      "view3d": false,
+      "offPalette": [],
+      "kinds": {
+        "curve": 1,
+        "point": 27,
+        "segment": 8,
+        "line": 2
+      }
+    }
+  },
+  {
+    "id": "m17_1",
+    "errs": [],
+    "collapsed": [],
+    "N": 5,
+    "per": [
+      {
+        "n": 1,
+        "labels": 2,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 4,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 4,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 4,
+        "labels": 4,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 5,
+        "labels": 7,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 9,
+    "moved": 0,
+    "far": 0,
+    "nlabels": 9,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 5,
+      "withWhy": 4,
+      "withUses": 4,
+      "hasSetup": true,
+      "groups": 2,
+      "hasSanity": true,
+      "missingWhy": [],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": {
+      "elements": 16,
+      "constructed": 4,
+      "freePoints": 5,
+      "nanEls": [],
+      "ownLabels": 0,
+      "tied": 9,
+      "unknown": [],
+      "failed": [],
+      "aliased": [],
+      "rerouted": [],
+      "view3d": false,
+      "offPalette": [],
+      "kinds": {
+        "point": 8,
+        "line": 1,
+        "perpendicular": 1,
+        "intersection": 1,
+        "midpoint": 1,
+        "segment": 3,
+        "curve": 1
+      }
+    }
+  },
+  {
+    "id": "m17_2",
+    "errs": [],
+    "collapsed": [],
+    "N": 5,
+    "per": [
+      {
+        "n": 1,
+        "labels": 3,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 1,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 3,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 4,
+        "labels": 5,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 5,
+        "labels": 4,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 8,
+    "moved": 0,
+    "far": 0,
+    "nlabels": 8,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 5,
+      "withWhy": 5,
+      "withUses": 4,
+      "hasSetup": true,
+      "groups": 2,
+      "hasSanity": true,
+      "missingWhy": [],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": {
+      "elements": 21,
+      "constructed": 4,
+      "freePoints": 7,
+      "nanEls": [],
+      "ownLabels": 0,
+      "tied": 7,
+      "unknown": [],
+      "failed": [],
+      "aliased": [],
+      "rerouted": [],
+      "view3d": false,
+      "offPalette": [],
+      "kinds": {
+        "point": 9,
+        "line": 3,
+        "curve": 1,
+        "intersection": 2,
+        "segment": 3,
+        "polygon": 1,
+        "angle": 1,
+        "arc": 1
+      }
+    }
+  },
+  {
+    "id": "m18_1",
+    "errs": [],
+    "collapsed": [],
+    "N": 5,
+    "per": [
+      {
+        "n": 1,
+        "labels": 5,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 4,
+        "collisions": 1,
+        "pairs": [
+          "\"Im\"×\"r=2​\""
+        ]
+      },
+      {
+        "n": 3,
+        "labels": 5,
+        "collisions": 1,
+        "pairs": [
+          "\"Im\"×\"r=2​\""
+        ]
+      },
+      {
+        "n": 4,
+        "labels": 6,
+        "collisions": 1,
+        "pairs": [
+          "\"Im\"×\"r=2​\""
+        ]
+      },
+      {
+        "n": 5,
+        "labels": 8,
+        "collisions": 1,
+        "pairs": [
+          "\"Im\"×\"r=2​\""
+        ]
+      }
+    ],
+    "total": 10,
+    "moved": 3,
+    "far": 0,
+    "nlabels": 10,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 5,
+      "withWhy": 5,
+      "withUses": 4,
+      "hasSetup": true,
+      "groups": 2,
+      "hasSanity": true,
+      "missingWhy": [],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": {
+      "elements": 21,
+      "constructed": 3,
+      "freePoints": 11,
+      "nanEls": [],
+      "ownLabels": 0,
+      "tied": 16,
+      "unknown": [],
+      "failed": [],
+      "aliased": [],
+      "rerouted": [],
+      "view3d": false,
+      "offPalette": [],
+      "kinds": {
+        "point": 13,
+        "segment": 4,
+        "angle": 1,
+        "arc": 1,
+        "curve": 2
+      }
+    }
+  },
+  {
+    "id": "m19_1",
+    "errs": [],
+    "collapsed": [],
+    "N": 5,
+    "per": [
+      {
+        "n": 1,
+        "labels": 2,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 2,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 2,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 4,
+        "labels": 2,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 5,
+        "labels": 3,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 3,
+    "moved": 1,
+    "far": 0,
+    "nlabels": 3,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 5,
+      "withWhy": 3,
+      "withUses": 4,
+      "hasSetup": true,
+      "groups": 2,
+      "hasSanity": true,
+      "missingWhy": [
+        {
+          "step": 5,
+          "newValues": [
+            20,
+            16,
+            16
+          ],
+          "reason": "ขั้นนี้สร้างค่าใหม่แต่ไม่มีคำอธิบายว่าทำไม"
+        }
+      ],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": {
+      "elements": 5,
+      "constructed": 3,
+      "freePoints": 0,
+      "nanEls": [],
+      "ownLabels": 0,
+      "tied": 3,
+      "unknown": [],
+      "failed": [],
+      "aliased": [],
+      "rerouted": [],
+      "view3d": false,
+      "offPalette": [],
+      "kinds": {
+        "curve": 1,
+        "glider": 1,
+        "point": 2,
+        "tangent": 1
+      }
+    }
+  },
+  {
+    "id": "m19_2",
+    "errs": [],
+    "collapsed": [],
+    "N": 5,
+    "per": [
+      {
+        "n": 1,
+        "labels": 4,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 3,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 2,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 4,
+        "labels": 5,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 5,
+        "labels": 4,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 13,
+    "moved": 0,
+    "far": 0,
+    "nlabels": 13,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 5,
+      "withWhy": 5,
+      "withUses": 4,
+      "hasSetup": true,
+      "groups": 3,
+      "hasSanity": true,
+      "missingWhy": [],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 3,
+        "tags": 0
+      }
+    },
+    "jsx": {
+      "elements": 31,
+      "constructed": 5,
+      "freePoints": 18,
+      "nanEls": [],
+      "ownLabels": 0,
+      "tied": 15,
+      "unknown": [],
+      "failed": [
+        {
+          "type": "riemannsum",
+          "msg": "e is not a function"
+        }
+      ],
+      "aliased": [],
+      "rerouted": [],
+      "view3d": false,
+      "offPalette": [],
+      "kinds": {
+        "curve": 2,
+        "point": 20,
+        "segment": 6,
+        "integral": 1,
+        "glider": 2
+      }
+    }
+  },
+  {
+    "id": "m21_1",
+    "errs": [],
+    "collapsed": [],
+    "N": 4,
+    "per": [
+      {
+        "n": 1,
+        "labels": 8,
+        "collisions": 2,
+        "pairs": [
+          "\"157\"×\"−1\"",
+          "\"165\"×\"0\""
+        ]
+      },
+      {
+        "n": 2,
+        "labels": 9,
+        "collisions": 3,
+        "pairs": [
+          "\"157\"×\"−1\"",
+          "\"165\"×\"0\""
+        ]
+      },
+      {
+        "n": 3,
+        "labels": 25,
+        "collisions": 3,
+        "pairs": [
+          "\"157\"×\"−1\"",
+          "\"165\"×\"0\""
+        ]
+      },
+      {
+        "n": 4,
+        "labels": 25,
+        "collisions": 3,
+        "pairs": [
+          "\"157\"×\"−1\"",
+          "\"165\"×\"0\""
+        ]
+      }
+    ],
+    "total": 28,
+    "moved": 3,
+    "far": 0,
+    "nlabels": 28,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 4,
+      "withWhy": 3,
+      "withUses": 3,
+      "hasSetup": true,
+      "groups": 3,
+      "hasSanity": true,
+      "missingWhy": [],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": null
+  },
+  {
+    "id": "m22_1",
+    "errs": [],
+    "collapsed": [],
+    "N": 6,
+    "per": [
+      {
+        "n": 1,
+        "labels": 2,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 3,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 3,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 4,
+        "labels": 6,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 5,
+        "labels": 7,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 6,
+        "labels": 10,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 12,
+    "moved": 6,
+    "far": 0,
+    "nlabels": 12,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 6,
+      "withWhy": 5,
+      "withUses": 5,
+      "hasSetup": true,
+      "groups": 2,
+      "hasSanity": true,
+      "missingWhy": [],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 1,
+      "thaiSamples": [
+        "\\text{พื้นที่ฐาน}"
+      ],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": null
+  },
+  {
+    "id": "m22_2",
+    "errs": [],
+    "collapsed": [],
+    "N": 9,
+    "per": [
+      {
+        "n": 1,
+        "labels": 5,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 7,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 7,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 4,
+        "labels": 7,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 5,
+        "labels": 7,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 6,
+        "labels": 8,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 7,
+        "labels": 8,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 8,
+        "labels": 9,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 9,
+        "labels": 20,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 27,
+    "moved": 6,
+    "far": 5,
+    "nlabels": 27,
+    "decrowded": 2,
+    "contrast": [],
+    "explain": {
+      "steps": 9,
+      "withWhy": 2,
+      "withUses": 8,
+      "hasSetup": true,
+      "groups": 3,
+      "hasSanity": true,
+      "missingWhy": [
+        {
+          "step": 3,
+          "newValues": [
+            72
+          ],
+          "reason": "ขั้นนี้สร้างค่าใหม่แต่ไม่มีคำอธิบายว่าทำไม"
+        },
+        {
+          "step": 4,
+          "newValues": [
+            12
+          ],
+          "reason": "ขั้นนี้สร้างค่าใหม่แต่ไม่มีคำอธิบายว่าทำไม"
+        },
+        {
+          "step": 5,
+          "newValues": [
+            84,
+            263.89
+          ],
+          "reason": "ขั้นนี้สร้างค่าใหม่แต่ไม่มีคำอธิบายว่าทำไม"
+        },
+        {
+          "step": 6,
+          "newValues": [
+            15
+          ],
+          "reason": "ขั้นนี้สร้างค่าใหม่แต่ไม่มีคำอธิบายว่าทำไม"
+        },
+        {
+          "step": 7,
+          "newValues": [
+            48
+          ],
+          "reason": "ขั้นนี้สร้างค่าใหม่แต่ไม่มีคำอธิบายว่าทำไม"
+        },
+        {
+          "step": 9,
+          "newValues": [
+            72,
+            226.19
+          ],
+          "reason": "ขั้นนี้สร้างค่าใหม่แต่ไม่มีคำอธิบายว่าทำไม"
+        }
+      ],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": null
+  },
+  {
+    "id": "m23_1",
+    "errs": [],
+    "collapsed": [],
+    "N": 4,
+    "per": [
+      {
+        "n": 1,
+        "labels": 6,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 10,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 11,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 4,
+        "labels": 11,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 12,
+    "moved": 1,
+    "far": 0,
+    "nlabels": 12,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 4,
+      "withWhy": 4,
+      "withUses": 3,
+      "hasSetup": true,
+      "groups": 2,
+      "hasSanity": true,
+      "missingWhy": [],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": null
+  },
+  {
+    "id": "m23_2",
+    "errs": [],
+    "collapsed": [],
+    "N": 6,
+    "per": [
+      {
+        "n": 1,
+        "labels": 3,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 4,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 5,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 4,
+        "labels": 6,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 5,
+        "labels": 7,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 6,
+        "labels": 7,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 8,
+    "moved": 4,
+    "far": 0,
+    "nlabels": 8,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 6,
+      "withWhy": 5,
+      "withUses": 4,
+      "hasSetup": true,
+      "groups": 3,
+      "hasSanity": true,
+      "missingWhy": [],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": null
+  },
+  {
+    "id": "m23_3",
+    "errs": [],
+    "collapsed": [],
+    "N": 6,
+    "per": [
+      {
+        "n": 1,
+        "labels": 4,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 5,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 8,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 4,
+        "labels": 11,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 5,
+        "labels": 11,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 6,
+        "labels": 12,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 12,
+    "moved": 0,
+    "far": 0,
+    "nlabels": 12,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 6,
+      "withWhy": 5,
+      "withUses": 4,
+      "hasSetup": true,
+      "groups": 3,
+      "hasSanity": true,
+      "missingWhy": [],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": null
+  },
+  {
+    "id": "m24_1",
+    "errs": [],
+    "collapsed": [],
+    "N": 4,
+    "per": [
+      {
+        "n": 1,
+        "labels": 3,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 5,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 5,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 4,
+        "labels": 5,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 5,
+    "moved": 1,
+    "far": 0,
+    "nlabels": 5,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 4,
+      "withWhy": 3,
+      "withUses": 3,
+      "hasSetup": true,
+      "groups": 2,
+      "hasSanity": true,
+      "missingWhy": [
+        {
+          "step": 4,
+          "newValues": [
+            16,
+            25
+          ],
+          "reason": "ขั้นนี้สร้างค่าใหม่แต่ไม่มีคำอธิบายว่าทำไม"
+        }
+      ],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": {
+      "elements": 12,
+      "constructed": 3,
+      "freePoints": 3,
+      "nanEls": [],
+      "ownLabels": 0,
+      "tied": 4,
+      "unknown": [],
+      "failed": [],
+      "aliased": [],
+      "rerouted": [],
+      "view3d": false,
+      "offPalette": [],
+      "kinds": {
+        "point": 7,
+        "line": 1,
+        "perpendicular": 1,
+        "intersection": 1,
+        "angle": 1,
+        "arc": 1
+      }
+    }
+  },
+  {
+    "id": "m24_2",
+    "errs": [],
+    "collapsed": [],
+    "N": 4,
+    "per": [
+      {
+        "n": 1,
+        "labels": 3,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 4,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 5,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 4,
+        "labels": 6,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 6,
+    "moved": 6,
+    "far": 0,
+    "nlabels": 6,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 4,
+      "withWhy": 3,
+      "withUses": 3,
+      "hasSetup": true,
+      "groups": 4,
+      "hasSanity": true,
+      "missingWhy": [],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": {
+      "elements": 52,
+      "constructed": 0,
+      "freePoints": 19,
+      "nanEls": [],
+      "ownLabels": 0,
+      "tied": 12,
+      "unknown": [],
+      "failed": [],
+      "aliased": [],
+      "rerouted": [],
+      "view3d": true,
+      "offPalette": [],
+      "kinds": {
+        "point3d": 19,
+        "point": 19,
+        "line3d": 7,
+        "segment": 7
+      }
+    }
+  },
+  {
+    "id": "m24_3",
+    "errs": [],
+    "collapsed": [],
+    "N": 5,
+    "per": [
+      {
+        "n": 1,
+        "labels": 3,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 5,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 3,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 4,
+        "labels": 4,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 5,
+        "labels": 4,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 7,
+    "moved": 6,
+    "far": 0,
+    "nlabels": 7,
+    "decrowded": 2,
+    "contrast": [],
+    "explain": {
+      "steps": 5,
+      "withWhy": 3,
+      "withUses": 4,
+      "hasSetup": true,
+      "groups": 2,
+      "hasSanity": true,
+      "missingWhy": [
+        {
+          "step": 4,
+          "newValues": [
+            64,
+            36,
+            100,
+            200
+          ],
+          "reason": "ขั้นนี้สร้างค่าใหม่แต่ไม่มีคำอธิบายว่าทำไม"
+        }
+      ],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": {
+      "elements": 52,
+      "constructed": 0,
+      "freePoints": 19,
+      "nanEls": [],
+      "ownLabels": 0,
+      "tied": 11,
+      "unknown": [],
+      "failed": [],
+      "aliased": [],
+      "rerouted": [],
+      "view3d": true,
+      "offPalette": [],
+      "kinds": {
+        "point3d": 19,
+        "point": 19,
+        "line3d": 7,
+        "segment": 7
+      }
+    }
+  },
+  {
+    "id": "p01_1",
+    "errs": [],
+    "collapsed": [],
+    "N": 5,
+    "per": [
+      {
+        "n": 1,
+        "labels": 3,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 4,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 5,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 4,
+        "labels": 6,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 5,
+        "labels": 5,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 8,
+    "moved": 1,
+    "far": 0,
+    "nlabels": 8,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 5,
+      "withWhy": 3,
+      "withUses": 4,
+      "hasSetup": true,
+      "groups": 3,
+      "hasSanity": true,
+      "missingWhy": [],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": {
+      "elements": 14,
+      "constructed": 0,
+      "freePoints": 4,
+      "nanEls": [],
+      "ownLabels": 0,
+      "tied": 8,
+      "unknown": [],
+      "failed": [],
+      "aliased": [],
+      "rerouted": [],
+      "view3d": false,
+      "offPalette": [],
+      "kinds": {
+        "point": 4,
+        "segment": 6,
+        "polygon": 1,
+        "label": 3
+      }
+    }
+  },
+  {
+    "id": "p01_2",
+    "errs": [],
+    "collapsed": [],
+    "N": 6,
+    "per": [
+      {
+        "n": 1,
+        "labels": 3,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 5,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 5,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 4,
+        "labels": 7,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 5,
+        "labels": 8,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 6,
+        "labels": 9,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 10,
+    "moved": 1,
+    "far": 0,
+    "nlabels": 10,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 6,
+      "withWhy": 6,
+      "withUses": 4,
+      "hasSetup": true,
+      "groups": 3,
+      "hasSanity": true,
+      "missingWhy": [],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": {
+      "elements": 16,
+      "constructed": 0,
+      "freePoints": 7,
+      "nanEls": [],
+      "ownLabels": 0,
+      "tied": 10,
+      "unknown": [],
+      "failed": [],
+      "aliased": [],
+      "rerouted": [],
+      "view3d": false,
+      "offPalette": [],
+      "kinds": {
+        "point": 7,
+        "segment": 8,
+        "polygon": 1
+      }
+    }
+  },
+  {
+    "id": "p02_1",
+    "errs": [],
+    "collapsed": [],
+    "N": 6,
+    "per": [
+      {
+        "n": 1,
+        "labels": 3,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 4,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 4,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 4,
+        "labels": 5,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 5,
+        "labels": 5,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 6,
+        "labels": 5,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 12,
+    "moved": 5,
+    "far": 1,
+    "nlabels": 12,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 6,
+      "withWhy": 5,
+      "withUses": 5,
+      "hasSetup": true,
+      "groups": 4,
+      "hasSanity": true,
+      "missingWhy": [],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": null
+  },
+  {
+    "id": "p02_2",
+    "errs": [],
+    "collapsed": [],
+    "N": 6,
+    "per": [
+      {
+        "n": 1,
+        "labels": 3,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 6,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 8,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 4,
+        "labels": 6,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 5,
+        "labels": 6,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 6,
+        "labels": 7,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 9,
+    "moved": 5,
+    "far": 0,
+    "nlabels": 9,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 6,
+      "withWhy": 5,
+      "withUses": 4,
+      "hasSetup": true,
+      "groups": 2,
+      "hasSanity": true,
+      "missingWhy": [],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": null
+  },
+  {
+    "id": "p03_1",
+    "errs": [],
+    "collapsed": [],
+    "N": 4,
+    "per": [
+      {
+        "n": 1,
+        "labels": 3,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 6,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 11,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 4,
+        "labels": 17,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 17,
+    "moved": 4,
+    "far": 2,
+    "nlabels": 17,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 4,
+      "withWhy": 3,
+      "withUses": 2,
+      "hasSetup": true,
+      "groups": 2,
+      "hasSanity": true,
+      "missingWhy": [],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": null
+  },
+  {
+    "id": "p03_2",
+    "errs": [],
+    "collapsed": [],
+    "N": 5,
+    "per": [
+      {
+        "n": 1,
+        "labels": 5,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 5,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 6,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 4,
+        "labels": 13,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 5,
+        "labels": 15,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 16,
+    "moved": 4,
+    "far": 1,
+    "nlabels": 16,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 5,
+      "withWhy": 5,
+      "withUses": 3,
+      "hasSetup": true,
+      "groups": 2,
+      "hasSanity": true,
+      "missingWhy": [],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": null
+  },
+  {
+    "id": "p04_1",
+    "errs": [],
+    "collapsed": [],
+    "N": 4,
+    "per": [
+      {
+        "n": 1,
+        "labels": 8,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 9,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 10,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 4,
+        "labels": 19,
+        "collisions": 1,
+        "pairs": [
+          "\"+0.1\"×\"x\""
+        ]
+      }
+    ],
+    "total": 22,
+    "moved": 9,
+    "far": 0,
+    "nlabels": 22,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 4,
+      "withWhy": 4,
+      "withUses": 3,
+      "hasSetup": true,
+      "groups": 2,
+      "hasSanity": true,
+      "missingWhy": [],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": null
+  },
+  {
+    "id": "p05_1",
+    "errs": [],
+    "collapsed": [],
+    "N": 5,
+    "per": [
+      {
+        "n": 1,
+        "labels": 3,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 5,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 4,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 4,
+        "labels": 7,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 5,
+        "labels": 9,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 11,
+    "moved": 10,
+    "far": 0,
+    "nlabels": 11,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 5,
+      "withWhy": 5,
+      "withUses": 3,
+      "hasSetup": true,
+      "groups": 2,
+      "hasSanity": true,
+      "missingWhy": [],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": null
+  },
+  {
+    "id": "p06_1",
+    "errs": [],
+    "collapsed": [],
+    "N": 6,
+    "per": [
+      {
+        "n": 1,
+        "labels": 3,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 5,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 6,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 4,
+        "labels": 7,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 5,
+        "labels": 8,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 6,
+        "labels": 8,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 10,
+    "moved": 1,
+    "far": 3,
+    "nlabels": 10,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 6,
+      "withWhy": 5,
+      "withUses": 5,
+      "hasSetup": true,
+      "groups": 3,
+      "hasSanity": true,
+      "missingWhy": [
+        {
+          "step": 6,
+          "newValues": [
+            1.08
+          ],
+          "reason": "ขั้นนี้สร้างค่าใหม่แต่ไม่มีคำอธิบายว่าทำไม"
+        }
+      ],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": {
+      "elements": 32,
+      "constructed": 5,
+      "freePoints": 15,
+      "nanEls": [],
+      "ownLabels": 0,
+      "tied": 12,
+      "unknown": [],
+      "failed": [],
+      "aliased": [],
+      "rerouted": [],
+      "view3d": false,
+      "offPalette": [],
+      "kinds": {
+        "point": 17,
+        "segment": 9,
+        "curve": 2,
+        "integral": 1,
+        "glider": 2,
+        "polygon": 1
+      }
+    }
+  },
+  {
+    "id": "p07_1",
+    "errs": [],
+    "collapsed": [],
+    "N": 6,
+    "per": [
+      {
+        "n": 1,
+        "labels": 3,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 4,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 7,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 4,
+        "labels": 5,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 5,
+        "labels": 5,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 6,
+        "labels": 5,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 7,
+    "moved": 5,
+    "far": 0,
+    "nlabels": 7,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 6,
+      "withWhy": 5,
+      "withUses": 4,
+      "hasSetup": true,
+      "groups": 3,
+      "hasSanity": true,
+      "missingWhy": [
+        {
+          "step": 6,
+          "newValues": [
+            19.6,
+            4.9,
+            9.8,
+            0.5
+          ],
+          "reason": "ขั้นนี้สร้างค่าใหม่แต่ไม่มีคำอธิบายว่าทำไม"
+        }
+      ],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": null
+  },
+  {
+    "id": "p07_2",
+    "errs": [],
+    "collapsed": [],
+    "N": 7,
+    "per": [
+      {
+        "n": 1,
+        "labels": 10,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 11,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 12,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 4,
+        "labels": 14,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 5,
+        "labels": 14,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 6,
+        "labels": 16,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 7,
+        "labels": 16,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 16,
+    "moved": 4,
+    "far": 1,
+    "nlabels": 16,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 7,
+      "withWhy": 5,
+      "withUses": 4,
+      "hasSetup": true,
+      "groups": 2,
+      "hasSanity": true,
+      "missingWhy": [
+        {
+          "step": 6,
+          "newValues": [
+            19.6,
+            2.45
+          ],
+          "reason": "ขั้นนี้สร้างค่าใหม่แต่ไม่มีคำอธิบายว่าทำไม"
+        },
+        {
+          "step": 7,
+          "newValues": [
+            12.25,
+            22.05,
+            22.05
+          ],
+          "reason": "ขั้นนี้สร้างค่าใหม่แต่ไม่มีคำอธิบายว่าทำไม"
+        }
+      ],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": null
+  },
+  {
+    "id": "p08_1",
+    "errs": [],
+    "collapsed": [],
+    "N": 5,
+    "per": [
+      {
+        "n": 1,
+        "labels": 6,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 7,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 10,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 4,
+        "labels": 8,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 5,
+        "labels": 9,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 12,
+    "moved": 7,
+    "far": 0,
+    "nlabels": 12,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 5,
+      "withWhy": 5,
+      "withUses": 3,
+      "hasSetup": true,
+      "groups": 3,
+      "hasSanity": true,
+      "missingWhy": [],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": null
+  },
+  {
+    "id": "p08_2",
+    "errs": [],
+    "collapsed": [],
+    "N": 5,
+    "per": [
+      {
+        "n": 1,
+        "labels": 5,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 9,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 11,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 4,
+        "labels": 12,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 5,
+        "labels": 11,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 13,
+    "moved": 5,
+    "far": 0,
+    "nlabels": 13,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 5,
+      "withWhy": 4,
+      "withUses": 3,
+      "hasSetup": true,
+      "groups": 4,
+      "hasSanity": true,
+      "missingWhy": [],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": null
+  },
+  {
+    "id": "p09_1",
+    "errs": [],
+    "collapsed": [],
+    "N": 4,
+    "per": [
+      {
+        "n": 1,
+        "labels": 4,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 20,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 1,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 4,
+        "labels": 14,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 35,
+    "moved": 7,
+    "far": 0,
+    "nlabels": 35,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 4,
+      "withWhy": 3,
+      "withUses": 3,
+      "hasSetup": true,
+      "groups": 2,
+      "hasSanity": true,
+      "missingWhy": [],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": null
+  },
+  {
+    "id": "p09_2",
+    "errs": [],
+    "collapsed": [],
+    "N": 5,
+    "per": [
+      {
+        "n": 1,
+        "labels": 5,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 8,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 9,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 4,
+        "labels": 9,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 5,
+        "labels": 10,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 11,
+    "moved": 1,
+    "far": 0,
+    "nlabels": 11,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 5,
+      "withWhy": 5,
+      "withUses": 4,
+      "hasSetup": true,
+      "groups": 3,
+      "hasSanity": true,
+      "missingWhy": [],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": null
+  },
+  {
+    "id": "p10_1",
+    "errs": [],
+    "collapsed": [],
+    "N": 4,
+    "per": [
+      {
+        "n": 1,
+        "labels": 6,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 8,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 9,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 4,
+        "labels": 9,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 11,
+    "moved": 4,
+    "far": 0,
+    "nlabels": 11,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 4,
+      "withWhy": 2,
+      "withUses": 3,
+      "hasSetup": true,
+      "groups": 2,
+      "hasSanity": true,
+      "missingWhy": [],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": null
+  },
+  {
+    "id": "p10_2",
+    "errs": [],
+    "collapsed": [],
+    "N": 5,
+    "per": [
+      {
+        "n": 1,
+        "labels": 6,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 9,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 9,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 4,
+        "labels": 7,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 5,
+        "labels": 8,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 14,
+    "moved": 12,
+    "far": 1,
+    "nlabels": 14,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 5,
+      "withWhy": 1,
+      "withUses": 1,
+      "hasSetup": true,
+      "groups": 2,
+      "hasSanity": true,
+      "missingWhy": [
+        {
+          "step": 3,
+          "newValues": [
+            10,
+            10,
+            22.5
+          ],
+          "reason": "ขั้นนี้สร้างค่าใหม่แต่ไม่มีคำอธิบายว่าทำไม"
+        }
+      ],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": null
+  },
+  {
+    "id": "p11_1",
+    "errs": [],
+    "collapsed": [],
+    "N": 6,
+    "per": [
+      {
+        "n": 1,
+        "labels": 9,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 10,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 10,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 4,
+        "labels": 10,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 5,
+        "labels": 9,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 6,
+        "labels": 10,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 13,
+    "moved": 7,
+    "far": 0,
+    "nlabels": 13,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 6,
+      "withWhy": 5,
+      "withUses": 5,
+      "hasSetup": true,
+      "groups": 2,
+      "hasSanity": true,
+      "missingWhy": [],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": null
+  },
+  {
+    "id": "p12_1",
+    "errs": [],
+    "collapsed": [
+      "angle"
+    ],
+    "N": 5,
+    "per": [
+      {
+        "n": 1,
+        "labels": 5,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 6,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 7,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 4,
+        "labels": 6,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 5,
+        "labels": 7,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 9,
+    "moved": 7,
+    "far": 0,
+    "nlabels": 9,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 5,
+      "withWhy": 4,
+      "withUses": 4,
+      "hasSetup": true,
+      "groups": 3,
+      "hasSanity": true,
+      "missingWhy": [
+        {
+          "step": 1,
+          "newValues": [
+            90
+          ],
+          "reason": "ขั้นนี้สร้างค่าใหม่แต่ไม่มีคำอธิบายว่าทำไม"
+        }
+      ],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": null
+  },
+  {
+    "id": "p12_2",
+    "errs": [],
+    "collapsed": [],
+    "N": 5,
+    "per": [
+      {
+        "n": 1,
+        "labels": 3,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 8,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 4,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 4,
+        "labels": 6,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 5,
+        "labels": 7,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 13,
+    "moved": 11,
+    "far": 0,
+    "nlabels": 13,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 5,
+      "withWhy": 3,
+      "withUses": 3,
+      "hasSetup": true,
+      "groups": 3,
+      "hasSanity": true,
+      "missingWhy": [
+        {
+          "step": 4,
+          "newValues": [
+            0.2,
+            0.2
+          ],
+          "reason": "ขั้นนี้สร้างค่าใหม่แต่ไม่มีคำอธิบายว่าทำไม"
+        }
+      ],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": null
+  },
+  {
+    "id": "p13_1",
+    "errs": [],
+    "collapsed": [],
+    "N": 6,
+    "per": [
+      {
+        "n": 1,
+        "labels": 4,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 5,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 6,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 4,
+        "labels": 5,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 5,
+        "labels": 6,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 6,
+        "labels": 9,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 11,
+    "moved": 6,
+    "far": 0,
+    "nlabels": 11,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 6,
+      "withWhy": 5,
+      "withUses": 4,
+      "hasSetup": true,
+      "groups": 2,
+      "hasSanity": true,
+      "missingWhy": [],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": null
+  },
+  {
+    "id": "p14_1",
+    "errs": [],
+    "collapsed": [],
+    "N": 5,
+    "per": [
+      {
+        "n": 1,
+        "labels": 5,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 6,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 6,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 4,
+        "labels": 8,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 5,
+        "labels": 7,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 9,
+    "moved": 7,
+    "far": 1,
+    "nlabels": 9,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 5,
+      "withWhy": 3,
+      "withUses": 1,
+      "hasSetup": true,
+      "groups": 2,
+      "hasSanity": true,
+      "missingWhy": [
+        {
+          "step": 1,
+          "newValues": [
+            0.1
+          ],
+          "reason": "ขั้นนี้สร้างค่าใหม่แต่ไม่มีคำอธิบายว่าทำไม"
+        }
+      ],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": null
+  },
+  {
+    "id": "p14_2",
+    "errs": [],
+    "collapsed": [
+      "otimes"
+    ],
+    "N": 5,
+    "per": [
+      {
+        "n": 1,
+        "labels": 4,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 3,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 6,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 4,
+        "labels": 6,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 5,
+        "labels": 6,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 12,
+    "moved": 8,
+    "far": 3,
+    "nlabels": 12,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 5,
+      "withWhy": 5,
+      "withUses": 4,
+      "hasSetup": true,
+      "groups": 2,
+      "hasSanity": true,
+      "missingWhy": [],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": null
+  },
+  {
+    "id": "p15_1",
+    "errs": [],
+    "collapsed": [],
+    "N": 4,
+    "per": [
+      {
+        "n": 1,
+        "labels": 4,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 4,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 4,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 4,
+        "labels": 6,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 8,
+    "moved": 6,
+    "far": 1,
+    "nlabels": 8,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 4,
+      "withWhy": 3,
+      "withUses": 2,
+      "hasSetup": true,
+      "groups": 1,
+      "hasSanity": true,
+      "missingWhy": [
+        {
+          "step": 3,
+          "newValues": [
+            9.8,
+            9.8,
+            19.6,
+            20
+          ],
+          "reason": "ขั้นนี้สร้างค่าใหม่แต่ไม่มีคำอธิบายว่าทำไม"
+        }
+      ],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": null
+  },
+  {
+    "id": "p15_2",
+    "errs": [],
+    "collapsed": [
+      "rho"
+    ],
+    "N": 7,
+    "per": [
+      {
+        "n": 1,
+        "labels": 3,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 3,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 2,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 4,
+        "labels": 2,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 5,
+        "labels": 2,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 6,
+        "labels": 5,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 7,
+        "labels": 8,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 15,
+    "moved": 6,
+    "far": 0,
+    "nlabels": 15,
+    "decrowded": 0,
+    "contrast": [],
+    "explain": {
+      "steps": 7,
+      "withWhy": 7,
+      "withUses": 6,
+      "hasSetup": true,
+      "groups": 2,
+      "hasSanity": true,
+      "missingWhy": [],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 1,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": null
+  },
+  {
+    "id": "p16_1",
+    "errs": [],
+    "collapsed": [],
+    "N": 4,
+    "per": [
+      {
+        "n": 1,
+        "labels": 3,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 4,
+        "collisions": 1,
+        "pairs": [
+          "\"สถานีรับสัญญาณภา\"×\"t=0.12\""
+        ]
+      },
+      {
+        "n": 3,
+        "labels": 5,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 4,
+        "labels": 15,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 17,
+    "moved": 3,
+    "far": 1,
+    "nlabels": 17,
+    "decrowded": 2,
+    "contrast": [],
+    "explain": {
+      "steps": 4,
+      "withWhy": 4,
+      "withUses": 3,
+      "hasSetup": true,
+      "groups": 2,
+      "hasSanity": true,
+      "missingWhy": [],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": null
+  },
+  {
+    "id": "p17_1",
+    "errs": [],
+    "collapsed": [],
+    "N": 3,
+    "per": [
+      {
+        "n": 1,
+        "labels": 11,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 2,
+        "labels": 12,
+        "collisions": 0,
+        "pairs": []
+      },
+      {
+        "n": 3,
+        "labels": 13,
+        "collisions": 0,
+        "pairs": []
+      }
+    ],
+    "total": 13,
+    "moved": 1,
+    "far": 1,
+    "nlabels": 13,
+    "decrowded": 2,
+    "contrast": [],
+    "explain": {
+      "steps": 3,
+      "withWhy": 3,
+      "withUses": 2,
+      "hasSetup": true,
+      "groups": 2,
+      "hasSanity": true,
+      "missingWhy": [],
+      "unverified": []
+    },
+    "latex": {
+      "leaked": 0,
+      "samples": [],
+      "thaiInMath": 0,
+      "thaiSamples": [],
+      "tagFails": [],
+      "replaced": 0,
+      "badCoord": [],
+      "repaired": {
+        "escapes": 0,
+        "wrapped": 0,
+        "tags": 0
+      }
+    },
+    "jsx": null
+  }
+]

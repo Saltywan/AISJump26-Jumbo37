@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>การดำเนินการของเวกเตอร์ในสามมิติ</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/jsxgraph.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/jsxgraphcore.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+Shell.page({
+  title: 'การดำเนินการของเวกเตอร์ในสามมิติ',
+  problem: 'กำหนด $\\vec{a} = (2, -1, 3)$ และ $\\vec{b} = (1, 2, -2)$ จงหา $\\vec{a}+\\vec{b}$, $\\vec{a}-\\vec{b}$ และ $\\vec{a}\\cdot\\vec{b}$'
+});
+
+var v = Shell.view3d({ bounds: [[-3, 5], [-4, 4], [-3, 6]] });
+var C = Shell.C;
+
+Shell.setup('เวกเตอร์ในระบบพิกัดฉากสามมิติสามารถดำเนินการทางพีชคณิตแยกตามแต่ละแกนพิกัด $(x, y, z)$ ได้โดยตรง ซึ่งสอดคล้องกับพฤติกรรมทางเรขาคณิตของการต่อเวกเตอร์ในปริภูมิสามมิติ');
+
+Shell.group('กำหนดเวกเตอร์เริ่มต้นในระบบพิกัดฉาก 3 มิติ');
+
+var O = v.create('point3d', [0, 0, 0], { size: 3, strokeColor: C.note, fillColor: C.note, name: '' });
+var A = v.create('point3d', [2, -1, 3], { size: 4, strokeColor: C.given, fillColor: C.given, name: '' });
+var lineOA = v.create('line3d', [O, A], { strokeColor: C.given, strokeWidth: 3, straightFirst: false, straightLast: false });
+
+var B = v.create('point3d', [1, 2, -2], { size: 4, strokeColor: C.given, fillColor: C.given, name: '' });
+var lineOB = v.create('line3d', [O, B], { strokeColor: C.given, strokeWidth: 3, straightFirst: false, straightLast: false });
+
+var s1 = Shell.step('กำหนดจุดกำเนิด $O(0, 0, 0)$ และสร้างเวกเตอร์ $\\vec{a} = (2, -1, 3)$ กับ $\\vec{b} = (1, 2, -2)$ ในระบบพิกัดฉากสามมิติ');
+Shell.on(s1, O, A, lineOA, B, lineOB);
+Shell.tag(s1, O, 'O(0, 0, 0)', { role: 'note' });
+Shell.tag(s1, A, '$\\vec{a}(2, -1, 3)$', { role: 'given' });
+Shell.tag(s1, B, '$\\vec{b}(1, 2, -2)$', { role: 'given' });
+
+Shell.group('การบวกเวกเตอร์ (Vector Addition)');
+
+var C_sum = v.create('point3d', [3, 1, 1], { size: 4, strokeColor: C.answer, fillColor: C.answer, name: '' });
+var lineOC = v.create('line3d', [O, C_sum], { strokeColor: C.answer, strokeWidth: 3, straightFirst: false, straightLast: false });
+var lineAC = v.create('line3d', [A, C_sum], { strokeColor: C.note, strokeWidth: 2, dash: 2, straightFirst: false, straightLast: false });
+
+var s2 = Shell.step('หาผลบวกเวกเตอร์ $\\vec{a} + \\vec{b}$ โดยนำองค์ประกอบในแต่ละแกนที่สมนัยกันมาบวกกัน:<br>$\\vec{a} + \\vec{b} = (2+1,\\ -1+2,\\ 3+(-2)) = (3, 1, 1)$', {
+  why: 'การบวกเวกเตอร์ทำได้โดยรวมองค์ประกอบตามแกนเดียวกัน ซึ่งเทียบเท่ากับการนำหางของเวกเตอร์ $\\vec{b}$ ไปต่อที่หัวของเวกเตอร์ $\\vec{a}$ ในสามมิติ',
+  uses: [1]
+});
+Shell.on(s2, C_sum, lineOC);
+Shell.on(s2, lineAC, { until: 'step' });
+Shell.tag(s2, C_sum, '$\\vec{a}+\\vec{b}(3, 1, 1)$', { role: 'answer' });
+
+Shell.group('การลบเวกเตอร์ (Vector Subtraction)');
+
+var D_diff = v.create('point3d', [1, -3, 5], { size: 4, strokeColor: C.answer, fillColor: C.answer, name: '' });
+var lineOD = v.create('line3d', [O, D_diff], { strokeColor: C.answer, strokeWidth: 3, straightFirst: false, straightLast: false });
+var lineBA = v.create('line3d', [B, A], { strokeColor: C.note, strokeWidth: 2, dash: 2, straightFirst: false, straightLast: false });
+
+var s3 = Shell.step('หาผลลบเวกเตอร์ $\\vec{a} - \\vec{b}$ โดยนำองค์ประกอบของ $\\vec{b}$ ไปลบออกจาก $\\vec{a}$ ทีละแกน:<br>$\\vec{a} - \\vec{b} = (2-1,\\ -1-2,\\ 3-(-2)) = (1, -3, 5)$', {
+  why: 'การลบเวกเตอร์ $\\vec{a}-\\vec{b}$ เทียบเท่ากับเวกเตอร์ที่ลากจากจุดปลายของ $\\vec{b}$ ไปยังจุดปลายของ $\\vec{a}$ ซึ่งมีขนาดและทิศทางเดียวกับเวกเตอร์จากจุดกำเนิดไปยัง $(1, -3, 5)$',
+  uses: [1]
+});
+Shell.on(s3, D_diff, lineOD);
+Shell.on(s3, lineBA, { until: 'step' });
+Shell.tag(s3, D_diff, '$\\vec{a}-\\vec{b}(1, -3, 5)$', { role: 'answer' });
+
+Shell.group('ผลคูณเชิงสเกลาร์ (Dot Product)');
+
+var lineAB = v.create('line3d', [A, B], { strokeColor: C.note, strokeWidth: 2, dash: 2, straightFirst: false, straightLast: false });
+
+var s4 = Shell.step('หาผลคูณเชิงสเกลาร์ (Dot Product) $\\vec{a} \\cdot \\vec{b}$ โดยนำผลคูณขององค์ประกอบตามแต่ละแกนมารวมกัน:<br>$\\vec{a} \\cdot \\vec{b} = (2)(1) + (-1)(2) + (3)(-2) = 2 - 2 - 6 = -6$', {
+  why: 'ผลคูณเชิงสเกลาร์ในพิกัดฉากนิยามจากผลรวมของผลคูณองค์ประกอบตามแกนคู่เดียวกัน โดยผลลัพธ์เป็นปริมาณสเกลาร์',
+  uses: [1]
+});
+Shell.on(s4, lineAB);
+Shell.tag(s4, lineAB, '$\\vec{a}\\cdot\\vec{b} = -6$', { role: 'answer' });
+
+Shell.answer(
+  'ผลการคำนวณของเวกเตอร์ทั้งสามค่า',
+  '$\\vec{a}+\\vec{b} = (3, 1, 1)$, $\\vec{a}-\\vec{b} = (1, -3, 5)$ และ $\\vec{a}\\cdot\\vec{b} = -6$',
+  {
+    sanity: 'ผลบวกและผลลบเป็นเวกเตอร์ในสามมิติ ส่วนผลคูณเชิงสเกลาร์เป็นจำนวนจริงลบ ($-6 < 0$) ซึ่งสอดคล้องกับมุมระหว่าง $\\vec{a}$ และ $\\vec{b}$ ที่เป็นมุมป้าน ($\\cos\\theta < 0$)'
+  }
+);
+
+Shell.done();
+</script>
+</body></html>

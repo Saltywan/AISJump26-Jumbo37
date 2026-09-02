@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>เส้นขนานและมุมแย้งภายใน</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+var SVGNS = 'http://www.w3.org/2000/svg';
+
+Shell.page({
+  title: 'เส้นขนานและมุมแย้งภายใน',
+  problem: 'เส้นตรง $AB$ ขนานกับเส้นตรง $CD$ มีเส้น $EF$ ตัดผ่านทั้งสองเส้นที่จุด $G$ และ $H$ ตามลำดับ ถ้ามุม $\\angle AGH = 3x + 10^\\circ$ และมุม $\\angle GHD = 5x - 30^\\circ$ (มุมภายในคนละข้างของเส้นตัด) จงหาค่า $x$'
+});
+
+var canvas = Shell.canvas();
+var C = Shell.C;
+
+Shell.setup('เมื่อเส้นตรงสองเส้นขนานกัน เส้นตัดจะทำให้มุมแย้งภายในมีขนาดเท่ากันเสมอ เราจึงสามารถนำนิพจน์ของทั้งสองมุมมาสร้างเป็นสมการเพื่อแก้หาค่า $x$');
+
+function createEl(tag, attrs) {
+  var el = document.createElementNS(SVGNS, tag);
+  for (var k in attrs) {
+    el.setAttribute(k, attrs[k]);
+  }
+  return el;
+}
+
+function makeArcData(cx, cy, r, startRad, endRad) {
+  var x1 = cx + r * Math.cos(startRad);
+  var y1 = cy + r * Math.sin(startRad);
+  var x2 = cx + r * Math.cos(endRad);
+  var y2 = cy + r * Math.sin(endRad);
+  var dAngle = endRad - startRad;
+  var largeArc = Math.abs(dAngle) > Math.PI ? 1 : 0;
+  var sweep = dAngle > 0 ? 1 : 0;
+  return {
+    arc: 'M ' + x1.toFixed(1) + ' ' + y1.toFixed(1) + ' A ' + r + ' ' + r + ' 0 ' + largeArc + ' ' + sweep + ' ' + x2.toFixed(1) + ' ' + y2.toFixed(1),
+    sector: 'M ' + cx.toFixed(1) + ' ' + cy.toFixed(1) + ' L ' + x1.toFixed(1) + ' ' + y1.toFixed(1) + ' A ' + r + ' ' + r + ' 0 ' + largeArc + ' ' + sweep + ' ' + x2.toFixed(1) + ' ' + y2.toFixed(1) + ' Z'
+  };
+}
+
+var Gx = 524, Gy = 150;
+var Hx = 436, Hy = 390;
+
+var bgGroup = createEl('g', {});
+canvas.appendChild(bgGroup);
+
+var lineAB = createEl('line', {
+  x1: 80, y1: 150, x2: 880, y2: 150,
+  stroke: C.note, 'stroke-width': 2.5
+});
+var arrAB1 = createEl('polygon', { points: '95,145 80,150 95,155', fill: C.note });
+var arrAB2 = createEl('polygon', { points: '865,145 880,150 865,155', fill: C.note });
+
+var lineCD = createEl('line', {
+  x1: 80, y1: 390, x2: 880, y2: 390,
+  stroke: C.note, 'stroke-width': 2.5
+});
+var arrCD1 = createEl('polygon', { points: '95,385 80,390 95,395', fill: C.note });
+var arrCD2 = createEl('polygon', { points: '865,385 880,390 865,395', fill: C.note });
+
+var lineEF = createEl('line', {
+  x1: 560, y1: 50, x2: 400, y2: 490,
+  stroke: C.note, 'stroke-width': 2.5
+});
+var arrEF1 = createEl('polygon', { points: '561,65 560,50 546,55', fill: C.note });
+var arrEF2 = createEl('polygon', { points: '414,485 400,490 399,475', fill: C.note });
+
+var chevAB1 = createEl('path', {
+  d: 'M 335 142 L 345 150 L 335 158',
+  fill: 'none', stroke: C.note, 'stroke-width': 2.5, 'stroke-linecap': 'round', 'stroke-linejoin': 'round'
+});
+var chevAB2 = createEl('path', {
+  d: 'M 347 142 L 357 150 L 347 158',
+  fill: 'none', stroke: C.note, 'stroke-width': 2.5, 'stroke-linecap': 'round', 'stroke-linejoin': 'round'
+});
+
+var chevCD1 = createEl('path', {
+  d: 'M 335 382 L 345 390 L 335 398',
+  fill: 'none', stroke: C.note, 'stroke-width': 2.5, 'stroke-linecap': 'round', 'stroke-linejoin': 'round'
+});
+var chevCD2 = createEl('path', {
+  d: 'M 347 382 L 357 390 L 347 398',
+  fill: 'none', stroke: C.note, 'stroke-width': 2.5, 'stroke-linecap': 'round', 'stroke-linejoin': 'round'
+});
+
+bgGroup.appendChild(lineAB);
+bgGroup.appendChild(arrAB1);
+bgGroup.appendChild(arrAB2);
+bgGroup.appendChild(lineCD);
+bgGroup.appendChild(arrCD1);
+bgGroup.appendChild(arrCD2);
+bgGroup.appendChild(lineEF);
+bgGroup.appendChild(arrEF1);
+bgGroup.appendChild(arrEF2);
+bgGroup.appendChild(chevAB1);
+bgGroup.appendChild(chevAB2);
+bgGroup.appendChild(chevCD1);
+bgGroup.appendChild(chevCD2);
+
+var pts = [
+  { x: 180, y: 150, name: 'A', lx: 180, ly: 120, r: 4 },
+  { x: 780, y: 150, name: 'B', lx: 780, ly: 120, r: 4 },
+  { x: 180, y: 390, name: 'C', lx: 180, ly: 420, r: 4 },
+  { x: 780, y: 390, name: 'D', lx: 780, ly: 420, r: 4 },
+  { x: 553, y: 70,  name: 'E', lx: 575, ly: 68,  r: 4 },
+  { x: 407, y: 470, name: 'F', lx: 385, ly: 472, r: 4 },
+  { x: Gx,  y: Gy,  name: 'G', lx: 546, ly: 126, r: 5 },
+  { x: Hx,  y: Hy,  name: 'H', lx: 414, ly: 414, r: 5 }
+];
+
+for (var i = 0; i < pts.length; i++) {
+  var p = pts[i];
+  var cDot = createEl('circle', {
+    cx: p.x, cy: p.y, r: p.r,
+    fill: (p.name === 'G' || p.name === 'H') ? C.given : C.note
+  });
+  bgGroup.appendChild(cDot);
+  Shell.label(canvas, p.lx, p.ly, p.name, { role: 'note', anchor: [p.x, p.y], until: 'end' });
+}
+
+var R_ARC = 55;
+var radAGH_start = 110 * Math.PI / 180;
+var radAGH_end = 180 * Math.PI / 180;
+var arcDataAGH = makeArcData(Gx, Gy, R_ARC, radAGH_start, radAGH_end);
+
+var radGHD_start = -70 * Math.PI / 180;
+var radGHD_end = 0;
+var arcDataGHD = makeArcData(Hx, Hy, R_ARC, radGHD_start, radGHD_end);
+
+var ancAGH = [454, 199];
+var ancGHD = [506, 341];
+
+Shell.group('ทฤษฎีบทเส้นขนานและมุมแย้ง');
+
+var s1 = Shell.step('เส้นตรง $AB \\parallel CD$ มีเส้นตรง $EF$ เป็นเส้นตัด<br>มุม $\\angle AGH$ และ $\\angle GHD$ คือมุมภายในที่อยู่คนละข้างของเส้นตัด (มุมแย้ง)');
+
+var secAGH_s1 = createEl('path', { d: arcDataAGH.sector, fill: C.given, 'fill-opacity': 0.2 });
+var arcAGH_s1 = createEl('path', { d: arcDataAGH.arc, fill: 'none', stroke: C.given, 'stroke-width': 2.5 });
+var secGHD_s1 = createEl('path', { d: arcDataGHD.sector, fill: C.given, 'fill-opacity': 0.2 });
+var arcGHD_s1 = createEl('path', { d: arcDataGHD.arc, fill: 'none', stroke: C.given, 'stroke-width': 2.5 });
+
+s1.appendChild(secAGH_s1);
+s1.appendChild(arcAGH_s1);
+s1.appendChild(secGHD_s1);
+s1.appendChild(arcGHD_s1);
+
+Shell.label(s1, 442, 199, '$3x + 10^\\circ$', { role: 'given', anchor: ancAGH, pin: true, until: 4 });
+Shell.label(s1, 518, 341, '$5x - 30^\\circ$', { role: 'given', anchor: ancGHD, pin: true, until: 4 });
+
+var s2 = Shell.step('เนื่องจากเส้นตรง $AB \\parallel CD$ ทำให้มุมแย้งภายในมีขนาดเท่ากัน (รูปตัว $Z$):<br>$\\angle AGH = \\angle GHD$<br>แทนค่าตามที่โจทย์กำหนด: $3x + 10 = 5x - 30$', {
+  why: 'มุมภายในคนละข้างของเส้นตัด (มุมแย้ง) ของเส้นขนานย่อมมีขนาดเท่ากันเสมอ'
+});
+
+var zPath = createEl('path', {
+  d: 'M 200 150 L ' + Gx + ' ' + Gy + ' L ' + Hx + ' ' + Hy + ' L 760 390',
+  fill: 'none', stroke: C.work, 'stroke-width': 4.5,
+  'stroke-linecap': 'round', 'stroke-linejoin': 'round',
+  'stroke-dasharray': '8 6', opacity: 0.9
+});
+s2.appendChild(zPath);
+
+var secAGH_s2 = createEl('path', { d: arcDataAGH.sector, fill: C.work, 'fill-opacity': 0.35 });
+var arcAGH_s2 = createEl('path', { d: arcDataAGH.arc, fill: 'none', stroke: C.work, 'stroke-width': 3.5 });
+var secGHD_s2 = createEl('path', { d: arcDataGHD.sector, fill: C.work, 'fill-opacity': 0.35 });
+var arcGHD_s2 = createEl('path', { d: arcDataGHD.arc, fill: 'none', stroke: C.work, 'stroke-width': 3.5 });
+
+s2.appendChild(secAGH_s2);
+s2.appendChild(arcAGH_s2);
+s2.appendChild(secGHD_s2);
+s2.appendChild(arcGHD_s2);
+
+Shell.group('การแก้สมการเชิงเส้น');
+
+var s3 = Shell.step('จัดรูปสมการโดยย้ายพจน์ตัวแปร $x$ ไปอยู่ฝั่งเดียวกัน<br>นำ $3x$ ลบออกทั้งสองข้างของสมการ:<br>$10 = 5x - 3x - 30$<br>$10 = 2x - 30$', {
+  uses: [2]
+});
+
+var s4 = Shell.step('ย้ายค่าคงตัวและหาค่า $x$<br>บวก $30$ ทั้งสองข้าง แล้วหารด้วยสัมประสิทธิ์ของ $x$:<br>$2x = 10 + 30 = 40$<br>$x = \\frac{40}{2} = 20$', {
+  uses: [3]
+});
+
+var s5 = Shell.step('ตรวจสอบคำตอบโดยแทนค่า $x = 20$ ในมุมทั้งสอง:<br>$\\angle AGH = 3(20) + 10 = 60 + 10 = 70^\\circ$<br>$\\angle GHD = 5(20) - 30 = 100 - 30 = 70^\\circ$<br>มุมทั้งสองมีขนาด $70^\\circ$ เท่ากันจริง สอดคล้องกับสมบัติของมุมแย้ง', {
+  uses: [4]
+});
+
+var secAGH_s5 = createEl('path', { d: arcDataAGH.sector, fill: C.answer, 'fill-opacity': 0.35 });
+var arcAGH_s5 = createEl('path', { d: arcDataAGH.arc, fill: 'none', stroke: C.answer, 'stroke-width': 3.5 });
+var secGHD_s5 = createEl('path', { d: arcDataGHD.sector, fill: C.answer, 'fill-opacity': 0.35 });
+var arcGHD_s5 = createEl('path', { d: arcDataGHD.arc, fill: 'none', stroke: C.answer, 'stroke-width': 3.5 });
+
+s5.appendChild(secAGH_s5);
+s5.appendChild(arcAGH_s5);
+s5.appendChild(secGHD_s5);
+s5.appendChild(arcGHD_s5);
+
+Shell.label(s5, 442, 199, '$70^\\circ$', { role: 'answer', anchor: ancAGH, pin: true, until: 'end' });
+Shell.label(s5, 518, 341, '$70^\\circ$', { role: 'answer', anchor: ancGHD, pin: true, until: 'end' });
+
+Shell.answer('ค่าของ $x$', '$x = 20$', {
+  sanity: 'เมื่อแทนค่า $x = 20$ จะได้มุมแย้งทั้งสองเท่ากับ $70^\\circ$ ซึ่งมีขนาดเท่ากันและเป็นมุมแหลมตามรูปภาพจริง'
+});
+
+Shell.done();
+</script>
+</body></html>

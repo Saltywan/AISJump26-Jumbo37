@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>การเปลี่ยนระดับพลังงานในอะตอมไฮโดรเจน</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+var SVGNS = 'http://www.w3.org/2000/svg';
+
+Shell.page({
+  title: 'การเปลี่ยนระดับพลังงานในอะตอมไฮโดรเจน ($n = 3 \\to n = 2$)',
+  problem: 'อิเล็กตรอนในอะตอมไฮโดรเจนเปลี่ยนจากระดับพลังงาน $n = 3$ ไป $n = 2$ จงหาพลังงานและความยาวคลื่นของโฟตอนที่ปล่อยออกมา'
+});
+
+var g = Shell.canvas(), C = Shell.C;
+
+Shell.setup('แบบจำลองอะตอมของบอร์ระบุว่า อิเล็กตรอนเคลื่อนที่เป็นวงกลมรอบนิวเคลียสเฉพาะในวงโคจรพิเศษ (ชั้นควอนตัม) โดยไม่แผ่คลื่นแม่เหล็กไฟฟ้า เมื่ออิเล็กตรอนกระโดดข้ามชั้นจากระดับพลังงานสูง ($n = 3$) ลงมาระดับพลังงานต่ำ ($n = 2$) พลังงานส่วนเกินจะถูกคายออกมาเป็นโฟตอนหนึ่งตัวพอดีตามกฎการอนุรักษ์พลังงาน');
+
+var PX_PER_EV = 75;
+var DELTA_E = 1.89;
+
+function createSVG(tag, attrs) {
+  var el = document.createElementNS(SVGNS, tag);
+  for (var k in attrs) {
+    el.setAttribute(k, attrs[k]);
+  }
+  return el;
+}
+
+Shell.group('คำนวณระดับพลังงานของอะตอมไฮโดรเจน');
+
+var s1 = Shell.step('คำนวณระดับพลังงานที่เกี่ยวข้องจากสมการของบอร์ $E_n = -\\frac{13.6}{n^2}$ eV<br>' +
+  '• ระดับพลังงาน $n = 3$: $E_3 = -\\frac{13.6}{3^2} = -\\frac{13.6}{9} \\approx -1.51$ eV<br>' +
+  '• ระดับพลังงาน $n = 2$: $E_2 = -\\frac{13.6}{2^2} = -\\frac{13.6}{4} = -3.40$ eV', {
+  why: 'ระดับพลังงานของอิเล็กตรอนในอะตอมไฮโดรเจนถูกควอนไทซ์ตามเลขควอนตัมหลัก $n$ จึงต้องทราบระดับพลังงานของแต่ละชั้นก่อน'
+});
+
+var bohrG = createSVG('g', {});
+g.appendChild(bohrG);
+
+var nucOuter = createSVG('circle', { cx: '240', cy: '270', r: '14', fill: 'none', stroke: C.note, 'stroke-width': '1.5' });
+var nucInner = createSVG('circle', { cx: '240', cy: '270', r: '7', fill: C.note });
+bohrG.appendChild(nucOuter);
+bohrG.appendChild(nucInner);
+
+var orb1 = createSVG('circle', { cx: '240', cy: '270', r: '35', fill: 'none', stroke: C.note, 'stroke-width': '1', 'stroke-dasharray': '3 3' });
+var orb2 = createSVG('circle', { cx: '240', cy: '270', r: '90', fill: 'none', stroke: C.given, 'stroke-width': '1.5', 'stroke-dasharray': '4 4' });
+var orb3 = createSVG('circle', { cx: '240', cy: '270', r: '170', fill: 'none', stroke: C.given, 'stroke-width': '1.5', 'stroke-dasharray': '5 5' });
+bohrG.appendChild(orb1);
+bohrG.appendChild(orb2);
+bohrG.appendChild(orb3);
+
+Shell.label(s1, 240, 40, 'แบบจำลองอะตอมของบอร์', { role: 'note', anchor: [240, 40], pin: true, until: 'end' });
+Shell.label(s1, 730, 40, 'แผนภาพระดับพลังงาน', { role: 'note', anchor: [730, 40], pin: true, until: 'end' });
+
+Shell.label(s1, 240, 295, 'นิวเคลียส $+e$', { role: 'note', anchor: [240, 270], pin: true, until: 'end' });
+Shell.label(s1, 275, 270, '$n = 1$', { role: 'note', anchor: [275, 270], pin: true, until: 'end' });
+Shell.label(s1, 240, 380, '$n = 2$', { role: 'given', anchor: [240, 360], pin: true, until: 'end' });
+Shell.label(s1, 240, 460, '$n = 3$', { role: 'given', anchor: [240, 440], pin: true, until: 'end' });
+
+var electronG = createSVG('g', { transform: 'translate(240, 100)' });
+var eDot = createSVG('circle', { r: '7', fill: C.given, stroke: C.note, 'stroke-width': '2' });
+electronG.appendChild(eDot);
+s1.appendChild(electronG);
+
+var axis = createSVG('line', { x1: '550', y1: '75', x2: '550', y2: '475', stroke: C.note, 'stroke-width': '2' });
+var b1 = createSVG('line', { x1: '544', y1: '405', x2: '556', y2: '395', stroke: C.note, 'stroke-width': '2' });
+var b2 = createSVG('line', { x1: '544', y1: '415', x2: '556', y2: '405', stroke: C.note, 'stroke-width': '2' });
+g.appendChild(axis);
+g.appendChild(b1);
+g.appendChild(b2);
+
+Shell.label(s1, 550, 55, '$E$ (eV)', { role: 'note', anchor: [550, 75], pin: true, until: 'end' });
+
+var yInf = 90;
+var y3 = yInf + 1.511 * PX_PER_EV;
+var y2 = y3 + DELTA_E * PX_PER_EV;
+var y1 = 455;
+
+var lineInf = createSVG('line', { x1: '565', y1: String(yInf), x2: '890', y2: String(yInf), stroke: C.note, 'stroke-width': '1.5', 'stroke-dasharray': '4 4' });
+var line3 = createSVG('line', { x1: '565', y1: String(y3), x2: '890', y2: String(y3), stroke: C.given, 'stroke-width': '3' });
+var line2 = createSVG('line', { x1: '565', y1: String(y2), x2: '890', y2: String(y2), stroke: C.given, 'stroke-width': '3' });
+var line1 = createSVG('line', { x1: '565', y1: String(y1), x2: '890', y2: String(y1), stroke: C.note, 'stroke-width': '1.5', 'stroke-dasharray': '4 4' });
+g.appendChild(lineInf);
+g.appendChild(line3);
+g.appendChild(line2);
+g.appendChild(line1);
+
+Shell.label(s1, 840, 75, '$n = \\infty$ ($0$ eV)', { role: 'note', anchor: [840, yInf], pin: true, until: 'end' });
+Shell.label(s1, 630, 185, '$n = 3$ ($-1.51$ eV)', { role: 'given', anchor: [630, y3], pin: true, until: 'end' });
+Shell.label(s1, 630, 365, '$n = 2$ ($-3.40$ eV)', { role: 'given', anchor: [630, y2], pin: true, until: 'end' });
+Shell.label(s1, 840, 440, '$n = 1$ ($-13.6$ eV)', { role: 'note', anchor: [840, y1], pin: true, until: 'end' });
+
+Shell.group('คำนวณพลังงานและความยาวคลื่นของโฟตอน');
+
+var s2 = Shell.step('เมื่ออิเล็กตรอนเปลี่ยนจากชั้น $n = 3$ ลงมายัง $n = 2$ จะปล่อยโฟตอนที่มีพลังงานเท่ากับผลต่างของระดับพลังงาน<br>' +
+  '$\\Delta E = E_3 - E_2 = (-1.51) - (-3.40) = 1.89$ eV<br>' +
+  'แปลงพลังงานเป็นหน่วยจูล (J):<br>' +
+  '$\\Delta E = 1.89 \\times 1.602 \\times 10^{-19} = 3.03 \\times 10^{-19}$ J', {
+  uses: [1],
+  why: 'ตามกฎการอนุรักษ์พลังงาน พลังงานที่อิเล็กตรอนสูญเสียไปต้องเท่ากับพลังงานของโฟตอนที่ปล่อยออกมาพอดี'
+});
+
+Shell.motion(s2, electronG, function(t) {
+  var angle = -Math.PI / 2 - t * (Math.PI / 2);
+  var r = 170 - t * 80;
+  return [240 + r * Math.cos(angle), 270 + r * Math.sin(angle)];
+}, { dur: 1200 });
+
+Shell.arrow(s2, 760, y3, 760, y2, {
+  role: 'work',
+  label: '$\\Delta E = 1.89$ eV',
+  value: DELTA_E,
+  unit: 'eV',
+  until: 'end'
+});
+
+var s3 = Shell.step('หาความยาวคลื่น $\\lambda$ ของโฟตอนจากความสัมพันธ์พลังงานของควอนตัมแสง $\\Delta E = \\frac{hc}{\\lambda}$<br>' +
+  '$\\lambda = \\frac{hc}{\\Delta E} = \\frac{(6.626 \\times 10^{-34})(3.00 \\times 10^8)}{3.03 \\times 10^{-19}} \\approx 6.56 \\times 10^{-7}$ m $= 656$ nm<br>' +
+  '(หรือคิดจาก $\\lambda = \\frac{1240\\text{ eV}\\cdot\\text{nm}}{\\Delta E} = \\frac{1240}{1.89} \\approx 656$ nm)', {
+  uses: [2],
+  why: 'สมมติฐานของพลังค์-ไอน์สไตน์เชื่อมโยงพลังงานของโฟตอนกับความถี่และความยาวคลื่นแสงตามสมการ $E = \\frac{hc}{\\lambda}$'
+});
+
+var photonMover = Shell.motion(s3, null, [[150, 270], [35, 155]], { dur: 1400, rotate: true });
+var wave = createSVG('path', {
+  d: 'M -30 0 Q -22.5 -9, -15 0 T 0 0 T 15 0 T 30 0',
+  fill: 'none',
+  stroke: C.answer,
+  'stroke-width': '3'
+});
+var tip = createSVG('circle', { cx: '30', cy: '0', r: '3.5', fill: C.answer });
+photonMover.appendChild(wave);
+photonMover.appendChild(tip);
+
+Shell.label(s3, 60, 125, 'โฟตอน $\\lambda = 656$ nm', { role: 'answer', anchor: [35, 155], until: 'end' });
+
+Shell.answer('พลังงานและความยาวคลื่นของโฟตอน', '$\\Delta E = 1.89$ eV ($3.03 \\times 10^{-19}$ J), $\\lambda = 656$ nm', {
+  sanity: 'ความยาวคลื่น $656$ nm ตรงกับเส้นสเปกตรัมสีแดง $H_\\alpha$ ของอนุกรมบัลเมอร์ (Balmer series) ซึ่งอยู่ในช่วงแสงที่ตามองเห็น (ช่วง 400–700 nm) อย่างถูกต้อง'
+});
+
+Shell.done();
+</script>
+</body></html>

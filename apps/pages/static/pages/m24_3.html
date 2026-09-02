@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>หาพื้นที่สามเหลี่ยมใน 3 มิติด้วยผลคูณเชิงเวกเตอร์</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/jsxgraph.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/jsxgraphcore.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+Shell.page({
+  title: 'หาพื้นที่สามเหลี่ยมใน 3 มิติด้วยผลคูณเชิงเวกเตอร์',
+  problem: 'กำหนดจุด $A(1, 2, 3)$, $B(4, 6, 3)$, $C(2, 0, 5)$ จงหาพื้นที่ของสามเหลี่ยม $ABC$ โดยใช้ผลคูณเชิงเวกเตอร์ (cross product)'
+});
+
+var v = Shell.view3d({
+  bounds: [[-1, 6], [-1, 7], [-1, 6]]
+});
+var C = Shell.C;
+
+Shell.setup('เลือกจุด $A$ เป็นจุดร่วมเพื่อสร้างเวกเตอร์ $\\vec{AB}$ และ $\\vec{AC}$ จากนั้นคำนวณผลคูณเชิงเวกเตอร์ซึ่งมีขนาดเท่ากับพื้นที่ของรูปสี่เหลี่ยมด้านขนาน แล้วหารด้วย $2$ จะได้พื้นที่ของรูปสามเหลี่ยม');
+
+var ptA = v.create('point3d', [1, 2, 3], {strokeColor: C.given, fillColor: C.given, size: 4});
+var ptB = v.create('point3d', [4, 6, 3], {strokeColor: C.given, fillColor: C.given, size: 4});
+var ptC = v.create('point3d', [2, 0, 5], {strokeColor: C.given, fillColor: C.given, size: 4});
+
+var segAB = v.create('line3d', [ptA, ptB], {
+  straightFirst: false, straightLast: false,
+  strokeColor: C.given, strokeWidth: 2
+});
+var segBC = v.create('line3d', [ptB, ptC], {
+  straightFirst: false, straightLast: false,
+  strokeColor: C.given, strokeWidth: 2
+});
+var segCA = v.create('line3d', [ptC, ptA], {
+  straightFirst: false, straightLast: false,
+  strokeColor: C.given, strokeWidth: 2
+});
+
+var vecAB = v.create('line3d', [ptA, ptB], {
+  straightFirst: false, straightLast: false,
+  strokeColor: C.work, strokeWidth: 3.5, lastArrow: true
+});
+var vecAC = v.create('line3d', [ptA, ptC], {
+  straightFirst: false, straightLast: false,
+  strokeColor: C.work, strokeWidth: 3.5, lastArrow: true
+});
+
+var ptD = v.create('point3d', [5, 4, 5], {
+  strokeColor: C.note, fillColor: C.note, size: 3
+});
+var segBD = v.create('line3d', [ptB, ptD], {
+  straightFirst: false, straightLast: false,
+  strokeColor: C.note, strokeWidth: 1.5, dash: 2
+});
+var segCD = v.create('line3d', [ptC, ptD], {
+  straightFirst: false, straightLast: false,
+  strokeColor: C.note, strokeWidth: 1.5, dash: 2
+});
+
+var ptG = v.create('point3d', [7/3, 8/3, 11/3], {visible: false});
+
+Shell.group('สร้างเวกเตอร์ด้านประชิดจากจุดยอด');
+
+var s1 = Shell.step('กำหนดจุดยอด $A(1, 2, 3)$, $B(4, 6, 3)$ และ $C(2, 0, 5)$ ในระบบพิกัดฉาก 3 มิติ และลากเส้นเชื่อมเป็นรูปสามเหลี่ยม $ABC$');
+Shell.on(s1, ptA, ptB, ptC, segAB, segBC, segCA);
+Shell.tag(s1, ptA, 'A(1, 2, 3)', {role: 'given'});
+Shell.tag(s1, ptB, 'B(4, 6, 3)', {role: 'given'});
+Shell.tag(s1, ptC, 'C(2, 0, 5)', {role: 'given'});
+
+var s2 = Shell.step('เลือกจุด $A$ เป็นจุดตั้งต้นร่วม แล้วสร้างเวกเตอร์ $\\vec{AB}$ และ $\\vec{AC}$ โดยนำพิกัดจุดปลายลบด้วยจุดเริ่มต้น:<br>' +
+  '$\\vec{AB} = \\langle 4-1, 6-2, 3-3 \\rangle = \\langle 3, 4, 0 \\rangle = 3\\hat{i} + 4\\hat{j} + 0\\hat{k}$<br>' +
+  '$\\vec{AC} = \\langle 2-1, 0-2, 5-3 \\rangle = \\langle 1, -2, 2 \\rangle = 1\\hat{i} - 2\\hat{j} + 2\\hat{k}$',
+  {why: 'การหาพื้นที่ด้วยผลคูณเชิงเวกเตอร์ต้องใช้เวกเตอร์สองเส้นที่กางออกจากจุดยอดเดียวกัน', uses: [1]}
+);
+Shell.on(s2, vecAB, vecAC);
+Shell.tag(s2, vecAB, '$\\vec{AB}$', {role: 'work', until: 'step'});
+Shell.tag(s2, vecAC, '$\\vec{AC}$', {role: 'work', until: 'step'});
+
+Shell.group('หาผลคูณเชิงเวกเตอร์และคำนวณพื้นที่');
+
+var s3 = Shell.step('คำนวณผลคูณเชิงเวกเตอร์ $\\vec{AB} \\times \\vec{AC}$ โดยใช้ดีเทอร์มิแนนต์ของเมทริกซ์มิติ $3 \\times 3$:<br>' +
+  '$\\vec{AB} \\times \\vec{AC} = \\begin{vmatrix} \\hat{i} & \\hat{j} & \\hat{k} \\\\ 3 & 4 & 0 \\\\ 1 & -2 & 2 \\end{vmatrix}$<br>' +
+  '$= \\hat{i}(4(2) - 0(-2)) - \\hat{j}(3(2) - 0(1)) + \\hat{k}(3(-2) - 4(1))$<br>' +
+  '$= 8\\hat{i} - 6\\hat{j} - 10\\hat{k} = \\langle 8, -6, -10 \\rangle$',
+  {why: 'ผลคูณเชิงเวกเตอร์ของเวกเตอร์สองมิติในปริภูมิ 3 มิติ จะได้เวกเตอร์ที่ตั้งฉากกับระนาบและมีขนาดเท่ากับพื้นที่สี่เหลี่ยมด้านขนาน', uses: [2]}
+);
+
+var s4 = Shell.step('คำนวณขนาดของผลคูณเชิงเวกเตอร์ $|\\vec{AB} \\times \\vec{AC}|$ ซึ่งมีค่าเท่ากับพื้นที่ของรูปสี่เหลี่ยมด้านขนาน $ABDC$:<br>' +
+  '$|\\vec{AB} \\times \\vec{AC}| = \\sqrt{8^2 + (-6)^2 + (-10)^2} = \\sqrt{64 + 36 + 100} = \\sqrt{200} = 10\\sqrt{2}$',
+  {uses: [3]}
+);
+Shell.on(s4, ptD, segBD, segCD);
+Shell.tag(s4, ptD, 'D(5, 4, 5)', {role: 'note', until: 'step'});
+
+var s5 = Shell.step('คำนวณพื้นที่ของรูปสามเหลี่ยม $ABC$ โดยนำพื้นที่ของรูปสี่เหลี่ยมด้านขนานมาหารด้วย $2$:<br>' +
+  'พื้นที่ $\\triangle ABC = \\frac{1}{2}|\\vec{AB} \\times \\vec{AC}| = \\frac{1}{2}(10\\sqrt{2}) = 5\\sqrt{2} \\approx 7.07$ ตารางหน่วย',
+  {why: 'เส้นทแยงมุม $BC$ แบ่งครึ่งรูปสี่เหลี่ยมด้านขนานออกเป็นรูปสามเหลี่ยมสองรูปที่มีพื้นที่เท่ากัน', uses: [4]}
+);
+Shell.tag(s5, ptG, '$5\\sqrt{2}$', {role: 'answer'});
+
+Shell.answer('พื้นที่ของสามเหลี่ยม $ABC$', '$5\\sqrt{2}$ ตารางหน่วย (ประมาณ $7.07$ ตารางหน่วย)', {
+  sanity: 'ตรวจสอบด้วยสูตร $\\frac{1}{2}ab\\sin\\theta$: ด้านยาว $5$ และ $3$ ทำมุมที่มี $\\cos\\theta = -\\frac{1}{3}$ จะได้พื้นที่ $\\frac{1}{2}(5)(3)\\frac{\\sqrt{8}}{3} = 5\\sqrt{2}$ ตรงกัน'
+});
+
+Shell.done();
+</script>
+</body></html>

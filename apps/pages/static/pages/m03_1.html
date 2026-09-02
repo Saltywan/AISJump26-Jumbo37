@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>พิสูจน์ BD = DC ในสามเหลี่ยมหน้าจั่ว</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/jsxgraph.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/jsxgraphcore.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+Shell.page({
+  title: 'การพิสูจน์ความเท่ากันทุกประการของรูปสามเหลี่ยม',
+  problem: 'กำหนดสามเหลี่ยม $ABC$ โดยมี $AB = AC$ และ $AD$ เป็นเส้นแบ่งครึ่งมุม $A$ ตัดกับ $BC$ ที่จุด $D$ จงพิสูจน์ว่า $BD = DC$'
+});
+
+var b = Shell.board({
+  box: [-5.5, 6, 5.5, -1.5],
+  axis: false,
+  grid: false,
+  keepaspect: true
+});
+var C = Shell.C;
+
+Shell.setup('การพิสูจน์ว่าส่วนของเส้นตรงสองเส้นยาวเท่ากัน ($BD = DC$) ทำได้โดยพิจารณารูปสามเหลี่ยมสองรูปที่มีด้านทั้งสองเป็นส่วนประกอบ คือ $\\triangle ABD$ และ $\\triangle ACD$ แล้วพิสูจน์ว่าสามเหลี่ยมทั้งสองรูปเท่ากันทุกประการ');
+
+var A = b.create('point', [0, 4.5], {name: '', withLabel: false, size: 3.5, strokeColor: C.given, fillColor: C.given, fixed: true});
+var B = b.create('point', [-3.5, 0], {name: '', withLabel: false, size: 3.5, strokeColor: C.given, fillColor: C.given, fixed: true});
+var Cp = b.create('point', [3.5, 0], {name: '', withLabel: false, size: 3.5, strokeColor: C.given, fillColor: C.given, fixed: true});
+
+var segAB = b.create('segment', [A, B], {strokeColor: C.given, strokeWidth: 3, name: '', withLabel: false});
+var segAC = b.create('segment', [A, Cp], {strokeColor: C.given, strokeWidth: 3, name: '', withLabel: false});
+var segBC = b.create('segment', [B, Cp], {strokeColor: C.given, strokeWidth: 2, name: '', withLabel: false});
+
+var bisA = b.create('bisector', [B, A, Cp], {visible: false});
+var D = b.create('intersection', [bisA, segBC, 0], {name: '', withLabel: false, size: 3.5, strokeColor: C.work, fillColor: C.work});
+var segAD = b.create('segment', [A, D], {strokeColor: C.work, strokeWidth: 2.5, name: '', withLabel: false});
+
+var angBAD = b.create('angle', [B, A, D], {radius: 1.1, name: '', withLabel: false, strokeColor: C.work, fillColor: C.work, fillOpacity: 0.25});
+var angCAD = b.create('angle', [D, A, Cp], {radius: 1.1, name: '', withLabel: false, strokeColor: C.work, fillColor: C.work, fillOpacity: 0.25});
+
+var segAD_hl = b.create('segment', [A, D], {strokeColor: C.work, strokeWidth: 4.5, name: '', withLabel: false});
+
+var polyABD = b.create('polygon', [A, B, D], {borders: {visible: false}, fillColor: C.work, fillOpacity: 0.15, name: '', withLabel: false, vertices: {visible: false}});
+var polyACD = b.create('polygon', [A, Cp, D], {borders: {visible: false}, fillColor: C.note, fillOpacity: 0.15, name: '', withLabel: false, vertices: {visible: false}});
+
+var segBD = b.create('segment', [B, D], {strokeColor: C.answer, strokeWidth: 4.5, name: '', withLabel: false});
+var segDC = b.create('segment', [D, Cp], {strokeColor: C.answer, strokeWidth: 4.5, name: '', withLabel: false});
+
+Shell.group('พิสูจน์ความเท่ากันทุกประการแบบ ด้าน-มุม-ด้าน (ด.ม.ด.)');
+
+var s1 = Shell.step('กำหนดรูปสามเหลี่ยมหน้าจั่ว $\\triangle ABC$ โดยมีด้าน $AB = AC$');
+Shell.on(s1, A, B, Cp, segAB, segAC, segBC);
+Shell.tag(s1, A, '$A$', {role: 'given'});
+Shell.tag(s1, B, '$B$', {role: 'given'});
+Shell.tag(s1, Cp, '$C$', {role: 'given'});
+Shell.tag(s1, [-2.2, 2.5], '$AB$', {role: 'given', until: 'step'});
+Shell.tag(s1, [2.2, 2.5], '$AC$', {role: 'given', until: 'step'});
+
+var s2 = Shell.step('ลากส่วนของเส้นตรง $AD$ แบ่งครึ่งมุมยอด $B\\hat{A}C$ ไปตัดฐาน $BC$ ที่จุด $D$ จะได้มุม $\\angle BAD = \\angle CAD$', {
+  why: 'เส้นแบ่งครึ่งมุมจะแบ่งมุมออกเป็นสองมุมย่อยที่มีขนาดเท่ากันตามนิยาม'
+});
+Shell.on(s2, D, segAD, angBAD, angCAD);
+Shell.tag(s2, D, '$D$', {role: 'work'});
+Shell.tag(s2, [-0.6, 3.4], '$\\angle BAD$', {role: 'work', until: 'step'});
+Shell.tag(s2, [0.6, 3.4], '$\\angle CAD$', {role: 'work', until: 'step'});
+
+var s3 = Shell.step('พิจารณารูปสามเหลี่ยม $\\triangle ABD$ และ $\\triangle ACD$ พบว่ามีด้าน $AD$ เป็นด้านร่วม ($AD = AD$)', {
+  why: 'ส่วนของเส้นตรงเดียวกันย่อมมีความยาวเท่ากับตัวเองเสมอตามสมบัติการสะท้อน',
+  uses: [1, 2]
+});
+Shell.on(s3, segAD_hl, {until: 'step'});
+Shell.tag(s3, [0, 2.2], 'ด้านร่วม $AD$', {role: 'work', until: 'step'});
+
+var s4 = Shell.step('เมื่อเทียบ $\\triangle ABD$ กับ $\\triangle ACD$ มีด้าน $AB = AC$, มุม $\\angle BAD = \\angle CAD$ และด้านร่วม $AD = AD$ จึงได้ว่า $\\triangle ABD \\cong \\triangle ACD$', {
+  why: 'รูปสามเหลี่ยมสองรูปที่มีด้านยาวเท่ากันสองคู่และมุมระหว่างด้านทั้งสองมีขนาดเท่ากัน จะเท่ากันทุกประการแบบ ด้าน-มุม-ด้าน (ด.ม.ด.)',
+  uses: [1, 2, 3]
+});
+Shell.on(s4, polyABD, polyACD, {until: 'step'});
+Shell.tag(s4, [-1.5, 1.5], '$\\triangle ABD$', {role: 'work', until: 'step'});
+Shell.tag(s4, [1.5, 1.5], '$\\triangle ACD$', {role: 'work', until: 'step'});
+
+var s5 = Shell.step('เนื่องจาก $\\triangle ABD \\cong \\triangle ACD$ ด้านคู่ที่สมนัยกันย่อมมีความยาวเท่ากัน จึงสรุปได้ว่า $BD = DC$', {
+  why: 'ด้านที่สมนัยกันของรูปสามเหลี่ยมที่เท่ากันทุกประการจะมีความยาวเท่ากันเสมอ',
+  uses: [4]
+});
+Shell.on(s5, segBD, segDC);
+Shell.tag(s5, [-1.75, -0.45], '$BD$', {role: 'answer'});
+Shell.tag(s5, [1.75, -0.45], '$DC$', {role: 'answer'});
+
+Shell.answer('ความสัมพันธ์ของความยาวส่วนของเส้นตรง', '$BD = DC$', {
+  sanity: 'จุด $D$ เป็นจุดกึ่งกลางของฐาน $BC$ ซึ่งสอดคล้องกับสมบัติของสามเหลี่ยมหน้าจั่วที่เส้นแบ่งครึ่งมุมยอดจะแบ่งครึ่งฐานและตั้งฉากกับฐานพอดี'
+});
+
+Shell.done();
+</script>
+</body></html>

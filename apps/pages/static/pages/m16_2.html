@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>ค่าสูงสุดและต่ำสุดของ 2sin(x) + cos(x)</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/jsxgraph.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/jsxgraphcore.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+Shell.page({
+  title: 'ค่าสูงสุดและต่ำสุดของ $f(x) = 2\\sin(x) + \\cos(x)$',
+  problem: 'กำหนด $f(x) = 2\\sin(x) + \\cos(x)$ จงหาค่าสูงสุดและต่ำสุดของ $f(x)$ พร้อมค่า $x$ ที่ทำให้เกิดค่าสูงสุด ในช่วง $0 \\le x \\le 2\\pi$'
+});
+
+var b = Shell.board({box: [-1.8, 3.4, 8.2, -3.4], axis: true, grid: true, keepaspect: true});
+var C = Shell.C;
+
+Shell.setup('ใช้วิธีหาอนุพันธ์ $f\'(x) = 0$ เพื่อหาจุดวิกฤตที่ความชันเส้นสัมผัสเป็นศูนย์ แล้วเปรียบเทียบค่าฟังก์ชันกับจุดปลายช่วง');
+
+var x1 = Math.atan(2);
+var x2 = Math.PI + Math.atan(2);
+var yMax = Math.sqrt(5);
+var yMin = -Math.sqrt(5);
+
+Shell.group('วิเคราะห์กราฟและจุดวิกฤต');
+
+var curve = b.create('functiongraph', [
+  function(x) { return 2 * Math.sin(x) + Math.cos(x); },
+  0, 2 * Math.PI
+], {strokeColor: C.given, strokeWidth: 3, name: '', withLabel: false});
+
+var pt0 = b.create('point', [0, 1], {
+  strokeColor: C.given, fillColor: C.given, size: 4, name: '', withLabel: false, fixed: true
+});
+var pt2pi = b.create('point', [2 * Math.PI, 1], {
+  strokeColor: C.given, fillColor: C.given, size: 4, name: '', withLabel: false, fixed: true
+});
+
+var bound0 = b.create('segment', [[0, -3.2], [0, 3.2]], {
+  strokeColor: C.note, dash: 2, strokeWidth: 1, name: '', withLabel: false
+});
+var bound2pi = b.create('segment', [[2 * Math.PI, -3.2], [2 * Math.PI, 3.2]], {
+  strokeColor: C.note, dash: 2, strokeWidth: 1, name: '', withLabel: false
+});
+
+var tracer = b.create('point', [0, 1], {
+  strokeColor: C.work, fillColor: C.work, size: 5, name: '', withLabel: false, fixed: true
+});
+
+var s1 = Shell.step('พิจารณากราฟ $f(x) = 2\\sin(x) + \\cos(x)$ ในช่วง $[0, 2\\pi]$ มีจุดปลายคือ $(0, 1)$ และ $(2\\pi, 1)$', {
+  why: 'ต้องตรวจสอบขอบเขตโดเมนและค่าที่จุดปลายก่อน เพื่อใช้เปรียบเทียบหาค่าสุดขีดสัมบูรณ์'
+});
+Shell.on(s1, curve, pt0, pt2pi, bound0, bound2pi);
+Shell.on(s1, tracer, {until: 'step'});
+Shell.tag(s1, pt0, '(0, 1)', {role: 'given'});
+Shell.tag(s1, pt2pi, '(2\\pi, 1)', {role: 'given'});
+
+Shell.motion(s1, tracer, function(t) {
+  var x = t * 2 * Math.PI;
+  return [x, 2 * Math.sin(x) + Math.cos(x)];
+}, {dur: 1600});
+
+var vLine1 = b.create('segment', [[x1, -3.2], [x1, 3.2]], {
+  strokeColor: C.work, dash: 2, strokeWidth: 1.5, name: '', withLabel: false
+});
+var vLine2 = b.create('segment', [[x2, -3.2], [x2, 3.2]], {
+  strokeColor: C.work, dash: 2, strokeWidth: 1.5, name: '', withLabel: false
+});
+var pCrit1 = b.create('point', [x1, 0], {
+  strokeColor: C.work, fillColor: C.work, size: 3, name: '', withLabel: false, fixed: true
+});
+var pCrit2 = b.create('point', [x2, 0], {
+  strokeColor: C.work, fillColor: C.work, size: 3, name: '', withLabel: false, fixed: true
+});
+
+var s2 = Shell.step('หาอนุพันธ์ $f\'(x) = 2\\cos(x) - \\sin(x)$ กำหนด $f\'(x) = 0$ จะได้ $\\tan(x) = 2$<br>ในโดเมน $[0, 2\\pi]$ ได้จุดวิกฤต 2 ค่าคือ $x_1 = \\arctan(2)$ และ $x_2 = \\pi + \\arctan(2)$', {
+  why: 'จุดสูงสุดและต่ำสุดสัมพัทธ์ของฟังก์ชันที่หาอนุพันธ์ได้ เกิดขึ้นเมื่อความชันของเส้นสัมผัสเท่ากับศูนย์',
+  uses: [1]
+});
+Shell.on(s2, vLine1, vLine2, pCrit1, pCrit2, {until: 'step'});
+Shell.tag(s2, pCrit1, 'x_1 = \\arctan(2)', {role: 'work', until: 'step'});
+Shell.tag(s2, pCrit2, 'x_2 = \\pi + \\arctan(2)', {role: 'work', until: 'step'});
+
+Shell.group('คำนวณค่าสูงสุดและต่ำสุด');
+
+var pMax = b.create('point', [x1, yMax], {
+  strokeColor: C.answer, fillColor: C.answer, size: 5, name: '', withLabel: false, fixed: true
+});
+var tanMax = b.create('segment', [[x1 - 1.2, yMax], [x1 + 1.2, yMax]], {
+  strokeColor: C.answer, strokeWidth: 2, dash: 2, name: '', withLabel: false
+});
+var hLineMax = b.create('segment', [[0, yMax], [x1, yMax]], {
+  strokeColor: C.note, dash: 3, strokeWidth: 1, name: '', withLabel: false
+});
+
+var s3 = Shell.step('ที่ $x_1 = \\arctan(2)$ (ควอดรันต์ที่ 1) จะได้ $\\sin(x_1) = \\frac{2}{\\sqrt{5}}$ และ $\\cos(x_1) = \\frac{1}{\\sqrt{5}}$<br>แทนค่า: $f(x_1) = 2\\left(\\frac{2}{\\sqrt{5}}\\right) + \\frac{1}{\\sqrt{5}} = \\frac{5}{\\sqrt{5}} = \\sqrt{5} \\approx 2.24$', {
+  why: 'จาก $\\tan(x_1) = \\frac{2}{1}$ สร้างสามเหลี่ยมมุมฉากได้ด้านตรงข้ามมุมฉาก $\\sqrt{2^2+1^2} = \\sqrt{5}$',
+  uses: [2]
+});
+Shell.on(s3, pMax, tanMax, hLineMax);
+Shell.tag(s3, pMax, '(\\arctan 2, \\sqrt{5})', {role: 'answer'});
+
+var pMin = b.create('point', [x2, yMin], {
+  strokeColor: C.answer, fillColor: C.answer, size: 5, name: '', withLabel: false, fixed: true
+});
+var tanMin = b.create('segment', [[x2 - 1.2, yMin], [x2 + 1.2, yMin]], {
+  strokeColor: C.answer, strokeWidth: 2, dash: 2, name: '', withLabel: false
+});
+var hLineMin = b.create('segment', [[0, yMin], [x2, yMin]], {
+  strokeColor: C.note, dash: 3, strokeWidth: 1, name: '', withLabel: false
+});
+
+var s4 = Shell.step('ที่ $x_2 = \\pi + \\arctan(2)$ (ควอดรันต์ที่ 3) ทั้ง $\\sin$ และ $\\cos$ มีค่าเป็นลบ<br>จะได้ $\\sin(x_2) = -\\frac{2}{\\sqrt{5}}$ และ $\\cos(x_2) = -\\frac{1}{\\sqrt{5}}$<br>แทนค่า: $f(x_2) = 2\\left(-\\frac{2}{\\sqrt{5}}\\right) + \\left(-\\frac{1}{\\sqrt{5}}\\right) = -\\sqrt{5} \\approx -2.24$', {
+  why: 'ในควอดรันต์ที่ 3 ฟังก์ชันตรีโกณมิติทั้งคู่เป็นลบ จึงให้ค่าต่ำสุดสัมพัทธ์',
+  uses: [2]
+});
+Shell.on(s4, pMin, tanMin, hLineMin);
+Shell.tag(s4, pMin, '(\\pi+\\arctan 2, -\\sqrt{5})', {role: 'answer'});
+
+var boundMaxLine = b.create('line', [[0, yMax], [1, yMax]], {
+  strokeColor: C.work, dash: 3, strokeWidth: 1, name: '', withLabel: false
+});
+var boundMinLine = b.create('line', [[0, yMin], [1, yMin]], {
+  strokeColor: C.work, dash: 3, strokeWidth: 1, name: '', withLabel: false
+});
+
+var s5 = Shell.step('เปรียบเทียบค่าที่จุดวิกฤตกับจุดปลาย $f(0) = f(2\\pi) = 1$<br>เนื่องจาก $-\\sqrt{5} < 1 < \\sqrt{5}$ จึงสรุปได้ทันทีว่าเป็นค่าสูงสุดและต่ำสุดสัมบูรณ์', {
+  uses: [1, 3, 4]
+});
+Shell.on(s5, boundMaxLine, boundMinLine);
+
+Shell.answer(
+  'ค่าสูงสุดคือ $\\sqrt{5}$ เกิดที่ $x = \\arctan(2)$ และค่าต่ำสุดคือ $-\\sqrt{5}$',
+  '$\\text{Max} = \\sqrt{5},\\ \\text{Min} = -\\sqrt{5}$',
+  {sanity: 'สอดคล้องกับรูปผลบวก $A\\sin x + B\\cos x = \\sqrt{A^2+B^2}\\sin(x+\\alpha)$ ซึ่งมีค่าสูงสุดคือ $\\sqrt{2^2+1^2} = \\sqrt{5}$'}
+);
+
+Shell.done();
+</script>
+</body></html>

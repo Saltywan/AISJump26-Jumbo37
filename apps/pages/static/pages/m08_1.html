@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>หาความสูงของเสาธงด้วยอัตราส่วนตรีโกณมิติ</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+var SVGNS = 'http://www.w3.org/2000/svg';
+function createEl(tag, attrs) {
+  var el = document.createElementNS(SVGNS, tag);
+  for (var k in attrs) {
+    el.setAttribute(k, attrs[k]);
+  }
+  return el;
+}
+
+Shell.page({
+  title: 'หาความสูงของเสาธงด้วยอัตราส่วนตรีโกณมิติ',
+  problem: 'เสาธงต้นหนึ่งมีเชือกดึงจากยอดเสาลงมายังพื้นทำมุม $35^\\circ$ กับพื้น ถ้าเชือกยาว $12$ เมตร จงหาความสูงของเสาธง'
+});
+
+var g = Shell.canvas();
+var C = Shell.C;
+
+Shell.setup('เสาธงตั้งฉากกับพื้นดินเกิดเป็นรูปสามเหลี่ยมมุมฉาก โดยเชือกคือด้านตรงข้ามมุมฉาก และความสูงของเสาธงคือด้านตรงข้ามมุม $35^\\circ$ จึงเลือกใช้อัตราส่วนไซน์ ($\\sin$) ในการคำนวณ');
+
+var PX_PER_M = 43;
+
+var ropeLen = 12;
+var angleDeg = 35;
+var angleRad = angleDeg * Math.PI / 180;
+var hVal = +(ropeLen * Math.sin(angleRad)).toFixed(2);
+var dVal = +(ropeLen * Math.cos(angleRad)).toFixed(2);
+
+var hPx = Math.round(hVal * PX_PER_M);
+var dPx = Math.round(dVal * PX_PER_M);
+
+var groundY = 440;
+var poleX = 730;
+var anchorX = poleX - dPx;
+var topY = groundY - hPx;
+
+Shell.group('สร้างแบบจำลองทางเรขาคณิต');
+
+var s1 = Shell.step('วาดรูปจำลองเสาธงตั้งฉากกับพื้นราบ โดยมีเชือกขึงตึงจากยอดเสาลงมายังจุดตรึงบนพื้น');
+
+var groundLine = createEl('line', {
+  x1: 120, y1: groundY,
+  x2: 880, y2: groundY,
+  stroke: C.note,
+  'stroke-width': 3
+});
+s1.appendChild(groundLine);
+
+for (var gx = 140; gx <= 860; gx += 25) {
+  var hatch = createEl('line', {
+    x1: gx, y1: groundY,
+    x2: gx - 10, y2: groundY + 12,
+    stroke: C.note,
+    'stroke-width': 1.5,
+    opacity: 0.6
+  });
+  s1.appendChild(hatch);
+}
+
+var stake = createEl('polygon', {
+  points: (anchorX - 7) + ',' + groundY + ' ' + (anchorX + 7) + ',' + groundY + ' ' + anchorX + ',' + (groundY + 16),
+  fill: C.note
+});
+s1.appendChild(stake);
+
+var poleBase = createEl('rect', {
+  x: poleX - 14, y: groundY - 6,
+  width: 28, height: 6,
+  fill: C.note,
+  rx: 2
+});
+s1.appendChild(poleBase);
+
+var poleCol = createEl('line', {
+  x1: poleX, y1: groundY,
+  x2: poleX, y2: topY,
+  stroke: C.note,
+  'stroke-width': 6,
+  'stroke-linecap': 'round'
+});
+s1.appendChild(poleCol);
+
+var finial = createEl('circle', {
+  cx: poleX, cy: topY - 6,
+  r: 6,
+  fill: C.note
+});
+s1.appendChild(finial);
+
+var flagPath = createEl('path', {
+  d: 'M ' + (poleX + 3) + ' ' + (topY + 4) + ' Q ' + (poleX + 35) + ' ' + (topY - 4) + ' ' + (poleX + 70) + ' ' + (topY + 6) + ' L ' + (poleX + 70) + ' ' + (topY + 46) + ' Q ' + (poleX + 35) + ' ' + (topY + 36) + ' ' + (poleX + 3) + ' ' + (topY + 44) + ' Z',
+  fill: 'none',
+  stroke: C.note,
+  'stroke-width': 2
+});
+s1.appendChild(flagPath);
+
+var rightAngle = createEl('path', {
+  d: 'M ' + (poleX - 18) + ' ' + groundY + ' L ' + (poleX - 18) + ' ' + (groundY - 18) + ' L ' + poleX + ' ' + (groundY - 18),
+  fill: 'none',
+  stroke: C.note,
+  'stroke-width': 2
+});
+s1.appendChild(rightAngle);
+
+var rope = createEl('line', {
+  x1: anchorX, y1: groundY,
+  x2: poleX, y2: topY,
+  stroke: C.given,
+  'stroke-width': 3.5
+});
+s1.appendChild(rope);
+
+Shell.label(s1, anchorX - 25, groundY + 25, '$A$', {role:'note', anchor:[anchorX, groundY], until:'end'});
+Shell.label(s1, poleX + 25, groundY + 25, '$B$', {role:'note', anchor:[poleX, groundY], until:'end'});
+Shell.label(s1, poleX - 25, topY - 15, '$C$', {role:'note', anchor:[poleX, topY], until:'end'});
+
+var s2 = Shell.step('กำหนดข้อมูลตามโจทย์: เชือกยาว $12$ เมตร ทำมุม $35^\\circ$ กับพื้น และกำหนดความสูงเสาธงเป็น $h$ เมตร');
+
+var arcR = 55;
+var arcX = anchorX + arcR * Math.cos(angleRad);
+var arcY = groundY - arcR * Math.sin(angleRad);
+var angleArc = createEl('path', {
+  d: 'M ' + (anchorX + arcR) + ' ' + groundY + ' A ' + arcR + ' ' + arcR + ' 0 0 0 ' + arcX.toFixed(2) + ' ' + arcY.toFixed(2),
+  fill: 'none',
+  stroke: C.given,
+  'stroke-width': 2.5
+});
+s2.appendChild(angleArc);
+
+Shell.label(s2, anchorX + 75, groundY - 16, '$35^\\circ$', {role:'given', anchor:[arcX, arcY], until:'end'});
+
+var ropeMidX = (anchorX + poleX) / 2;
+var ropeMidY = (groundY + topY) / 2;
+Shell.label(s2, ropeMidX - 30, ropeMidY - 25, 'เชือก $12$ m', {role:'given', anchor:[ropeMidX, ropeMidY], until:'end'});
+Shell.label(s2, poleX + 25, groundY - hPx / 2, '$h$', {role:'work', anchor:[poleX, groundY - hPx / 2], until:'step'});
+
+Shell.group('คำนวณหาความสูงของเสาธง');
+
+var s3 = Shell.step('ในรูปสามเหลี่ยมมุมฉาก $ABC$ ด้าน $BC = h$ คือด้านตรงข้ามมุม $35^\\circ$ และด้าน $AC = 12$ m คือด้านตรงข้ามมุมฉาก จึงได้ $\\sin 35^\\circ = \\frac{h}{12}$', {
+  why: 'อัตราส่วนไซน์สัมพันธ์ระหว่างด้านตรงข้ามมุมที่ต้องการหากับด้านตรงข้ามมุมฉากที่ทราบความยาวแล้ว',
+  uses: [2]
+});
+
+var ropeHighlight = createEl('line', {
+  x1: anchorX, y1: groundY,
+  x2: poleX, y2: topY,
+  stroke: C.work,
+  'stroke-width': 4,
+  'stroke-dasharray': '6,4'
+});
+s3.appendChild(ropeHighlight);
+
+var poleHighlight = createEl('line', {
+  x1: poleX, y1: groundY,
+  x2: poleX, y2: topY,
+  stroke: C.work,
+  'stroke-width': 4,
+  'stroke-dasharray': '6,4'
+});
+s3.appendChild(poleHighlight);
+
+Shell.label(s3, ropeMidX - 70, ropeMidY - 50, 'ด้านตรงข้ามมุมฉาก', {role:'work', anchor:[ropeMidX, ropeMidY], until:'step'});
+Shell.label(s3, poleX - 100, groundY - hPx / 2, 'ด้านตรงข้ามมุม $35^\\circ$', {role:'work', anchor:[poleX, groundY - hPx / 2], until:'step'});
+
+var s4 = Shell.step('แก้สมการหาความสูงเสาธง: $h = 12 \\times \\sin 35^\\circ \\approx 12 \\times 0.5736 \\approx 6.88$ เมตร', {
+  uses: [3]
+});
+
+var topGuide = createEl('line', {
+  x1: poleX + 8, y1: topY,
+  x2: poleX + 65, y2: topY,
+  stroke: C.note,
+  'stroke-width': 1.5,
+  'stroke-dasharray': '3,3'
+});
+s4.appendChild(topGuide);
+
+var btmGuide = createEl('line', {
+  x1: poleX + 8, y1: groundY,
+  x2: poleX + 65, y2: groundY,
+  stroke: C.note,
+  'stroke-width': 1.5,
+  'stroke-dasharray': '3,3'
+});
+s4.appendChild(btmGuide);
+
+Shell.arrow(s4, poleX + 50, groundY, poleX + 50, topY, {
+  role: 'answer',
+  label: '$h \\approx 6.88$ m',
+  value: 6.88,
+  unit: 'm',
+  until: 'end'
+});
+
+Shell.answer('ความสูงของเสาธง', '$h \\approx 6.88$ m', {
+  sanity: 'ความสูง $6.88$ m น้อยกว่าความยาวเชือก $12$ m ซึ่งสมเหตุสมผลเพราะด้านประกอบมุมฉากย่อมสั้นกว่าด้านตรงข้ามมุมฉากเสมอ และใกล้เคียงกับค่าประมาณ $12 \\times 0.57 \\approx 6.84$ m'
+});
+
+Shell.done();
+</script>
+</body></html>

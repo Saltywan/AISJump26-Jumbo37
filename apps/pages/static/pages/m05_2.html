@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>พิสูจน์ทฤษฎีบทมุมภายนอกของสามเหลี่ยม</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+var SVGNS = 'http://www.w3.org/2000/svg';
+
+function createEl(tag, attrs) {
+  var el = document.createElementNS(SVGNS, tag);
+  for (var k in attrs) {
+    el.setAttribute(k, attrs[k]);
+  }
+  return el;
+}
+
+function polarToScreen(cx, cy, r, deg) {
+  var rad = deg * Math.PI / 180;
+  return {
+    x: cx + r * Math.cos(rad),
+    y: cy - r * Math.sin(rad)
+  };
+}
+
+function arcPath(cx, cy, r, startDeg, endDeg) {
+  var p1 = polarToScreen(cx, cy, r, startDeg);
+  var p2 = polarToScreen(cx, cy, r, endDeg);
+  var diff = endDeg - startDeg;
+  while (diff < 0) diff += 360;
+  var largeArc = diff > 180 ? 1 : 0;
+  return 'M ' + p1.x + ' ' + p1.y + ' A ' + r + ' ' + r + ' 0 ' + largeArc + ' 0 ' + p2.x + ' ' + p2.y;
+}
+
+function sectorPath(cx, cy, r, startDeg, endDeg) {
+  var p1 = polarToScreen(cx, cy, r, startDeg);
+  var p2 = polarToScreen(cx, cy, r, endDeg);
+  var diff = endDeg - startDeg;
+  while (diff < 0) diff += 360;
+  var largeArc = diff > 180 ? 1 : 0;
+  return 'M ' + cx + ' ' + cy + ' L ' + p1.x + ' ' + p1.y + ' A ' + r + ' ' + r + ' 0 ' + largeArc + ' 0 ' + p2.x + ' ' + p2.y + ' Z';
+}
+
+Shell.page({
+  title: 'พิสูจน์ทฤษฎีบทมุมภายนอกของสามเหลี่ยม',
+  problem: 'จงพิสูจน์ว่ามุมภายนอกของรูปสามเหลี่ยมมีขนาดเท่ากับผลรวมของมุมภายในที่ไม่ประชิด โดยห้ามใช้ทฤษฎีบทผลรวมมุมภายในสามเหลี่ยมเท่ากับ $180^\\circ$'
+});
+
+var g = Shell.canvas();
+var C = Shell.C;
+
+var A = {x: 320, y: 140};
+var B = {x: 160, y: 380};
+var Cpt = {x: 560, y: 380};
+var D = {x: 840, y: 380};
+var E = {x: 720, y: 140};
+
+var degBA = 56.31;
+var degCA = 135.0;
+
+Shell.setup('โดยทั่วไปมักพิสูจน์โดยนำมุมภายในทั้งสามรวมกันได้ $180^\\circ$ แล้วลบด้วยมุมประชิด แต่ตามหลักเรขาคณิตของยุคลิด เราสามารถพิสูจน์ได้โดยตรงและเป็นอิสระ โดยการ <b>สร้างรังสีขนาน</b> ผ่านจุดยอด เพื่อถ่ายทอดขนาดมุมผ่านสมบัติของมุมแย้งและมุมสมนัย');
+
+Shell.group('ขั้นที่ 1: กำหนดรูปและสร้างเส้นช่วย');
+
+var s1 = Shell.step('กำหนดรูปสามเหลี่ยม $ABC$ โดยมี $\\angle BAC$ และ $\\angle ABC$ เป็นมุมภายในที่ไม่ประชิดกับจุดยอด $C$');
+var tri = createEl('polygon', {
+  points: A.x + ',' + A.y + ' ' + B.x + ',' + B.y + ' ' + Cpt.x + ',' + Cpt.y,
+  fill: C.given,
+  'fill-opacity': '0.08',
+  stroke: C.given,
+  'stroke-width': '2.5'
+});
+s1.appendChild(tri);
+
+var dotA = createEl('circle', {cx: A.x, cy: A.y, r: 5, fill: C.given});
+var dotB = createEl('circle', {cx: B.x, cy: B.y, r: 5, fill: C.given});
+var dotC = createEl('circle', {cx: Cpt.x, cy: Cpt.y, r: 5, fill: C.given});
+s1.appendChild(dotA);
+s1.appendChild(dotB);
+s1.appendChild(dotC);
+
+var arcA_init = createEl('path', {
+  d: arcPath(A.x, A.y, 42, 236.31, 315.0),
+  fill: 'none',
+  stroke: C.given,
+  'stroke-width': '2'
+});
+var arcB_init = createEl('path', {
+  d: arcPath(B.x, B.y, 48, 0, degBA),
+  fill: 'none',
+  stroke: C.given,
+  'stroke-width': '2'
+});
+s1.appendChild(arcA_init);
+s1.appendChild(arcB_init);
+
+Shell.label(s1, A.x, A.y - 25, '$A$', {role: 'given', anchor: [A.x, A.y], until: 'end'});
+Shell.label(s1, B.x - 25, B.y + 15, '$B$', {role: 'given', anchor: [B.x, B.y], until: 'end'});
+Shell.label(s1, Cpt.x - 15, Cpt.y + 25, '$C$', {role: 'given', anchor: [Cpt.x, Cpt.y], until: 'end'});
+Shell.label(s1, A.x, A.y + 70, '$\\angle BAC$', {role: 'given', anchor: [A.x, A.y + 35], until: 'step'});
+Shell.label(s1, B.x + 80, B.y - 20, '$\\angle ABC$', {role: 'given', anchor: [B.x + 35, B.y - 12], until: 'step'});
+
+var s2 = Shell.step('ต่อส่วนของเส้นตรง $BC$ ออกไปทางขวาผ่านจุด $C$ ถึงจุด $D$ เกิดมุมภายนอก $\\angle ACD$', {
+  why: 'การต่อด้านใดด้านหนึ่งของรูปสามเหลี่ยมออกไปในแนวเส้นตรงเดียวกันจะทำให้เกิดมุมภายนอกตามนิยาม'
+});
+var lineCD = createEl('line', {
+  x1: Cpt.x,
+  y1: Cpt.y,
+  x2: D.x,
+  y2: D.y,
+  stroke: C.note,
+  'stroke-width': '2.5',
+  'stroke-dasharray': '6,4'
+});
+var dotD = createEl('circle', {cx: D.x, cy: D.y, r: 5, fill: C.work});
+var arcExt_preview = createEl('path', {
+  d: arcPath(Cpt.x, Cpt.y, 82, 0, degCA),
+  fill: 'none',
+  stroke: C.answer,
+  'stroke-width': '2',
+  'stroke-dasharray': '4,4'
+});
+s2.appendChild(lineCD);
+s2.appendChild(dotD);
+s2.appendChild(arcExt_preview);
+
+Shell.label(s2, D.x + 20, D.y, '$D$', {role: 'work', anchor: [D.x, D.y], until: 'end'});
+Shell.label(s2, Cpt.x + 105, Cpt.y - 75, 'มุมภายนอก $\\angle ACD$', {role: 'answer', anchor: [Cpt.x + 55, Cpt.y - 40], until: 'step'});
+
+var s3 = Shell.step('สร้างรังสี $CE$ ให้ขนานกับด้าน $BA$ ($CE \\parallel BA$)', {
+  why: 'ตามสัจพจน์เส้นขนานของยุคลิด สามารถสร้างเส้นตรงผ่านจุด $C$ ให้ขนานกับส่วนของเส้นตรง $BA$ ได้เสมอ'
+});
+var rayCE = createEl('line', {
+  x1: Cpt.x,
+  y1: Cpt.y,
+  x2: E.x,
+  y2: E.y,
+  stroke: C.work,
+  'stroke-width': '2.5'
+});
+var dotE = createEl('circle', {cx: E.x, cy: E.y, r: 5, fill: C.work});
+var chevronBA = createEl('path', {
+  d: 'M -8 -6 L 0 0 L -8 6',
+  fill: 'none',
+  stroke: C.work,
+  'stroke-width': '2.5',
+  'stroke-linecap': 'round',
+  'stroke-linejoin': 'round',
+  transform: 'translate(240, 260) rotate(-56.31)'
+});
+var chevronCE = createEl('path', {
+  d: 'M -8 -6 L 0 0 L -8 6',
+  fill: 'none',
+  stroke: C.work,
+  'stroke-width': '2.5',
+  'stroke-linecap': 'round',
+  'stroke-linejoin': 'round',
+  transform: 'translate(640, 260) rotate(-56.31)'
+});
+s3.appendChild(rayCE);
+s3.appendChild(dotE);
+s3.appendChild(chevronBA);
+s3.appendChild(chevronCE);
+
+Shell.label(s3, E.x + 20, E.y - 10, '$E$', {role: 'work', anchor: [E.x, E.y], until: 'end'});
+Shell.label(s3, 675, 220, '$CE \\parallel BA$', {role: 'work', anchor: [640, 260], until: 'step'});
+
+Shell.group('ขั้นที่ 2: ใช้สมบัติของเส้นขนาน');
+
+var s4 = Shell.step('มอง $AC$ เป็นเส้นตัดขวางตัดผ่านเส้นขนาน $BA$ และ $CE$ จะได้มุมแย้งมีขนาดเท่ากัน: $\\angle ACE = \\angle BAC$', {
+  why: 'เมื่อเส้นตรงตัดเส้นขนานคู่หนึ่ง มุมแย้งภายในย่อมมีขนาดเท่ากัน',
+  uses: [1, 3]
+});
+var transAC = createEl('line', {
+  x1: A.x,
+  y1: A.y,
+  x2: Cpt.x,
+  y2: Cpt.y,
+  stroke: C.work,
+  'stroke-width': '3.5',
+  'stroke-opacity': '0.9'
+});
+var secA = createEl('path', {
+  d: sectorPath(A.x, A.y, 42, 236.31, 315.0),
+  fill: C.work,
+  'fill-opacity': '0.25',
+  stroke: C.work,
+  'stroke-width': '2'
+});
+var secACE = createEl('path', {
+  d: sectorPath(Cpt.x, Cpt.y, 65, degBA, degCA),
+  fill: C.work,
+  'fill-opacity': '0.25',
+  stroke: C.work,
+  'stroke-width': '2'
+});
+s4.appendChild(transAC);
+s4.appendChild(secA);
+s4.appendChild(secACE);
+
+Shell.label(s4, A.x, A.y + 70, '$\\angle BAC$', {role: 'work', anchor: [A.x, A.y + 35], until: 'step'});
+Shell.label(s4, Cpt.x - 10, Cpt.y - 85, '$\\angle ACE = \\angle BAC$ (มุมแย้ง)', {role: 'work', anchor: [Cpt.x + 35, Cpt.y - 50], until: 'step'});
+
+var s5 = Shell.step('มองส่วนของเส้นตรง $BD$ เป็นเส้นตัดขวางตัดผ่านเส้นขนาน $BA$ และ $CE$ จะได้มุมสมนัยมีขนาดเท่ากัน: $\\angle ECD = \\angle ABC$', {
+  why: 'เมื่อเส้นตรงตัดเส้นขนานคู่หนึ่ง มุมภายนอกและมุมภายในที่อยู่ตรงข้ามบนข้างเดียวกันของเส้นตัด (มุมสมนัย) ย่อมมีขนาดเท่ากัน',
+  uses: [1, 3]
+});
+var transBD = createEl('line', {
+  x1: B.x,
+  y1: B.y,
+  x2: D.x,
+  y2: D.y,
+  stroke: C.warn,
+  'stroke-width': '3.5',
+  'stroke-opacity': '0.6'
+});
+var secB = createEl('path', {
+  d: sectorPath(B.x, B.y, 48, 0, degBA),
+  fill: C.warn,
+  'fill-opacity': '0.25',
+  stroke: C.warn,
+  'stroke-width': '2'
+});
+var secECD = createEl('path', {
+  d: sectorPath(Cpt.x, Cpt.y, 52, 0, degBA),
+  fill: C.warn,
+  'fill-opacity': '0.25',
+  stroke: C.warn,
+  'stroke-width': '2'
+});
+s5.appendChild(transBD);
+s5.appendChild(secB);
+s5.appendChild(secECD);
+
+Shell.label(s5, B.x + 80, B.y - 20, '$\\angle ABC$', {role: 'warn', anchor: [B.x + 35, B.y - 12], until: 'step'});
+Shell.label(s5, Cpt.x + 110, Cpt.y - 25, '$\\angle ECD = \\angle ABC$ (มุมสมนัย)', {role: 'warn', anchor: [Cpt.x + 40, Cpt.y - 12], until: 'step'});
+
+Shell.group('ขั้นที่ 3: สรุปผลรวมมุมภายนอก');
+
+var s6 = Shell.step('รวมมุมย่อยทั้งสอง: $\\angle ACD = \\angle ACE + \\angle ECD$ แทนค่ามุมที่เท่ากันจะได้ $\\angle ACD = \\angle BAC + \\angle ABC$', {
+  why: 'รังสี $CE$ แบ่งมุมภายนอก $\\angle ACD$ ออกเป็นสองมุมประชิดที่ต่อกันพอดี ขนาดของมุมใหญ่จึงเท่ากับผลบวกของมุมย่อย',
+  uses: [4, 5]
+});
+
+var secACE_final = createEl('path', {
+  d: sectorPath(Cpt.x, Cpt.y, 65, degBA, degCA),
+  fill: C.work,
+  'fill-opacity': '0.3',
+  stroke: C.work,
+  'stroke-width': '1.5'
+});
+var secECD_final = createEl('path', {
+  d: sectorPath(Cpt.x, Cpt.y, 52, 0, degBA),
+  fill: C.warn,
+  'fill-opacity': '0.3',
+  stroke: C.warn,
+  'stroke-width': '1.5'
+});
+var arcTotal = createEl('path', {
+  d: arcPath(Cpt.x, Cpt.y, 82, 0, degCA),
+  fill: 'none',
+  stroke: C.answer,
+  'stroke-width': '3.5'
+});
+s6.appendChild(secACE_final);
+s6.appendChild(secECD_final);
+s6.appendChild(arcTotal);
+
+Shell.label(s6, Cpt.x + 120, Cpt.y - 95, '$\\angle ACD = \\angle ACE + \\angle ECD$', {role: 'answer', anchor: [Cpt.x + 55, Cpt.y - 45], until: 'step'});
+Shell.label(s6, Cpt.x + 120, Cpt.y - 95, '$\\angle ACD = \\angle BAC + \\angle ABC$', {role: 'answer', anchor: [Cpt.x + 55, Cpt.y - 45], until: 'end'});
+
+Shell.answer('ทฤษฎีบทมุมภายนอกของรูปสามเหลี่ยม', '$\\angle ACD = \\angle BAC + \\angle ABC$', {
+  sanity: 'การพิสูจน์นี้ใช้เพียงสัจพจน์เส้นขนาน (มุมแย้งและมุมสมนัย) จึงเป็นจริงโดยสมบูรณ์โดยไม่ต้องพึ่งพาทฤษฎีบทผลรวมมุมภายใน $180^\\circ$'
+});
+
+Shell.done();
+</script>
+</body></html>

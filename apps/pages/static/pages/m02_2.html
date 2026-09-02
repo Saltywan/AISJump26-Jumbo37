@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>การแปลงทางเรขาคณิตย้อนกลับ</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/jsxgraph.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/jsxgraphcore.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+var b = Shell.board({box: [-6, 10, 10, -5], grid: true, keepaspect: true});
+var C = Shell.C;
+
+Shell.page({
+  title: 'การแปลงทางเรขาคณิตย้อนกลับ',
+  problem: 'รูปสามเหลี่ยม $PQR$ ถูกหมุน $180^\\circ$ รอบจุด $(2,3)$ แล้วเลื่อนขนานตามเวกเตอร์ $(-1, 4)$ ได้ภาพเป็นสามเหลี่ยม $P\'Q\'R\'$ ที่มีจุดยอด $P\'(5,2)$, $Q\'(3,6)$, $R\'(7,8)$ จงหาพิกัดเดิมของ $P, Q, R$'
+});
+
+Shell.setup(
+  'เมื่อลำดับการแปลงไปข้างหน้าคือ <b>หมุน $180^\\circ$ รอบจุด $(2,3)$</b> แล้วตามด้วย <b>เลื่อนขนานตามเวกเตอร์ $(-1, 4)$</b> การหาพิกัดเดิมจึงต้องทำย้อนกลับในลำดับตรงกันข้าม โดย <b>เลื่อนขนานย้อนกลับ</b> ตามเวกเตอร์ตรงข้าม $(1, -4)$ ก่อน แล้วจึง <b>หมุนย้อนกลับ $180^\\circ$</b> รอบจุด $(2,3)$'
+);
+
+Shell.group('กระบวนการแปลงทางเรขาคณิตย้อนกลับ');
+
+// 1. จุดและรูปที่โจทย์กำหนด (Given elements)
+var ptC = b.create('point', [2, 3], {strokeColor: C.note, fillColor: C.note, size: 4, name: '', withLabel: false});
+var Pp = b.create('point', [5, 2], {strokeColor: C.given, fillColor: C.given, size: 4, name: '', withLabel: false});
+var Qp = b.create('point', [3, 6], {strokeColor: C.given, fillColor: C.given, size: 4, name: '', withLabel: false});
+var Rp = b.create('point', [7, 8], {strokeColor: C.given, fillColor: C.given, size: 4, name: '', withLabel: false});
+
+var triPrime = b.create('polygon', [Pp, Qp, Rp], {
+  strokeColor: C.given,
+  fillColor: C.given,
+  fillOpacity: 0.12,
+  borders: {strokeColor: C.given, strokeWidth: 2, withLabel: false},
+  withLabel: false
+});
+
+var s1 = Shell.step(
+  'กำหนดจุดภาพ $P\'(5,2)$, $Q\'(3,6)$, $R\'(7,8)$ และจุดศูนย์กลางการหมุน $C(2,3)$ บนระนาบพิกัดฉาก',
+  {why: 'ต้องลงตำแหน่งของภาพผลลัพธ์และจุดศูนย์กลางการหมุนก่อน จึงจะสามารถดำเนินการแปลงย้อนกลับได้'}
+);
+Shell.on(s1, ptC, Pp, Qp, Rp, triPrime);
+Shell.tag(s1, ptC, 'C(2, 3)', {role: 'note'});
+Shell.tag(s1, Pp, 'P\'(5, 2)', {role: 'given'});
+Shell.tag(s1, Qp, 'Q\'(3, 6)', {role: 'given'});
+Shell.tag(s1, Rp, 'R\'(7, 8)', {role: 'given'});
+
+// 2. การสร้างจุดเลื่อนขนานย้อนกลับทางเรขาคณิต (Geometric reverse translation using parallelogram)
+var ptOrigin = b.create('point', [0, 0], {visible: false, name: '', withLabel: false});
+var ptVrev = b.create('point', [1, -4], {visible: false, name: '', withLabel: false});
+
+function translateByInvVector(pt, attrs) {
+  var lVec = b.create('line', [ptOrigin, ptVrev], {visible: false});
+  var l1 = b.create('parallel', [lVec, pt], {visible: false});
+  var lPt = b.create('line', [ptOrigin, pt], {visible: false});
+  var l2 = b.create('parallel', [lPt, ptVrev], {visible: false});
+  return b.create('intersection', [l1, l2, 0], attrs);
+}
+
+var Ppp = translateByInvVector(Pp, {strokeColor: C.work, fillColor: C.work, size: 4, name: '', withLabel: false});
+var Qpp = translateByInvVector(Qp, {strokeColor: C.work, fillColor: C.work, size: 4, name: '', withLabel: false});
+var Rpp = translateByInvVector(Rp, {strokeColor: C.work, fillColor: C.work, size: 4, name: '', withLabel: false});
+
+var triSecond = b.create('polygon', [Ppp, Qpp, Rpp], {
+  strokeColor: C.work,
+  fillColor: C.work,
+  fillOpacity: 0.1,
+  borders: {strokeColor: C.work, strokeWidth: 2, dash: 2, withLabel: false},
+  withLabel: false
+});
+
+var segP = b.create('segment', [Pp, Ppp], {strokeColor: C.work, strokeWidth: 1.5, dash: 2, lastArrow: true, withLabel: false});
+var segQ = b.create('segment', [Qp, Qpp], {strokeColor: C.work, strokeWidth: 1.5, dash: 2, lastArrow: true, withLabel: false});
+var segR = b.create('segment', [Rp, Rpp], {strokeColor: C.work, strokeWidth: 1.5, dash: 2, lastArrow: true, withLabel: false});
+
+var s2 = Shell.step(
+  '<b>ขั้นที่ 1 เลื่อนขนานย้อนกลับ:</b><br>' +
+  'โจทย์เลื่อนขนานด้วยเวกเตอร์ $\\vec{v} = (-1, 4)$ การย้อนกลับจึงต้องเลื่อนด้วย $-\\vec{v} = (1, -4)$<br>' +
+  '• จุด $P\'\' = (5+1, 2-4) = (6, -2)$<br>' +
+  '• จุด $Q\'\' = (3+1, 6-4) = (4, 2)$<br>' +
+  '• จุด $R\'\' = (7+1, 8-4) = (8, 4)$<br>' +
+  'ได้รูปสามเหลี่ยม $P\'\'Q\'\'R\'\'$ ซึ่งเป็นตำแหน่งก่อนการเลื่อนขนาน',
+  {
+    why: 'การเลื่อนขนานย้อนกลับทำได้โดยการบวกเวกเตอร์ตรงข้าม $-\\vec{v}$ เพื่อกลับสู่ตำแหน่งก่อนเลื่อนขนาน',
+    uses: [1]
+  }
+);
+Shell.on(s2, Ppp, Qpp, Rpp, triSecond);
+Shell.on(s2, segP, segQ, segR, {until: 'step'});
+Shell.tag(s2, Ppp, 'P\'\'(6, -2)', {role: 'work', until: 'step'});
+Shell.tag(s2, Qpp, 'Q\'\'(4, 2)', {role: 'work', until: 'step'});
+Shell.tag(s2, Rpp, 'R\'\'(8, 4)', {role: 'work', until: 'step'});
+
+// 3. การสร้างจุดหมุนย้อนกลับ 180 องศา (Geometric reflection through center C)
+var P = b.create('mirrorpoint', [Ppp, ptC], {strokeColor: C.answer, fillColor: C.answer, size: 5, name: '', withLabel: false});
+var Q = b.create('mirrorpoint', [Qpp, ptC], {strokeColor: C.answer, fillColor: C.answer, size: 5, name: '', withLabel: false});
+var R = b.create('mirrorpoint', [Rpp, ptC], {strokeColor: C.answer, fillColor: C.answer, size: 5, name: '', withLabel: false});
+
+var triOriginal = b.create('polygon', [P, Q, R], {
+  strokeColor: C.answer,
+  fillColor: C.answer,
+  fillOpacity: 0.15,
+  borders: {strokeColor: C.answer, strokeWidth: 2.5, withLabel: false},
+  withLabel: false
+});
+
+var lineP = b.create('segment', [Ppp, P], {strokeColor: C.note, strokeWidth: 1.5, dash: 3, withLabel: false});
+var lineQ = b.create('segment', [Qpp, Q], {strokeColor: C.note, strokeWidth: 1.5, dash: 3, withLabel: false});
+var lineR = b.create('segment', [Rpp, R], {strokeColor: C.note, strokeWidth: 1.5, dash: 3, withLabel: false});
+
+var s3 = Shell.step(
+  '<b>ขั้นที่ 2 หมุนย้อนกลับ $180^\\circ$ รอบจุด $C(2,3)$:</b><br>' +
+  'การหมุน $180^\\circ$ รอบจุด $C(2,3)$ มีจุด $C$ เป็นจุดกึ่งกลางระหว่างจุดเดิม $(x, y)$ กับจุด $(x\'\', y\'\')$<br>' +
+  'จากสูตรจุดกึ่งกลาง: $\\frac{x + x\'\'}{2} = 2 \\implies x = 4 - x\'\'$ และ $\\frac{y + y\'\'}{2} = 3 \\implies y = 6 - y\'\'$<br>' +
+  '• จุด $P$: $x = 4 - 6 = -2$, $y = 6 - (-2) = 8 \\implies P(-2, 8)$<br>' +
+  '• จุด $Q$: $x = 4 - 4 = 0$, $y = 6 - 2 = 4 \\implies Q(0, 4)$<br>' +
+  '• จุด $R$: $x = 4 - 8 = -4$, $y = 6 - 4 = 2 \\implies R(-4, 2)$',
+  {
+    why: 'การหมุน $180^\\circ$ สมมูลกับการสะท้อนข้ามจุด ทำให้จุดศูนย์กลางการหมุนแบ่งครึ่งระยะทางระหว่างจุดเดิมและจุดภาพเสมอ',
+    uses: [2]
+  }
+);
+Shell.on(s3, lineP, lineQ, lineR, P, Q, R, triOriginal);
+Shell.tag(s3, P, 'P(-2, 8)', {role: 'answer'});
+Shell.tag(s3, Q, 'Q(0, 4)', {role: 'answer'});
+Shell.tag(s3, R, 'R(-4, 2)', {role: 'answer'});
+
+// 4. ตรวจสอบความถูกต้อง
+var s4 = Shell.step(
+  '<b>ตรวจสอบความถูกต้อง:</b><br>' +
+  'นำพิกัดเดิม $P(-2, 8)$, $Q(0, 4)$, $R(-4, 2)$ มาแปลงไปข้างหน้าตามเงื่อนไขของโจทย์:<br>' +
+  '1. หมุน $180^\\circ$ รอบ $C(2,3)$: จุด $P(-2,8) \\to (4-(-2), 6-8) = (6,-2) = P\'\'$<br>' +
+  '2. เลื่อนขนานด้วย $\\vec{v} = (-1, 4)$: $P\'\'(6,-2) + (-1, 4) = (5, 2) = P\'$ ตรงกับโจทย์กำหนด<br>' +
+  '(จุด $Q$ และ $R$ ได้ภาพเป็น $Q\'(3,6)$ และ $R\'(7,8)$ ถูกต้องเช่นเดียวกัน)',
+  {uses: [3]}
+);
+
+Shell.answer(
+  'พิกัดเดิมของจุดยอดสามเหลี่ยม $PQR$',
+  '$P(-2, 8),\\ Q(0, 4),\\ R(-4, 2)$',
+  {sanity: 'เมื่อนำพิกัดทั้งสามไปหมุน $180^\\circ$ รอบ $(2,3)$ แล้วเลื่อนขนานด้วย $(-1, 4)$ จะได้ภาพ $P\'(5,2)$, $Q\'(3,6)$, $R\'(7,8)$ ครบถ้วนถูกต้อง'}
+);
+
+Shell.done();
+</script>
+</body></html>

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>การสะท้อนและการหมุนของรูปสามเหลี่ยม</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/jsxgraph.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/jsxgraphcore.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+Shell.page({
+  title: 'การสะท้อนและการหมุนของรูปสามเหลี่ยม',
+  problem: 'สามเหลี่ยม $ABC$ มีจุดยอด $A(1, 1)$, $B(4, 1)$, $C(4, 3)$ จงหาพิกัดของภาพที่ได้จากการสะท้อนข้ามแกน $Y$ แล้วจึงหมุน $90^\\circ$ ทวนเข็มนาฬิการอบจุดกำเนิด'
+});
+
+var b = Shell.board({box: [-6, 5, 6, -6], axis: true, grid: true, keepaspect: true});
+var C = Shell.C;
+
+Shell.setup('โจทย์กำหนดการแปลงทางเรขาคณิตแบบต่อเนื่องสองขั้นตอน จึงต้องดำเนินการตามลำดับ: ขั้นแรกสะท้อนข้ามแกน $Y$ แล้วนำพิกัดของภาพที่ได้ไปหมุน $90^\\circ$ ทวนเข็มนาฬิการอบจุดกำเนิดในขั้นที่สอง');
+
+var O = b.create('point', [0, 0], {strokeColor: C.note, fillColor: C.note, size: 3, withLabel: false, fixed: true});
+var A = b.create('point', [1, 1], {strokeColor: C.given, fillColor: C.given, size: 4, withLabel: false, fixed: true});
+var B = b.create('point', [4, 1], {strokeColor: C.given, fillColor: C.given, size: 4, withLabel: false, fixed: true});
+var Cpt = b.create('point', [4, 3], {strokeColor: C.given, fillColor: C.given, size: 4, withLabel: false, fixed: true});
+var tri0 = b.create('polygon', [A, B, Cpt], {
+  borders: {strokeColor: C.given, strokeWidth: 2, withLabel: false},
+  fillColor: C.given,
+  fillOpacity: 0.2,
+  withLabel: false
+});
+
+Shell.group('พล็อตจุดยอดและรูปต้นแบบ');
+var s1 = Shell.step(
+  'กำหนดจุดยอด $A(1, 1)$, $B(4, 1)$ และ $C(4, 3)$ บนระนาบพิกัดฉาก แล้วลากส่วนของเส้นตรงเชื่อมจุดทั้งสามเพื่อสร้างรูปต้นแบบสามเหลี่ยม $ABC$',
+  {why: 'ต้องลงจุดพิกัดและสร้างรูปต้นแบบให้ชัดเจนเพื่อใช้อ้างอิงการแปลงทางเรขาคณิตในขั้นถัดไป'}
+);
+Shell.on(s1, A, B, Cpt, tri0);
+Shell.tag(s1, O, 'O(0, 0)', {role: 'note', until: 'end'});
+Shell.tag(s1, A, 'A(1, 1)', {role: 'given', until: 'end'});
+Shell.tag(s1, B, 'B(4, 1)', {role: 'given', until: 'end'});
+Shell.tag(s1, Cpt, 'C(4, 3)', {role: 'given', until: 'end'});
+
+var pY1 = b.create('point', [0, -10], {visible: false, fixed: true});
+var pY2 = b.create('point', [0, 10], {visible: false, fixed: true});
+var yLine = b.create('line', [pY1, pY2], {visible: false});
+
+var A1 = b.create('mirrorpoint', [A, yLine], {strokeColor: C.work, fillColor: C.work, size: 4, withLabel: false});
+var B1 = b.create('mirrorpoint', [B, yLine], {strokeColor: C.work, fillColor: C.work, size: 4, withLabel: false});
+var C1 = b.create('mirrorpoint', [Cpt, yLine], {strokeColor: C.work, fillColor: C.work, size: 4, withLabel: false});
+
+var tri1 = b.create('polygon', [A1, B1, C1], {
+  borders: {strokeColor: C.work, strokeWidth: 2, withLabel: false},
+  fillColor: C.work,
+  fillOpacity: 0.15,
+  withLabel: false
+});
+
+var refSegA = b.create('segment', [A, A1], {strokeColor: C.note, strokeWidth: 1.5, dash: 2, withLabel: false});
+var refSegB = b.create('segment', [B, B1], {strokeColor: C.note, strokeWidth: 1.5, dash: 2, withLabel: false});
+var refSegC = b.create('segment', [Cpt, C1], {strokeColor: C.note, strokeWidth: 1.5, dash: 2, withLabel: false});
+
+Shell.group('การสะท้อนข้ามแกน Y');
+var s2 = Shell.step(
+  'สะท้อนสามเหลี่ยม $ABC$ ข้ามแกน $Y$ โดยใช้กฎการสะท้อน $(x, y) \\to (-x, y)$<br>' +
+  '• จุด $A(1, 1) \\to A\'(-1, 1)$<br>' +
+  '• จุด $B(4, 1) \\to B\'(-4, 1)$<br>' +
+  '• จุด $C(4, 3) \\to C\'(-4, 3)$<br>' +
+  'ได้ภาพจากการสะท้อนคือสามเหลี่ยม $A\'B\'C\'$',
+  {
+    uses: [1],
+    why: 'การสะท้อนข้ามแกน $Y$ ระยะห่างจากแกน $Y$ ในแนวนอนจะเท่าเดิมแต่ไปอยู่ฝั่งตรงข้าม พิกัด $x$ จึงเปลี่ยนเป็นค่าตรงข้าม ($-x$) ส่วนระดับความสูงในแนวดิ่งหรือพิกัด $y$ คงเดิม'
+  }
+);
+Shell.on(s2, A1, B1, C1, tri1);
+Shell.on(s2, refSegA, refSegB, refSegC, {until: 'step'});
+Shell.tag(s2, A1, "A'(-1, 1)", {role: 'work', until: 'step'});
+Shell.tag(s2, B1, "B'(-4, 1)", {role: 'work', until: 'step'});
+Shell.tag(s2, C1, "C'(-4, 3)", {role: 'work', until: 'step'});
+
+var A2 = b.create('point', [function() { return -A1.Y(); }, function() { return A1.X(); }], {
+  strokeColor: C.answer, fillColor: C.answer, size: 5, withLabel: false
+});
+var B2 = b.create('point', [function() { return -B1.Y(); }, function() { return B1.X(); }], {
+  strokeColor: C.answer, fillColor: C.answer, size: 5, withLabel: false
+});
+var C2 = b.create('point', [function() { return -C1.Y(); }, function() { return C1.X(); }], {
+  strokeColor: C.answer, fillColor: C.answer, size: 5, withLabel: false
+});
+
+var tri2 = b.create('polygon', [A2, B2, C2], {
+  borders: {strokeColor: C.answer, strokeWidth: 2.5, withLabel: false},
+  fillColor: C.answer,
+  fillOpacity: 0.25,
+  withLabel: false
+});
+
+var rotArcA = b.create('arc', [O, A1, A2], {strokeColor: C.note, strokeWidth: 1.5, dash: 2, withLabel: false});
+var rotArcB = b.create('arc', [O, B1, B2], {strokeColor: C.note, strokeWidth: 1.5, dash: 2, withLabel: false});
+var rotArcC = b.create('arc', [O, C1, C2], {strokeColor: C.note, strokeWidth: 1.5, dash: 2, withLabel: false});
+
+Shell.group('การหมุนรอบจุดกำเนิด');
+var s3 = Shell.step(
+  'นำภาพสามเหลี่ยม $A\'B\'C\'$ มาหมุน $90^\\circ$ ทวนเข็มนาฬิการอบจุดกำเนิด $(0, 0)$ โดยใช้กฎการหมุน $(x\', y\') \\to (-y\', x\')$ ดังนี้<br>' +
+  '• จุด $A\'(-1, 1) \\to A\'\'(-(1), -1) = A\'\'(-1, -1)$<br>' +
+  '• จุด $B\'(-4, 1) \\to B\'\'(-(1), -4) = B\'\'(-1, -4)$<br>' +
+  '• จุด $C\'(-4, 3) \\to C\'\'(-(3), -4) = C\'\'(-3, -4)$<br>' +
+  'ได้ภาพสุดท้ายคือสามเหลี่ยม $A\'\'B\'\'C\'\'$',
+  {
+    uses: [2],
+    why: 'การหมุนจุดรอบจุดกำเนิดทวนเข็มนาฬิกา $90^\\circ$ เวกเตอร์ตำแหน่งจะหมุนไปทำมุมฉาก ทำให้แกนราบกับแกนดิ่งสลับบทบาทกัน โดยพิกัดใหม่คือ $(-y, x)$'
+  }
+);
+Shell.on(s3, A2, B2, C2, tri2);
+Shell.on(s3, rotArcA, rotArcB, rotArcC, {until: 'step'});
+Shell.tag(s3, A2, "A''(-1, -1)", {role: 'answer', until: 'end'});
+Shell.tag(s3, B2, "B''(-1, -4)", {role: 'answer', until: 'end'});
+Shell.tag(s3, C2, "C''(-3, -4)", {role: 'answer', until: 'end'});
+
+Shell.answer(
+  'พิกัดของภาพสุดท้าย $A\'\'B\'\'C\'\'$',
+  '$A\'\'(-1, -1),\\ B\'\'(-1, -4),\\ C\'\'(-3, -4)$',
+  {
+    sanity: 'การสะท้อนข้ามแกน $Y$ แล้วตามด้วยการหมุน $90^\\circ$ ทวนเข็มนาฬิกา เทียบเท่ากับการแปลงแบบรวม $(x, y) \\to (-y, -x)$ ซึ่งคือการสะท้อนข้ามเส้นตรง $y = -x$ เมื่อแทนค่าจุดยอดจะได้ตรงกันทุกประการ และขนาดพื้นที่ของสามเหลี่ยมยังคงเท่าเดิมคือ $3$ ตารางหน่วย'
+  }
+);
+
+Shell.done();
+</script>
+</body></html>

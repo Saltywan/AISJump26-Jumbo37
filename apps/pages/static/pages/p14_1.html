@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>สนามแม่เหล็กและแรงระหว่างลวดตัวนำขนาน</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+var SVGNS = 'http://www.w3.org/2000/svg';
+
+Shell.page({
+  title: 'สนามแม่เหล็กและแรงระหว่างลวดตัวนำขนาน',
+  problem: 'ลวดตัวนำตรงสองเส้นวางขนานกันในแนวดิ่ง ห่างกัน 10 ซม. เส้นแรกมีกระแสไฟฟ้า 5 แอมแปร์ไหลขึ้น และเส้นที่สองมีกระแสไฟฟ้า 3 แอมแปร์ไหลลง จงหาทิศทางของสนามแม่เหล็กที่ลวดเส้นแรกกระทำต่อตำแหน่งของลวดเส้นที่สอง ขนาดของแรงต่อความยาว 1 เมตรที่ลวดทั้งสองกระทำต่อกัน และระบุว่าลวดทั้งสองจะดึงดูดหรือผลักกัน'
+});
+
+var g = Shell.canvas();
+var C = Shell.C;
+
+// กำหนดมาตราส่วนสำหรับความยาวลูกศรให้สอดคล้องกับค่าจริง
+var PX_PER_A = 24.0;       // 1 A = 24 px
+var PX_PER_UN_M = 3.0;     // 1 μN/m = 3 px (30 μN/m = 90 px)
+
+Shell.setup('เนื่องจากกระแสไฟฟ้าสร้างสนามแม่เหล็ก และกระแสไฟฟ้าที่อยู่ในสนามแม่เหล็กภายนอกจะได้รับแรงแม่เหล็ก เราจึงหาทิศและขนาดของสนามแม่เหล็กจากลวดเส้นแรกก่อน จากนั้นจึงวิเคราะห์แรงแม่เหล็กที่กระทำต่อลวดเส้นที่สอง');
+
+function makeSVG(tag, attrs) {
+  var el = document.createElementNS(SVGNS, tag);
+  for (var k in attrs) {
+    el.setAttribute(k, attrs[k]);
+  }
+  return el;
+}
+
+// ----------------------------------------------------
+// กลุ่มที่ 1: วิเคราะห์กระแสและสนามแม่เหล็ก
+// ----------------------------------------------------
+Shell.group('วิเคราะห์กระแสและสนามแม่เหล็ก');
+
+var s1 = Shell.step('ลวดตัวนำตรงยาวสองเส้นวางขนานกันในแนวดิ่ง ห่างกัน $d = 10$ cm ($0.1$ m) มีกระแส $I_1 = 5$ A ไหลขึ้น และ $I_2 = 3$ A ไหลลง');
+
+// ลวดเส้นที่ 1 และ 2
+s1.appendChild(makeSVG('line', {x1: 340, y1: 60, x2: 340, y2: 450, stroke: C.note, 'stroke-width': 5, 'stroke-linecap': 'round'}));
+s1.appendChild(makeSVG('line', {x1: 620, y1: 60, x2: 620, y2: 450, stroke: C.note, 'stroke-width': 5, 'stroke-linecap': 'round'}));
+
+// เส้นบอกระยะห่าง d
+s1.appendChild(makeSVG('line', {x1: 340, y1: 465, x2: 620, y2: 465, stroke: C.note, 'stroke-width': 1.5, 'stroke-dasharray': '4,3'}));
+s1.appendChild(makeSVG('line', {x1: 340, y1: 455, x2: 340, y2: 475, stroke: C.note, 'stroke-width': 1.5}));
+s1.appendChild(makeSVG('line', {x1: 620, y1: 455, x2: 620, y2: 475, stroke: C.note, 'stroke-width': 1.5}));
+
+Shell.label(s1, 340, 38, 'ลวดเส้นที่ 1', {role: 'note', anchor: [340, 60], until: 'end'});
+Shell.label(s1, 620, 38, 'ลวดเส้นที่ 2', {role: 'note', anchor: [620, 60], until: 'end'});
+Shell.label(s1, 480, 490, '$d = 10$ cm ($0.1$ m)', {role: 'given', anchor: [480, 465], until: 'end'});
+
+// ลูกศรกระแสไฟฟ้า (ความยาวตรงตาม PX_PER_A)
+Shell.arrow(s1, 340, 320, 340, 200, {role: 'given', label: '$I_1 = 5$ A', value: 5, unit: 'A', until: 'end'});
+Shell.arrow(s1, 620, 190, 620, 262, {role: 'given', label: '$I_2 = 3$ A', value: 3, unit: 'A', until: 'end'});
+
+var s2 = Shell.step('ใช้กฎมือขวาหากระแส $I_1$: นิ้วหัวแม่มือชี้ขึ้นตาม $I_1$ นิ้วทั้งสี่วนรอบลวด ที่ตำแหน่งของลวดเส้นที่ 2 สนามแม่เหล็ก $\\vec{B}_1$ จะมีทิศ<b>พุ่งเข้าสู่ระนาบ</b> ($\\otimes$)<br>ขนาดสนาม: $B_1 = \\frac{\\mu_0 I_1}{2\\pi d} = \\frac{(4\\pi \\times 10^{-7})(5)}{2\\pi(0.1)} = 1.0 \\times 10^{-5}$ T', {
+  why: 'กฎของบีโอต์-ซาวารต์และกฎมือขวาใช้ระบุทิศทางการวนและขนาดของสนามแม่เหล็กรอบลวดตรงยาว'
+});
+
+// เส้นสนามแม่เหล็กรูปวงรีรอบลวดเส้นที่ 1 ผ่านลวดเส้นที่ 2
+s2.appendChild(makeSVG('ellipse', {cx: 340, cy: 250, rx: 280, ry: 65, fill: 'none', stroke: C.work, 'stroke-width': 2, 'stroke-dasharray': '6,4'}));
+
+// สัญลักษณ์สนามแม่เหล็กพุ่งเข้าระนาบ (circle with cross) ที่ลวดเส้นที่ 2
+s2.appendChild(makeSVG('circle', {cx: 620, cy: 250, r: 14, fill: 'none', stroke: C.work, 'stroke-width': 2.5}));
+s2.appendChild(makeSVG('line', {x1: 610, y1: 240, x2: 630, y2: 260, stroke: C.work, 'stroke-width': 2.5}));
+s2.appendChild(makeSVG('line', {x1: 610, y1: 260, x2: 630, y2: 240, stroke: C.work, 'stroke-width': 2.5}));
+
+Shell.label(s2, 650, 220, '$\\vec{B}_1 = 1.0 \\times 10^{-5}$ T (พุ่งเข้า $\\otimes$)', {role: 'work', anchor: [620, 250], until: 'step'});
+
+// ----------------------------------------------------
+// กลุ่มที่ 2: วิเคราะห์แรงแม่เหล็กและคำนวณขนาด
+// ----------------------------------------------------
+Shell.group('คำนวณแรงแม่เหล็กและระบุพฤติกรรม');
+
+var s3 = Shell.step('หาทิศทางของแรง $\\vec{F}_{21}$ บนลวดเส้นที่ 2 โดยใช้กฎมือขวา: ชี้สี่นิ้วตามกระแส $I_2$ (ลง) กำเข้าหาสนาม $\\vec{B}_1$ (พุ่งเข้า) นิ้วหัวแม่มือจะชี้ไปทาง<b>ขวา</b> (ผลักออกจากลวดเส้นที่ 1)', {
+  why: 'กระแสไฟฟ้าในสนามแม่เหล็กภายนอกเกิดแรงแม่เหล็กตามความสัมพันธ์ $\\vec{F} = I(\\vec{L} \\times \\vec{B})$'
+});
+
+// แรงบนลวดเส้นที่ 2 ชี้ไปทางขวา (ยาว 30 * 3.0 = 90 px)
+Shell.arrow(s3, 620, 250, 710, 250, {role: 'work', label: '$\\vec{F}_{21}/L = 30$ μN/m', value: 30, unit: 'μN/m', until: 'end'});
+
+var s4 = Shell.step('จากกฎข้อที่ 3 ของนิวตัน แรงที่ลวดทั้งสองกระทำต่อกันเป็นคู่กิริยา-ปฏิกิริยา ลวดเส้นที่ 1 จะได้รับแรง $\\vec{F}_{12}$ ขนาดเท่ากันแต่มีทิศไปทาง<b>ซ้าย</b> ลวดทั้งสองจึง<b>ผลักกัน</b>', {
+  why: 'ตามกฎข้อที่สามของนิวตัน แรงกระทำร่วมระหว่างวัตถุสองชิ้นมีขนาดเท่ากันแต่มีทิศทางตรงข้ามกันเสมอ'
+});
+
+// แรงบนลวดเส้นที่ 1 ชี้ไปทางซ้าย (ยาว 30 * 3.0 = 90 px)
+Shell.arrow(s4, 340, 250, 250, 250, {role: 'answer', label: '$\\vec{F}_{12}/L = 30$ μN/m', value: 30, unit: 'μN/m', until: 'end'});
+Shell.label(s4, 480, 215, 'ลวดทั้งสองผลักกัน', {role: 'work', anchor: [480, 250], until: 'step'});
+
+var s5 = Shell.step('คำนวณขนาดของแรงต่อความยาว 1 เมตร ($L = 1$ m):<br>$$\\frac{F}{L} = \\frac{\\mu_0 I_1 I_2}{2\\pi d} = \\frac{(4\\pi \\times 10^{-7})(5)(3)}{2\\pi(0.1)} = 3.0 \\times 10^{-5}\\text{ N/m}$$', {
+  uses: [1, 2]
+});
+
+Shell.answer(
+  'สรุปคำตอบของโจทย์ทั้งสามประเด็น',
+  '$\\vec{B}_1$ มีทิศพุ่งเข้าสู่ระนาบ ($\\otimes$), ขนาดแรงต่อเมตร $F/L = 3.0 \\times 10^{-5}$ N/m, ลวดทั้งสองผลักกัน',
+  {sanity: 'กระแสไหลสวนทางกันทำให้สนามแม่เหล็กระหว่างลวดมีทิศเดียวกันและเสริมกันจนหนาแน่น จึงดันลวดแยกออกจากกันเป็นแรงผลัก'}
+);
+
+Shell.done();
+</script>
+</body></html>

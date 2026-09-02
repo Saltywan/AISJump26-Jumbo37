@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>สมการเส้นตรงที่ขนานกัน</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/jsxgraph.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/jsxgraphcore.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+Shell.page({
+  title: 'สมการเส้นตรงที่ขนานกัน',
+  problem: 'เส้นตรงเส้นหนึ่งผ่านจุด $(2, 5)$ และขนานกับเส้นตรง $y = 3x + 1$ จงหาสมการของเส้นตรงเส้นนี้'
+});
+
+var b = Shell.board({box: [-4, 9, 6, -3], axis: true, grid: true, keepaspect: true});
+var C = Shell.C;
+
+Shell.setup('เส้นตรงสองเส้นที่ขนานกันจะมีความชันเท่ากันเสมอ ($m_1 = m_2$) ดังนั้นเราสามารถหาความชันจากสมการเส้นตรงที่กำหนดให้ แล้วนำไปสร้างสมการเส้นตรงที่ผ่านจุด $(2, 5)$ ด้วยรูปแบบจุดและความชัน');
+
+Shell.group('วิเคราะห์ความชันและสร้างสมการเส้นตรง');
+
+var A = b.create('point', [0, 1], {visible: false, fixed: true});
+var B = b.create('point', [1, 4], {visible: false, fixed: true});
+var L1 = b.create('line', [A, B], {strokeColor: C.given, strokeWidth: 2.5, fixed: true, withLabel: false});
+
+var s1 = Shell.step('พิจารณาสมการเส้นตรงที่โจทย์กำหนดให้ $L_1: y = 3x + 1$<br>เทียบกับรูปมาตรฐานความชันและจุดตัดแกน $y = mx + c$<br>จะได้ความชัน $m_1 = 3$', {
+  why: 'ในรูปสมการ $y = mx + c$ สัมประสิทธิ์หน้า $x$ คือค่าความชันของเส้นตรง'
+});
+Shell.on(s1, L1);
+Shell.tag(s1, L1, '$L_1: y = 3x + 1$', {role: 'given'});
+
+var s2 = Shell.step('เนื่องจากเส้นตรงที่ต้องการ ($L_2$) ขนานกับเส้นตรง $L_1$ ($L_2 \\parallel L_1$)<br>เส้นตรงที่ขนานกันย่อมมีความชันเท่ากันเสมอ ($m_1 = m_2$)<br>ดังนั้น ความชันของเส้นตรง $L_2$ คือ $m = 3$', {
+  why: 'เส้นตรงที่ขนานกันจะมีอัตราการเปลี่ยนแปลงหรือความชันเท่ากันเสมอ',
+  uses: [1]
+});
+
+var P = b.create('point', [2, 5], {strokeColor: C.given, fillColor: C.given, size: 4, fixed: true, withLabel: false});
+
+var s3 = Shell.step('กำหนดจุดที่เส้นตรง $L_2$ ต้องผ่านตามที่โจทย์ระบุ คือ $(x_1, y_1) = (2, 5)$');
+Shell.on(s3, P);
+Shell.tag(s3, P, '$P(2, 5)$', {role: 'given'});
+
+var s4 = Shell.step('ใช้รูปแบบจุดและความชัน (Point-Slope Form):<br>$y - y_1 = m(x - x_1)$<br>แทนค่าความชัน $m = 3$ และจุดผ่าน $(x_1, y_1) = (2, 5)$:<br>$y - 5 = 3(x - 2)$', {
+  why: 'เมื่อทราบความชันและจุดผ่านหนึ่งจุด รูปแบบจุดและความชันช่วยสร้างสมการเส้นตรงได้โดยตรง',
+  uses: [2, 3]
+});
+
+var L2 = b.create('parallel', [L1, P], {strokeColor: C.answer, strokeWidth: 2.5, fixed: true, withLabel: false});
+
+var s5 = Shell.step('กระจายและจัดรูปสมการ:<br>$y - 5 = 3x - 6$<br>$y = 3x - 1$<br>หรือเขียนในรูปทั่วไป $3x - y - 1 = 0$', {
+  uses: [4]
+});
+Shell.on(s5, L2);
+Shell.tag(s5, L2, '$L_2: y = 3x - 1$', {role: 'answer'});
+
+Shell.answer('สมการของเส้นตรงที่ต้องการ', '$y = 3x - 1$', {
+  sanity: 'ตรวจสอบ: แทนค่า $x = 2$ จะได้ $y = 3(2) - 1 = 5$ ซึ่งผ่านจุด $(2, 5)$ พอดี และมีความชันเท่ากับ $3$ จึงขนานกับเส้นเดิม'
+});
+
+Shell.done();
+</script>
+</body></html>

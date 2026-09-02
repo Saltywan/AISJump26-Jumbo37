@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>พื้นที่ใต้กราฟและผลรวมรีมันน์</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/jsxgraph.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/jsxgraphcore.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+Shell.page({
+  title: 'พื้นที่ใต้กราฟและผลรวมรีมันน์',
+  problem: 'จงหาพื้นที่ใต้กราฟ $y = x^2$ ตั้งแต่ $x = 0$ ถึง $x = 3$ โดยใช้อินทิกรัล พร้อมเปรียบเทียบกับผลรวมรีมันน์ที่ประมาณด้วยสี่เหลี่ยมผืนผ้า 3 แท่ง'
+});
+
+var b = Shell.board({
+  box: [-0.8, 10.5, 3.8, -1.5],
+  axis: true,
+  grid: true,
+  keepaspect: false
+});
+var C = Shell.C;
+
+Shell.setup('การหาพื้นที่ใต้กราฟเส้นโค้งทำได้โดยการคำนวณค่าจริงด้วยอินทิกรัลจำกัดเขต และสามารถประมาณค่าได้ด้วยผลรวมรีมันน์ (แบ่งเป็นแท่งสี่เหลี่ยมผืนผ้า) ซึ่งเป็นแนวคิดพื้นฐานในการนิยามอินทิกรัล');
+
+// วัตถุในกราฟสำหรับขั้นที่ 1
+var f = b.create('functiongraph', [function(x){ return x * x; }, -0.5, 3.5], {
+  strokeColor: C.given,
+  strokeWidth: 3,
+  withLabel: false
+});
+var seg3 = b.create('segment', [[3, 0], [3, 9]], {
+  strokeColor: C.note,
+  strokeWidth: 1.5,
+  dash: 2,
+  withLabel: false
+});
+var p0 = b.create('point', [0, 0], {
+  strokeColor: C.given,
+  fillColor: C.given,
+  size: 3,
+  withLabel: false
+});
+var p3 = b.create('point', [3, 9], {
+  strokeColor: C.given,
+  fillColor: C.given,
+  size: 3,
+  withLabel: false
+});
+
+Shell.group('คำนวณพื้นที่จริงด้วยอินทิกรัลจำกัดเขต');
+
+var s1 = Shell.step('พิจารณากราฟพาราโบลา $y = x^2$ บนช่วงปิด $[0, 3]$ โดยมีเส้นตรง $x = 3$ และแกน $X$ เป็นขอบเขตของพื้นที่ที่ต้องการหา', {
+  why: 'การระบุสมการเส้นโค้งและขอบเขตพื้นที่ช่วยให้กำหนดฟังก์ชันและลิมิตของการอินทิเกรตได้อย่างถูกต้อง'
+});
+Shell.on(s1, f, seg3, p0, p3);
+Shell.tag(s1, [1.5, 2.25], 'y = x^2', {role: 'given', until: 'end'});
+Shell.tag(s1, [3, 0], 'x = 3', {role: 'note', until: 'end'});
+Shell.tag(s1, p0, 'O(0, 0)', {role: 'given', until: 'step'});
+Shell.tag(s1, p3, '(3, 9)', {role: 'given', until: 'step'});
+
+// วัตถุอินทิกรัลสำหรับขั้นที่ 2
+var intg = b.create('integral', [[0, 3], f], {
+  fillColor: C.answer,
+  fillOpacity: 0.3,
+  strokeColor: C.answer,
+  strokeWidth: 2,
+  withLabel: false,
+  label: {visible: false}
+});
+
+var s2 = Shell.step('คำนวณพื้นที่จริง $A$ โดยใช้อินทิกรัลจำกัดเขต: $A = \\int_0^3 x^2 \\, dx = \\left[ \\frac{x^3}{3} \\right]_0^3 = \\frac{3^3}{3} - \\frac{0^3}{3} = 9$ ตารางหน่วย', {
+  why: 'ตามทฤษฎีบทหลักมูลของแคลคูลัส พื้นที่ใต้กราฟของฟังก์ชันที่ไม่เป็นลบเท่ากับค่าของอินทิกรัลจำกัดเขต',
+  uses: [1]
+});
+Shell.on(s2, intg);
+Shell.tag(s2, [1.8, 1.8], 'A = 9', {role: 'answer', until: 'step'});
+
+Shell.group('ประมาณค่าด้วยผลรวมรีมันน์ (3 แท่ง)');
+
+// วัตถุแสดงการแบ่งช่วงย่อยสำหรับขั้นที่ 3
+var tick1 = b.create('point', [1, 0], {
+  strokeColor: C.work,
+  fillColor: C.work,
+  size: 2.5,
+  withLabel: false
+});
+var tick2 = b.create('point', [2, 0], {
+  strokeColor: C.work,
+  fillColor: C.work,
+  size: 2.5,
+  withLabel: false
+});
+var sub1 = b.create('segment', [[0, 0], [1, 0]], {strokeColor: C.work, strokeWidth: 3, withLabel: false});
+var sub2 = b.create('segment', [[1, 0], [2, 0]], {strokeColor: C.work, strokeWidth: 3, withLabel: false});
+var sub3 = b.create('segment', [[2, 0], [3, 0]], {strokeColor: C.work, strokeWidth: 3, withLabel: false});
+
+var s3 = Shell.step('แบ่งช่วง $[0, 3]$ ออกเป็น $n = 3$ ช่วงย่อยเท่า ๆ กัน ได้ความกว้างแต่ละช่วง $\\Delta x = \\frac{b - a}{n} = \\frac{3 - 0}{3} = 1$ โดยได้ช่วงย่อยคือ $[0, 1]$, $[1, 2]$ และ $[2, 3]$', {
+  why: 'การสร้างผลรวมรีมันน์ต้องกำหนดความกว้างของฐานสี่เหลี่ยมผืนผ้าให้เท่ากันก่อนหาความสูง',
+  uses: [1]
+});
+Shell.on(s3, tick1, tick2, sub1, sub2, sub3, {until: 'step'});
+Shell.tag(s3, [0.5, -0.6], '\\Delta x = 1', {role: 'work', until: 'step'});
+Shell.tag(s3, [1.5, -0.6], '\\Delta x = 1', {role: 'work', until: 'step'});
+Shell.tag(s3, [2.5, -0.6], '\\Delta x = 1', {role: 'work', until: 'step'});
+
+// วัตถุผลรวมรีมันน์สำหรับขั้นที่ 4
+var rs = b.create('riemannsum', [f, 3, 'right', 0, 3], {
+  fillColor: C.work,
+  fillOpacity: 0.35,
+  strokeColor: C.work,
+  strokeWidth: 2,
+  withLabel: false,
+  label: {visible: false}
+});
+var div1 = b.create('segment', [[1, 0], [1, 1]], {
+  strokeColor: C.work,
+  strokeWidth: 1.5,
+  dash: 2,
+  withLabel: false
+});
+var div2 = b.create('segment', [[2, 0], [2, 4]], {
+  strokeColor: C.work,
+  strokeWidth: 1.5,
+  dash: 2,
+  withLabel: false
+});
+var pt1 = b.create('point', [1, 1], {
+  strokeColor: C.work,
+  fillColor: C.work,
+  size: 3,
+  withLabel: false
+});
+var pt2 = b.create('point', [2, 4], {
+  strokeColor: C.work,
+  fillColor: C.work,
+  size: 3,
+  withLabel: false
+});
+
+var s4 = Shell.step('สร้างสี่เหลี่ยมผืนผ้า 3 แท่ง โดยใช้จุดปลายขวา (Right Riemann Sum) กำหนดความสูง: $f(1) = 1^2 = 1$, $f(2) = 2^2 = 4$ และ $f(3) = 3^2 = 9$', {
+  why: 'จุดปลายขวาของแต่ละช่วงย่อยให้ความสูงของแท่งสี่เหลี่ยมผืนผ้าตามค่าของฟังก์ชัน $f(x_i)$',
+  uses: [3]
+});
+Shell.on(s4, rs, div1, div2, pt1, pt2);
+Shell.tag(s4, pt1, 'f(1) = 1', {role: 'work', until: 'step'});
+Shell.tag(s4, pt2, 'f(2) = 4', {role: 'work', until: 'step'});
+Shell.tag(s4, p3, 'f(3) = 9', {role: 'work', until: 'step'});
+
+Shell.group('เปรียบเทียบผลลัพธ์');
+
+var s5 = Shell.step('คำนวณผลรวมรีมันน์: $R_3 = \\sum_{i=1}^3 f(x_i)\\Delta x = (1)(1) + (4)(1) + (9)(1) = 14$ ตารางหน่วย พบว่า $R_3 = 14 > 9$ (เกินจริง $55.6\\%$) เนื่องจาก $f(x) = x^2$ เป็นฟังก์ชันเพิ่ม แท่งสี่เหลี่ยมจึงล้นเกินเส้นโค้ง ในขณะที่ผลรวมปลายซ้ายคือ $L_3 = 0 + 1 + 4 = 5$ ตารางหน่วย (ต่ำกว่าจริง)', {
+  why: 'การเปรียบเทียบผลรวมรีมันน์กับค่าจริงทำให้เห็นธรรมชาติของการประมาณค่า และเห็นว่าพื้นที่จริง $9$ อยู่ระหว่าง $L_3 = 5$ และ $R_3 = 14$ เสมอ',
+  uses: [2, 4]
+});
+Shell.tag(s5, [1.5, 6.5], 'R_3 = 14', {role: 'warn', until: 'end'});
+Shell.tag(s5, [0.6, 0.4], 'A = 9', {role: 'answer', until: 'end'});
+
+Shell.answer(
+  'พื้นที่จริงจากการอินทิเกรต',
+  '$9$ ตารางหน่วย (ผลรวมรีมันน์ $R_3 = 14$)',
+  {sanity: 'พื้นที่จริง $A = 9$ อยู่ระหว่างขอบเขตล่าง $L_3 = 5$ และขอบเขตบน $R_3 = 14$ โดยค่าเฉลี่ย $\\frac{5+14}{2} = 9.5$ ใกล้เคียงค่าจริงมาก'}
+);
+
+Shell.done();
+</script>
+</body></html>

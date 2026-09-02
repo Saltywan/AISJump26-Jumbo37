@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>การสั่นแบบฮาร์มอนิกอย่างง่ายของมวลติดสปริง</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+var SVGNS = 'http://www.w3.org/2000/svg';
+
+Shell.page({
+  title: 'การสั่นแบบฮาร์มอนิกอย่างง่าย (SHM) ของมวลติดสปริง',
+  problem: 'มวล $0.5$ kg ติดสปริงค่านิจ $k = 200$ N/m แกว่งแบบ SHM ด้วยแอมพลิจูด $0.1$ m จงหาอัตราเร็วสูงสุดและความเร่งสูงสุดของมวล พร้อมเขียนสมการการกระจัดเทียบกับเวลา'
+});
+
+var g = Shell.canvas(), C = Shell.C;
+
+// กำหนดมาตราส่วนสำหรับเวกเตอร์และระยะทางตามกฎของ Shell
+var PX_PER_M = 1600;  // 160 px ต่อ 0.1 m
+var PX_PER_V = 50;    // 100 px ต่อ 2.0 m/s
+var PX_PER_A = 2.5;   // 100 px ต่อ 40 m/s²
+
+Shell.setup('การสั่นของมวลติดสปริงเป็นไปตามกฎของฮุก $F = -kx$ ซึ่งเป็นแรงดึงกลับที่แปรผันตรงกับการกระจัด ทำให้ความถี่เชิงมุมของระบบ $\\omega = \\sqrt{k/m}$ คงที่เสมอ และเป็นหัวใจในการหาอัตราเร็ว ความเร่ง และสมการการเคลื่อนที่');
+
+// ฟังก์ชันสร้างเส้นสปริงแบบขดซิกแซก
+function makeSpringPath(x1, y1, x2, y2, coils, radius) {
+  var dx = x2 - x1;
+  var lead = 16;
+  var coilSpan = dx - 2 * lead;
+  var d = 'M ' + x1 + ' ' + y1 + ' L ' + (x1 + lead) + ' ' + y1;
+  var numPoints = coils * 2;
+  var step = coilSpan / numPoints;
+  for (var i = 1; i <= numPoints; i++) {
+    var cx = x1 + lead + (i - 0.5) * step;
+    var cy = (i % 2 === 1) ? (y1 - radius) : (y1 + radius);
+    if (i === numPoints) {
+      cx = x1 + lead + i * step;
+      cy = y1;
+    }
+    d += ' L ' + cx.toFixed(1) + ' ' + cy.toFixed(1);
+  }
+  d += ' L ' + x2 + ' ' + y2;
+  return d;
+}
+
+// -------------------------------------------------------------
+// ส่วนที่ 1: ระบบกายภาพและอัตราเร็วสูงสุด
+// -------------------------------------------------------------
+Shell.group('ความถี่เชิงมุมและอัตราเร็วสูงสุด');
+
+var s1 = Shell.step('หาความถี่เชิงมุม $\\omega = \\sqrt{\\frac{k}{m}} = \\sqrt{\\frac{200}{0.5}} = 20$ rad/s', {
+  why: 'แรงดึงกลับของสปริงตามกฎของฮุกร่วมกับกฎข้อสองของนิวตัน $ma = -kx$ ทำให้ได้ความสัมพันธ์ $\\omega = \\sqrt{k/m}$'
+});
+
+// กำแพงด้านซ้าย (Wall)
+var wall = document.createElementNS(SVGNS, 'line');
+wall.setAttribute('x1', '120'); wall.setAttribute('y1', '65');
+wall.setAttribute('x2', '120'); wall.setAttribute('y2', '230');
+wall.setAttribute('stroke', C.note); wall.setAttribute('stroke-width', '4');
+s1.appendChild(wall);
+
+// ลายขีดบนกำแพง
+for (var wy = 80; wy <= 220; wy += 18) {
+  var wHatch = document.createElementNS(SVGNS, 'line');
+  wHatch.setAttribute('x1', '120'); wHatch.setAttribute('y1', wy);
+  wHatch.setAttribute('x2', '104'); wHatch.setAttribute('y2', wy - 12);
+  wHatch.setAttribute('stroke', C.note); wHatch.setAttribute('stroke-width', '1.5');
+  s1.appendChild(wHatch);
+}
+
+// พื้นผิวสัมผัสไม่มีแรงเสียดทาน (Frictionless floor)
+var floor = document.createElementNS(SVGNS, 'line');
+floor.setAttribute('x1', '120'); floor.setAttribute('y1', '230');
+floor.setAttribute('x2', '840'); floor.setAttribute('y2', '230');
+floor.setAttribute('stroke', C.note); floor.setAttribute('stroke-width', '2.5');
+s1.appendChild(floor);
+
+// ลายขีดใต้พื้น
+for (var fx = 140; fx <= 830; fx += 25) {
+  var fHatch = document.createElementNS(SVGNS, 'line');
+  fHatch.setAttribute('x1', fx); fHatch.setAttribute('y1', '230');
+  fHatch.setAttribute('x2', fx - 12); fHatch.setAttribute('y2', '242');
+  fHatch.setAttribute('stroke', C.note); fHatch.setAttribute('stroke-width', '1.5');
+  s1.appendChild(fHatch);
+}
+
+// เส้นประแสดงตำแหน่งสมดุลและตำแหน่งปลายสุดของการสั่น
+var lineEq = document.createElementNS(SVGNS, 'line');
+lineEq.setAttribute('x1', '480'); lineEq.setAttribute('y1', '65');
+lineEq.setAttribute('x2', '480'); lineEq.setAttribute('y2', '235');
+lineEq.setAttribute('stroke', C.note); lineEq.setAttribute('stroke-width', '1.5');
+lineEq.setAttribute('stroke-dasharray', '5,4');
+s1.appendChild(lineEq);
+
+var lineNegA = document.createElementNS(SVGNS, 'line');
+lineNegA.setAttribute('x1', '320'); lineNegA.setAttribute('y1', '65');
+lineNegA.setAttribute('x2', '320'); lineNegA.setAttribute('y2', '235');
+lineNegA.setAttribute('stroke', C.note); lineNegA.setAttribute('stroke-width', '1.5');
+lineNegA.setAttribute('stroke-dasharray', '5,4');
+s1.appendChild(lineNegA);
+
+var linePosA = document.createElementNS(SVGNS, 'line');
+linePosA.setAttribute('x1', '640'); linePosA.setAttribute('y1', '65');
+linePosA.setAttribute('x2', '640'); linePosA.setAttribute('y2', '235');
+linePosA.setAttribute('stroke', C.note); linePosA.setAttribute('stroke-width', '1.5');
+linePosA.setAttribute('stroke-dasharray', '5,4');
+s1.appendChild(linePosA);
+
+// สปริงในภาวะสมดุล (Spring at equilibrium)
+var springEquil = document.createElementNS(SVGNS, 'path');
+springEquil.setAttribute('d', makeSpringPath(120, 195, 440, 195, 12, 16));
+springEquil.setAttribute('fill', 'none');
+springEquil.setAttribute('stroke', C.work);
+springEquil.setAttribute('stroke-width', '2.5');
+s1.appendChild(springEquil);
+
+// มวลก้อนวัตถุ m = 0.5 kg สัมผัสพื้นผิวพอดีที่ y = 230
+var box = document.createElementNS(SVGNS, 'rect');
+box.setAttribute('x', '440'); box.setAttribute('y', '160');
+box.setAttribute('width', '80'); box.setAttribute('height', '70');
+box.setAttribute('rx', '4');
+box.setAttribute('fill', C.given); box.setAttribute('fill-opacity', '0.18');
+box.setAttribute('stroke', C.given); box.setAttribute('stroke-width', '2.5');
+s1.appendChild(box);
+
+// ลูกศรบอกระยะแอมพลิจูด A = 0.1 m
+Shell.arrow(s1, 480, 110, 640, 110, {
+  role: 'given', label: '$A = 0.1$ m', value: 0.1, unit: 'm', until: 'end'
+});
+Shell.arrow(s1, 480, 110, 320, 110, {
+  role: 'note', label: '$A = 0.1$ m', value: 0.1, unit: 'm', until: 'end', dash: 3
+});
+
+// ป้ายกำกับตำแหน่งและพารามิเตอร์ของระบบ
+Shell.label(s1, 480, 50, 'สมดุล ($x = 0$)', {role: 'note', anchor: [480, 65], until: 'end'});
+Shell.label(s1, 320, 50, '$x = -A$', {role: 'note', anchor: [320, 65], until: 'end'});
+Shell.label(s1, 640, 50, '$x = +A$', {role: 'note', anchor: [640, 65], until: 'end'});
+Shell.label(s1, 260, 165, '$k = 200$ N/m', {role: 'given', anchor: [260, 195], until: 'end'});
+Shell.label(s1, 480, 195, '$m = 0.5$ kg', {role: 'given', anchor: [480, 195], until: 'end'});
+Shell.label(s1, 480, 255, '$\\omega = \\sqrt{k/m} = 20$ rad/s', {role: 'work', anchor: [480, 230], until: 'step'});
+
+// ขั้นที่ 2: อัตราเร็วสูงสุด
+var s2 = Shell.step('หาอัตราเร็วสูงสุด $v_{\\max} = \\omega A = (20)(0.1) = 2.0$ m/s ที่ตำแหน่งสมดุล', {
+  why: 'ที่ตำแหน่งสมดุล ($x = 0$) สปริงไม่ยืดหรือหด พลังงานศักย์เป็นศูนย์ พลังงานจลน์จึงมีค่าสูงสุด',
+  uses: [1]
+});
+
+// เวกเตอร์อัตราเร็วสูงสุดที่จุดสมดุล ชี้ไปในทิศทางการเคลื่อนที่
+Shell.arrow(s2, 480, 145, 480 + 2.0 * PX_PER_V, 145, {
+  role: 'answer', label: '$v_{\\max} = 2.0$ m/s', value: 2.0, unit: 'm/s', until: 'end'
+});
+
+Shell.label(s2, 530, 255, 'ที่ $x = 0$: $E_k$ สูงสุด, $v = v_{\\max}$', {
+  role: 'work', anchor: [480, 230], until: 'step'
+});
+
+// -------------------------------------------------------------
+// ส่วนที่ 2: ความเร่งสูงสุดและสมการการกระจัด
+// -------------------------------------------------------------
+Shell.group('ความเร่งสูงสุดและสมการการกระจัด');
+
+var s3 = Shell.step('หาความเร่งสูงสุด $a_{\\max} = \\omega^2 A = (20)^2(0.1) = 40$ m/s² ที่ตำแหน่งปลายสุด', {
+  why: 'ที่ตำแหน่งปลายสุด ($x = \\pm A$) สปริงยืดหรือหดมากที่สุด จึงเกิดแรงดึงกลับสูงสุด $F_{\\max} = kA$ ส่งผลให้มีความเร่งสูงสุดตาม $F = ma$',
+  uses: [1]
+});
+
+// แสดงตำแหน่งมวลที่ตำแหน่งยืดสุด x = +A (ภาพร่างแบบโปร่งใส)
+var ghostBox = document.createElementNS(SVGNS, 'rect');
+ghostBox.setAttribute('x', '600'); ghostBox.setAttribute('y', '160');
+ghostBox.setAttribute('width', '80'); ghostBox.setAttribute('height', '70');
+ghostBox.setAttribute('rx', '4');
+ghostBox.setAttribute('fill', C.work); ghostBox.setAttribute('fill-opacity', '0.08');
+ghostBox.setAttribute('stroke', C.work); ghostBox.setAttribute('stroke-width', '1.8');
+ghostBox.setAttribute('stroke-dasharray', '4,4');
+s3.appendChild(ghostBox);
+
+var ghostSpring = document.createElementNS(SVGNS, 'path');
+ghostSpring.setAttribute('d', makeSpringPath(120, 195, 600, 195, 16, 14));
+ghostSpring.setAttribute('fill', 'none');
+ghostSpring.setAttribute('stroke', C.work);
+ghostSpring.setAttribute('stroke-width', '1.5');
+ghostSpring.setAttribute('stroke-dasharray', '3,3');
+ghostSpring.setAttribute('opacity', '0.6');
+s3.appendChild(ghostSpring);
+
+// เวกเตอร์ความเร่งสูงสุด ชี้กลับเข้าสู่ตำแหน่งสมดุลเสมอ
+Shell.arrow(s3, 640, 85, 640 - 40 * PX_PER_A, 85, {
+  role: 'answer', label: '$a_{\\max} = 40$ m/s²', value: 40, unit: 'm/s²', until: 'end'
+});
+
+Shell.label(s3, 640, 255, 'ที่ $x = +A$: แรงดึงกลับ $F_{\\max} = kA = 20$ N มีค่าสูงสุด', {
+  role: 'work', anchor: [640, 230], until: 'step'
+});
+
+// ขั้นที่ 4: สมการการกระจัดและกราฟเทียบกับเวลา
+var s4 = Shell.step('เขียนสมการการกระจัดเทียบกับเวลา $x(t) = A\\cos(\\omega t) = 0.1\\cos(20t)$ m (เมื่อเริ่มจับเวลาที่จุดปล่อย $x = A$)', {
+  why: 'การเคลื่อนที่แบบ SHM มีรูปทั่วไป $x(t) = A\\cos(\\omega t + \\phi)$ หากเริ่มจับเวลาที่ตำแหน่งการกระจัดสูงสุด ($t = 0, x = A$) จะได้มุมเฟสเริ่มต้น $\\phi = 0$',
+  uses: [1]
+});
+
+// แกนของกราฟ x-t ในครึ่งล่างของจอ
+var tAxis = document.createElementNS(SVGNS, 'line');
+tAxis.setAttribute('x1', '240'); tAxis.setAttribute('y1', '420');
+tAxis.setAttribute('x2', '830'); tAxis.setAttribute('y2', '420');
+tAxis.setAttribute('stroke', C.note); tAxis.setAttribute('stroke-width', '1.8');
+s4.appendChild(tAxis);
+
+var xAxis = document.createElementNS(SVGNS, 'line');
+xAxis.setAttribute('x1', '280'); xAxis.setAttribute('y1', '495');
+xAxis.setAttribute('x2', '280'); xAxis.setAttribute('y2', '345');
+xAxis.setAttribute('stroke', C.note); xAxis.setAttribute('stroke-width', '1.8');
+s4.appendChild(xAxis);
+
+// เส้นประแนวนอนแสดงขอบเขตแอมพลิจูด +A และ -A
+var posAGuide = document.createElementNS(SVGNS, 'line');
+posAGuide.setAttribute('x1', '280'); posAGuide.setAttribute('y1', '360');
+posAGuide.setAttribute('x2', '780'); posAGuide.setAttribute('y2', '360');
+posAGuide.setAttribute('stroke', C.note); posAGuide.setAttribute('stroke-width', '1');
+posAGuide.setAttribute('stroke-dasharray', '3,3'); posAGuide.setAttribute('opacity', '0.5');
+s4.appendChild(posAGuide);
+
+var negAGuide = document.createElementNS(SVGNS, 'line');
+negAGuide.setAttribute('x1', '280'); negAGuide.setAttribute('y1', '480');
+negAGuide.setAttribute('x2', '780'); negAGuide.setAttribute('y2', '480');
+negAGuide.setAttribute('stroke', C.note); negAGuide.setAttribute('stroke-width', '1');
+negAGuide.setAttribute('stroke-dasharray', '3,3'); negAGuide.setAttribute('opacity', '0.5');
+s4.appendChild(negAGuide);
+
+// ขีดบอกช่วงเวลา T/4, T/2, 3T/4, T บนแกน t
+var ticksT = [
+  {x: 400, label: '$\\frac{T}{4}$'},
+  {x: 520, label: '$\\frac{T}{2}$'},
+  {x: 640, label: '$\\frac{3T}{4}$'},
+  {x: 760, label: '$T$'}
+];
+for (var i = 0; i < ticksT.length; i++) {
+  var tk = document.createElementNS(SVGNS, 'line');
+  tk.setAttribute('x1', ticksT[i].x); tk.setAttribute('y1', '415');
+  tk.setAttribute('x2', ticksT[i].x); tk.setAttribute('y2', '425');
+  tk.setAttribute('stroke', C.note); tk.setAttribute('stroke-width', '1.5');
+  s4.appendChild(tk);
+  Shell.label(s4, ticksT[i].x, 438, ticksT[i].label, {
+    role: 'note', anchor: [ticksT[i].x, 420], until: 'end', pin: true
+  });
+}
+
+// ขีดบนแกน x
+var tickPosA = document.createElementNS(SVGNS, 'line');
+tickPosA.setAttribute('x1', '275'); tickPosA.setAttribute('y1', '360');
+tickPosA.setAttribute('x2', '285'); tickPosA.setAttribute('y2', '360');
+tickPosA.setAttribute('stroke', C.note); tickPosA.setAttribute('stroke-width', '1.5');
+s4.appendChild(tickPosA);
+
+var tickNegA = document.createElementNS(SVGNS, 'line');
+tickNegA.setAttribute('x1', '275'); tickNegA.setAttribute('y1', '480');
+tickNegA.setAttribute('x2', '285'); tickNegA.setAttribute('y2', '480');
+tickNegA.setAttribute('stroke', C.note); tickNegA.setAttribute('stroke-width', '1.5');
+s4.appendChild(tickNegA);
+
+Shell.label(s4, 250, 360, '$+0.1$', {role: 'note', anchor: [280, 360], until: 'end', pin: true});
+Shell.label(s4, 250, 480, '$-0.1$', {role: 'note', anchor: [280, 480], until: 'end', pin: true});
+Shell.label(s4, 835, 420, '$t$ (s)', {role: 'note', anchor: [830, 420], until: 'end'});
+Shell.label(s4, 280, 330, '$x$ (m)', {role: 'note', anchor: [280, 345], until: 'end'});
+
+// วาดเส้นโค้งโคไซน์ x(t) = 0.1 cos(20t)
+var curvePoints = [];
+for (var step = 0; step <= 64; step++) {
+  var tRatio = step / 64;
+  var px = 280 + 480 * tRatio;
+  var py = 420 - 60 * Math.cos(2 * Math.PI * tRatio);
+  curvePoints.push((step === 0 ? 'M ' : 'L ') + px.toFixed(1) + ' ' + py.toFixed(1));
+}
+var cosineCurve = document.createElementNS(SVGNS, 'path');
+cosineCurve.setAttribute('d', curvePoints.join(' '));
+cosineCurve.setAttribute('fill', 'none');
+cosineCurve.setAttribute('stroke', C.answer);
+cosineCurve.setAttribute('stroke-width', '2.8');
+s4.appendChild(cosineCurve);
+
+// จุดเคลื่อนที่ตามเส้นกราฟ SHM แสดงการเปลี่ยนแปลงตามเวลา
+var tracer = Shell.motion(s4, null, function(t) {
+  var cx = 280 + 480 * t;
+  var cy = 420 - 60 * Math.cos(2 * Math.PI * t);
+  return [cx, cy];
+}, {dur: 1800});
+var dot = document.createElementNS(SVGNS, 'circle');
+dot.setAttribute('r', '6');
+dot.setAttribute('fill', C.answer);
+dot.setAttribute('stroke', '#ffffff');
+dot.setAttribute('stroke-width', '2');
+tracer.appendChild(dot);
+
+Shell.label(s4, 520, 335, '$x(t) = 0.1\\cos(20t)$ m', {
+  role: 'answer', anchor: [520, 360], until: 'end'
+});
+Shell.label(s4, 760, 460, 'คาบ $T = \\frac{2\\pi}{\\omega} \\approx 0.31$ s', {
+  role: 'work', anchor: [760, 435], until: 'end'
+});
+
+// กล่องคำตอบสรุปผลลัพธ์ทั้ง 3 ส่วน
+Shell.answer('อัตราเร็วสูงสุด', '$v_{\\max} = 2.0$ m/s', {
+  sanity: 'ที่ตำแหน่งสมดุล พลังงานศักย์สปริงเป็นศูนย์ พลังงานทั้งหมดกลายเป็นพลังงานจลน์ $v_{\\max} = \\sqrt{k/m} A = 2.0$ m/s สอดคล้องกับหลักอนุรักษ์พลังงาน'
+});
+
+Shell.answer('ความเร่งสูงสุด', '$a_{\\max} = 40$ m/s²', {
+  sanity: 'ที่ตำแหน่งปลายสุด แรงดึงกลับสูงสุด $F_{\\max} = kA = 200(0.1) = 20$ N ดังนั้น $a = F/m = 20/0.5 = 40$ m/s² ตรงกับกฎข้อสองของนิวตัน'
+});
+
+Shell.answer('สมการการกระจัด', '$x(t) = 0.1\\cos(20t)$ m', {
+  sanity: 'เมื่อแทน $t = 0$ จะได้ $x(0) = 0.1\\cos(0) = 0.1$ m ตรงกับแอมพลิจูดเริ่มต้นที่โจทย์กำหนด'
+});
+
+Shell.done();
+</script>
+</body></html>

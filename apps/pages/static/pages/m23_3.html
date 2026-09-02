@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>แผนภาพเวนน์ 3 เซต - สำรวจความชอบกีฬา</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+Shell.page({
+  title: 'แผนภาพเวนน์ 3 เซต: สำรวจความชอบกีฬา',
+  problem: 'จากการสำรวจ 100 คน พบว่าชอบฟุตบอล 45 คน บาสเกตบอล 40 คน วอลเลย์บอล 35 คน ชอบฟุตบอลและบาสเกตบอล 15 คน ฟุตบอลและวอลเลย์บอล 10 คน บาสเกตบอลและวอลเลย์บอล 12 คน ชอบทั้งสามชนิด 5 คน จงหาจำนวนคนที่ไม่ชอบกีฬาทั้งสามชนิดนี้เลย โดยใช้แผนภาพเวนน์'
+});
+
+var g = Shell.canvas();
+var C = Shell.C;
+var SVGNS = 'http://www.w3.org/2000/svg';
+
+function svgEl(tag, attrs) {
+  var el = document.createElementNS(SVGNS, tag);
+  for (var k in attrs) {
+    el.setAttribute(k, attrs[k]);
+  }
+  return el;
+}
+
+Shell.setup('การแก้ปัญหาโจทย์เซต 3 เซตด้วยแผนภาพเวนน์ ควรเริ่มต้นเติมจำนวนสมาชิกจากบริเวณ <b>ตรงกลางสุด</b> (คนที่ชอบทั้งสามชนิด) ก่อนเสมอ แล้วจึงคำนวณขยายออกมายังบริเวณที่ชอบ 2 ชนิด และ 1 ชนิดตามลำดับ วิธีนี้จะช่วยป้องกันการนับซ้ำได้อย่างเป็นระบบ');
+
+Shell.group('กำหนดตัวแปรและสร้างแผนภาพ');
+
+var s1 = Shell.step('กำหนดเซตแทนกลุ่มคนที่ชอบกีฬาแต่ละชนิดในเอกภพสัมพัทธ์ $U$:<br>• $U$ แทนคนที่สำรวจทั้งหมด โดย $n(U) = 100$<br>• $F$ แทนคนที่ชอบฟุตบอล โดย $n(F) = 45$<br>• $B$ แทนคนที่ชอบบาสเกตบอล โดย $n(B) = 40$<br>• $V$ แทนคนที่ชอบวอลเลย์บอล โดย $n(V) = 35$');
+
+var rectU = svgEl('rect', {
+  x: 90,
+  y: 30,
+  width: 780,
+  height: 490,
+  rx: 16,
+  fill: 'none',
+  stroke: C.note,
+  'stroke-width': 2,
+  'stroke-dasharray': '8,6'
+});
+s1.appendChild(rectU);
+
+var circleF = svgEl('circle', {
+  cx: 395,
+  cy: 215,
+  r: 140,
+  fill: 'none',
+  stroke: C.given,
+  'stroke-width': 2.5
+});
+s1.appendChild(circleF);
+
+var circleB = svgEl('circle', {
+  cx: 565,
+  cy: 215,
+  r: 140,
+  fill: 'none',
+  stroke: C.given,
+  'stroke-width': 2.5
+});
+s1.appendChild(circleB);
+
+var circleV = svgEl('circle', {
+  cx: 480,
+  cy: 335,
+  r: 140,
+  fill: 'none',
+  stroke: C.given,
+  'stroke-width': 2.5
+});
+s1.appendChild(circleV);
+
+Shell.label(s1, 150, 60, '$U = 100$', {role: 'note', pin: true, until: 'end', anchor: [150, 60]});
+Shell.label(s1, 300, 60, 'ฟุตบอล ($45$)', {role: 'given', pin: true, until: 'end', anchor: [300, 60]});
+Shell.label(s1, 660, 60, 'บาสเกตบอล ($40$)', {role: 'given', pin: true, until: 'end', anchor: [660, 60]});
+Shell.label(s1, 480, 498, 'วอลเลย์บอล ($35$)', {role: 'given', pin: true, until: 'end', anchor: [480, 498]});
+
+Shell.group('เติมจำนวนสมาชิกจากด้านในสู่ด้านนอก');
+
+var s2 = Shell.step('เติมจำนวนคนที่ชอบทั้งสามชนิดลงในบริเวณตรงกลางสุด:<br>$n(F \\cap B \\cap V) = 5$ คน', {
+  why: 'บริเวณตรงกลางสุดเป็นสมาชิกร่วมของทั้ง 3 เซต จึงต้องใช้ค่านี้เป็นจุดตั้งต้นในการหักออกจากส่วนที่ทับซ้อนอื่น'
+});
+Shell.label(s2, 480, 268, '$5$', {role: 'given', pin: true, until: 'end', anchor: [480, 268]});
+
+var s3 = Shell.step('หาจำนวนคนที่ชอบกีฬา 2 ชนิดเท่านั้น โดยนำจำนวนคนที่ชอบ 2 ชนิด ลบด้วยคนที่ชอบทั้ง 3 ชนิด ($5$ คน):<br>• ฟุตบอลและบาสเกตบอลเท่านั้น: $n(F \\cap B) - 5 = 15 - 5 = 10$ คน<br>• ฟุตบอลและวอลเลย์บอลเท่านั้น: $n(F \\cap V) - 5 = 10 - 5 = 5$ คน<br>• บาสเกตบอลและวอลเลย์บอลเท่านั้น: $n(B \\cap V) - 5 = 12 - 5 = 7$ คน', {
+  why: 'จำนวนคนที่ชอบกีฬา 2 ชนิดที่โจทย์กำหนด มีคนที่ชอบทั้ง 3 ชนิดรวมอยู่ด้วย จึงต้องลบ 5 ออก เพื่อให้ได้คนที่ชอบเพียง 2 ชนิดเท่านั้น',
+  uses: [2]
+});
+Shell.label(s3, 480, 155, '$10$', {role: 'work', pin: true, until: 'end', anchor: [480, 155]});
+Shell.label(s3, 410, 295, '$5$', {role: 'work', pin: true, until: 'end', anchor: [410, 295]});
+Shell.label(s3, 550, 295, '$7$', {role: 'work', pin: true, until: 'end', anchor: [550, 295]});
+
+var s4 = Shell.step('หาจำนวนคนที่ชอบกีฬาเพียงชนิดเดียว โดยนำจำนวนคนทั้งหมดของแต่ละกีฬา ลบด้วยส่วนที่ทับซ้อนที่ทราบแล้ว:<br>• ชอบฟุตบอลอย่างเดียว: $45 - (10 + 5 + 5) = 25$ คน<br>• ชอบบาสเกตบอลอย่างเดียว: $40 - (10 + 5 + 7) = 18$ คน<br>• ชอบวอลเลย์บอลอย่างเดียว: $35 - (5 + 5 + 7) = 18$ คน', {
+  why: 'วงกลมของกีฬาแต่ละชนิดประกอบด้วย 4 ส่วนย่อย เมื่อทราบไปแล้ว 3 ส่วนย่อย จึงนำมาหักลบเพื่อหาคนที่ชอบชนิดเดียวได้',
+  uses: [2, 3]
+});
+Shell.label(s4, 325, 185, '$25$', {role: 'work', pin: true, until: 'end', anchor: [325, 185]});
+Shell.label(s4, 635, 185, '$18$', {role: 'work', pin: true, until: 'end', anchor: [635, 185]});
+Shell.label(s4, 480, 405, '$18$', {role: 'work', pin: true, until: 'end', anchor: [480, 405]});
+
+Shell.group('คำนวณจำนวนคนที่ไม่ชอบกีฬาใดเลย');
+
+var s5 = Shell.step('รวมจำนวนคนที่ชอบกีฬาอย่างน้อย 1 ชนิด โดยนำสมาชิกทั้ง 7 บริเวณย่อยมารวมกัน:<br>$n(F \\cup B \\cup V) = 25 + 18 + 18 + 10 + 5 + 7 + 5 = 88$ คน', {
+  why: 'บริเวณย่อยทั้ง 7 ส่วนไม่มีสมาชิกร่วมกันแล้ว จึงสามารถนำมารวมกันได้โดยตรง',
+  uses: [2, 3, 4]
+});
+
+var s6 = Shell.step('หาจำนวนคนที่ไม่ชอบกีฬาทั้งสามชนิดนี้เลย ซึ่งคือบริเวณนอกวงกลมทั้งสาม แต่อยู่ในเอกภพสัมพัทธ์ $U$:<br>$n((F \\cup B \\cup V)\') = n(U) - n(F \\cup B \\cup V) = 100 - 88 = 12$ คน', {
+  why: 'คนที่ไม่ชอบกีฬาใดเลย คือสมาชิกทั้งหมดในเอกภพสัมพัทธ์ที่ไม่ได้อยู่ในยูเนียนของเซตทั้งสาม',
+  uses: [1, 5]
+});
+Shell.label(s6, 175, 420, 'ไม่ชอบเลย: $12$', {role: 'answer', pin: true, until: 'end', anchor: [175, 420]});
+
+Shell.answer('จำนวนคนที่ไม่ชอบกีฬาทั้งสามชนิดนี้เลย', '$12$ คน', {
+  sanity: 'ผลรวมสมาชิกทุกบริเวณในแผนภาพ $25 + 18 + 18 + 10 + 5 + 7 + 5 + 12 = 100$ คน เท่ากับจำนวนคนที่สำรวจทั้งหมด'
+});
+
+Shell.done();
+</script>
+</body></html>

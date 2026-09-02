@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>การหารัศมีของวงกลมจากความยาวคอร์ด</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/jsxgraph.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/jsxgraphcore.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+Shell.page({
+  title: 'การหารัศมีของวงกลมจากความยาวคอร์ด',
+  problem: 'คอร์ด $AB$ ของวงกลมยาว 16 ซม. อยู่ห่างจากจุดศูนย์กลาง 6 ซม. จงหารัศมีของวงกลม'
+});
+
+var b = Shell.board({box: [-13, 13, 13, -13], axis: false, grid: false});
+var C = Shell.C;
+
+Shell.setup('ส่วนของเส้นตรงที่ลากจากจุดศูนย์กลางไปตั้งฉากกับคอร์ดจะแบ่งครึ่งคอร์ดเสมอ ทำให้เกิดรูปสามเหลี่ยมมุมฉากที่มีรัศมีเป็นด้านตรงข้ามมุมฉาก จึงสามารถใช้ทฤษฎีบทพีทาโกรัสหาความยาวรัศมีได้');
+
+var O = b.create('point', [0, 0], {name:'', fixed:true, strokeColor:C.given, fillColor:C.given, size:4});
+var A = b.create('point', [-8, -6], {name:'', fixed:true, strokeColor:C.given, fillColor:C.given, size:4});
+var B = b.create('point', [8, -6], {name:'', fixed:true, strokeColor:C.given, fillColor:C.given, size:4});
+var circ = b.create('circle', [O, A], {strokeColor:C.note, strokeWidth:2, fixed:true});
+var segAB = b.create('segment', [A, B], {strokeColor:C.given, strokeWidth:2.5, fixed:true});
+
+var M = b.create('midpoint', [A, B], {name:'', strokeColor:C.work, fillColor:C.work, size:3.5, fixed:true});
+var segOM = b.create('segment', [O, M], {strokeColor:C.given, strokeWidth:2.5, fixed:true});
+var rightAngle = b.create('angle', [O, M, A], {name:'', radius:1.2, strokeColor:C.work, fillColor:C.work, fillOpacity:0.2});
+
+var segAM = b.create('segment', [A, M], {strokeColor:C.work, strokeWidth:3.5, fixed:true});
+var tri = b.create('polygon', [O, M, A], {fillColor:C.work, fillOpacity:0.15, strokeColor:C.work, strokeWidth:1.5, dash:2});
+var segOA = b.create('segment', [O, A], {strokeColor:C.answer, strokeWidth:3, fixed:true});
+
+Shell.group('สร้างรูปและใช้ทฤษฎีบทของคอร์ด');
+
+var s1 = Shell.step('วาดวงกลมที่มีจุดศูนย์กลาง $O$ และคอร์ด $AB$ ยาว $16$ ซม.');
+Shell.on(s1, O, circ, A, B, segAB);
+Shell.tag(s1, O, 'จุดศูนย์กลาง $O$', {role:'given'});
+Shell.tag(s1, A, '$A$', {role:'given'});
+Shell.tag(s1, B, '$B$', {role:'given', until:3});
+Shell.tag(s1, segAB, 'คอร์ด $AB = 16$ ซม.', {role:'given', until:'step'});
+
+var s2 = Shell.step('ลากเส้นตรงจากจุดศูนย์กลาง $O$ มาตั้งฉากกับคอร์ด $AB$ ที่จุด $M$ จะได้ระยะห่าง $OM = 6$ ซม.', {
+  why: 'ระยะห่างระหว่างจุดกับเส้นตรงวัดตามแนวเส้นตั้งฉาก จึงลากเส้นตั้งฉากจากจุดศูนย์กลางมายังคอร์ด'
+});
+Shell.on(s2, M, segOM, rightAngle);
+Shell.tag(s2, M, '$M$', {role:'work'});
+Shell.tag(s2, segOM, '$OM = 6$ ซม.', {role:'given'});
+
+var s3 = Shell.step('เส้นตั้งฉากจากจุดศูนย์กลางจะแบ่งครึ่งคอร์ดเสมอ ดังนั้น $AM = \\frac{AB}{2} = \\frac{16}{2} = 8$ ซม.', {
+  why: 'รัศมีหรือส่วนของเส้นตรงจากจุดศูนย์กลางที่ตั้งฉากกับคอร์ดจะแบ่งครึ่งคอร์ดนั้นเสมอ ทำให้คอร์ดถูกแบ่งเป็นสองส่วนเท่ากัน',
+  uses: [1, 2]
+});
+Shell.on(s3, segAM);
+Shell.tag(s3, segAM, '$AM = 8$ ซม.', {role:'work'});
+
+Shell.group('คำนวณหารัศมีด้วยทฤษฎีบทพีทาโกรัส');
+
+var s4 = Shell.step('ลากรัศมี $OA$ เชื่อมจุดศูนย์กลางกับปลายคอร์ด เกิดสามเหลี่ยมมุมฉาก $\\triangle OMA$ ที่มีรัศมี $r$ เป็นด้านตรงข้ามมุมฉาก', {
+  why: 'จุด $A$ อยู่บนเส้นรอบวง ระยะจากจุดศูนย์กลาง $O$ ถึงจุด $A$ จึงเท่ากับความยาวรัศมี $r$',
+  uses: [2, 3]
+});
+Shell.on(s4, tri, segOA);
+Shell.tag(s4, segOA, 'รัศมี $r$', {role:'answer', until:'step'});
+
+var s5 = Shell.step('ใช้ทฤษฎีบทพีทาโกรัสใน $\\triangle OMA$: $r^2 = OM^2 + AM^2 = 6^2 + 8^2 = 36 + 64 = 100$ จะได้ $r = \\sqrt{100} = 10$ ซม.', {
+  why: 'ในรูปสามเหลี่ยมมุมฉาก กำลังสองของความยาวด้านตรงข้ามมุมฉากเท่ากับผลบวกของกำลังสองของความยาวด้านประกอบมุมฉาก',
+  uses: [4]
+});
+Shell.tag(s5, segOA, '$r = 10$ ซม.', {role:'answer'});
+
+Shell.answer('รัศมีของวงกลม คือ', '$r = 10$ ซม.', {
+  sanity: 'รัศมี $r = 10$ ซม. ยาวกว่าระยะห่างจากจุดศูนย์กลาง ($6$ ซม.) และยาวกว่าครึ่งหนึ่งของคอร์ด ($8$ ซม.) ซึ่งสอดคล้องกับสมบัติของด้านตรงข้ามมุมฉากที่ต้องเป็นด้านที่ยาวที่สุดในสามเหลี่ยมมุมฉากเสมอ'
+});
+
+Shell.done();
+</script>
+</body></html>

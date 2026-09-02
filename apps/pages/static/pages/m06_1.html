@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>การหาความยาวด้านโดยใช้สามเหลี่ยมคล้าย</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+var SVGNS = 'http://www.w3.org/2000/svg';
+
+function svgEl(tag, attrs) {
+  var el = document.createElementNS(SVGNS, tag);
+  for (var k in attrs) {
+    el.setAttribute(k, attrs[k]);
+  }
+  return el;
+}
+
+Shell.page({
+  title: 'การหาความยาวด้านโดยใช้สามเหลี่ยมคล้าย',
+  problem: 'ในสามเหลี่ยม $ABC$ มีเส้นตรง $DE$ ลากขนานกับ $BC$ โดย $D$ อยู่บน $AB$ และ $E$ อยู่บน $AC$ ถ้า $AD = 4$, $DB = 6$ และ $DE = 5$ จงหาความยาวของ $BC$'
+});
+
+var g = Shell.canvas();
+var C = Shell.C;
+
+Shell.setup('เนื่องจากเส้นตรง $DE$ ขนานกับด้าน $BC$ ทำให้เกิดมุมสมนัยกันที่มีขนาดเท่ากัน ส่งผลให้ $\\triangle ADE \\sim \\triangle ABC$ เราจึงสามารถใช้อัตราส่วนของความยาวของด้านที่สมนัยกันเพื่อหาความยาวของ $BC$ ได้');
+
+var Ax = 420, Ay = 70;
+var Bx = 140, By = 450;
+var Cx = 820, Cy = 450;
+
+var Dx = 308, Dy = 222;
+var Ex = 580, Ey = 222;
+
+Shell.group('เตรียมข้อมูลและรูปสามเหลี่ยม');
+
+var s1 = Shell.step('กำหนดรูปสามเหลี่ยม $ABC$ โดยมี $DE \\parallel BC$<br>โจทย์ระบุความยาวด้าน $AD = 4$, $DB = 6$ และ $DE = 5$');
+
+var triOutline = svgEl('polygon', {
+  points: Ax + ',' + Ay + ' ' + Bx + ',' + By + ' ' + Cx + ',' + Cy,
+  fill: 'none',
+  stroke: C.note,
+  'stroke-width': '2.5'
+});
+s1.appendChild(triOutline);
+
+var segDE = svgEl('line', {
+  x1: Dx, y1: Dy,
+  x2: Ex, y2: Ey,
+  stroke: C.given,
+  'stroke-width': '3'
+});
+s1.appendChild(segDE);
+
+var ptA = svgEl('circle', { cx: Ax, cy: Ay, r: '4.5', fill: C.note });
+var ptB = svgEl('circle', { cx: Bx, cy: By, r: '4.5', fill: C.note });
+var ptC = svgEl('circle', { cx: Cx, cy: Cy, r: '4.5', fill: C.note });
+var ptD = svgEl('circle', { cx: Dx, cy: Dy, r: '4.5', fill: C.given });
+var ptE = svgEl('circle', { cx: Ex, cy: Ey, r: '4.5', fill: C.given });
+
+s1.appendChild(ptA);
+s1.appendChild(ptB);
+s1.appendChild(ptC);
+s1.appendChild(ptD);
+s1.appendChild(ptE);
+
+Shell.label(s1, Ax, 42, '$A$', { role: 'note', anchor: [Ax, Ay], until: 'end' });
+Shell.label(s1, 115, 465, '$B$', { role: 'note', anchor: [Bx, By], until: 'end' });
+Shell.label(s1, 845, 465, '$C$', { role: 'note', anchor: [Cx, By], until: 'end' });
+Shell.label(s1, 282, 222, '$D$', { role: 'note', anchor: [Dx, Dy], until: 'end' });
+Shell.label(s1, 606, 222, '$E$', { role: 'note', anchor: [Ex, Ey], until: 'end' });
+
+Shell.label(s1, 328, 136, '$AD = 4$', { role: 'given', anchor: [364, 146], until: 'end' });
+Shell.label(s1, 188, 326, '$DB = 6$', { role: 'given', anchor: [224, 336], until: 2 });
+Shell.label(s1, 444, 200, '$DE = 5$', { role: 'given', anchor: [444, 222], until: 'end' });
+
+Shell.group('วิเคราะห์ความยาวด้าน');
+
+var s2 = Shell.step('หาความยาวของด้าน $AB$ จากผลรวมของส่วนย่อย:<br>$AB = AD + DB = 4 + 6 = 10$', {
+  why: 'จุด $D$ อยู่บนส่วนของเส้นตรง $AB$ ความยาวด้านทั้งหมดจึงเท่ากับผลบวกของส่วนย่อย',
+  uses: [1]
+});
+
+var extA = svgEl('line', {
+  x1: Ax, y1: Ay,
+  x2: 376, y2: 37,
+  stroke: C.note,
+  'stroke-width': '1.5',
+  'stroke-dasharray': '3,3'
+});
+var extB = svgEl('line', {
+  x1: Bx, y1: By,
+  x2: 96, y2: 417,
+  stroke: C.note,
+  'stroke-width': '1.5',
+  'stroke-dasharray': '3,3'
+});
+var dimAB = svgEl('line', {
+  x1: 384, y1: 43,
+  x2: 104, y2: 423,
+  stroke: C.work,
+  'stroke-width': '2'
+});
+var tickA = svgEl('line', {
+  x1: 379, y1: 39,
+  x2: 389, y2: 47,
+  stroke: C.work,
+  'stroke-width': '2'
+});
+var tickB = svgEl('line', {
+  x1: 99, y1: 419,
+  x2: 109, y2: 427,
+  stroke: C.work,
+  'stroke-width': '2'
+});
+
+s2.appendChild(extA);
+s2.appendChild(extB);
+s2.appendChild(dimAB);
+s2.appendChild(tickA);
+s2.appendChild(tickB);
+
+Shell.label(s2, 195, 225, '$AB = 10$', { role: 'work', anchor: [244, 233], until: 'end' });
+
+Shell.group('พิสูจน์สามเหลี่ยมคล้าย');
+
+var s3 = Shell.step('พิจารณา $\\triangle ADE$ และ $\\triangle ABC$:<br>เนื่องจาก $DE \\parallel BC$ จะได้มุมสมนัยกันมีขนาดเท่ากัน คือ $\\angle ADE = \\angle ABC$ และ $\\angle AED = \\angle ACB$<br>และมี $\\angle A$ เป็นมุมร่วม จึงได้ว่า $\\triangle ADE \\sim \\triangle ABC$ (คล้ายกันแบบ มุม-มุม-มุม)', {
+  why: 'เส้นตรงที่ลากขนานกับด้านของรูปสามเหลี่ยมจะทำให้เกิดมุมสมนัยกันเท่ากัน ส่งผลให้ได้รูปสามเหลี่ยมที่คล้ายกัน',
+  uses: [1]
+});
+
+var shadeADE = svgEl('polygon', {
+  points: Ax + ',' + Ay + ' ' + Dx + ',' + Dy + ' ' + Ex + ',' + Ey,
+  fill: C.work,
+  'fill-opacity': '0.12',
+  stroke: C.work,
+  'stroke-width': '2'
+});
+s3.appendChild(shadeADE);
+
+var arcD = svgEl('path', {
+  d: 'M 336 222 A 28 28 0 0 0 324.6 199.5',
+  fill: 'none',
+  stroke: C.work,
+  'stroke-width': '2'
+});
+var arcB = svgEl('path', {
+  d: 'M 168 450 A 28 28 0 0 0 156.6 427.5',
+  fill: 'none',
+  stroke: C.work,
+  'stroke-width': '2'
+});
+var arcE = svgEl('path', {
+  d: 'M 552 222 A 28 28 0 0 1 559.7 202.7',
+  fill: 'none',
+  stroke: C.work,
+  'stroke-width': '2'
+});
+var arcC = svgEl('path', {
+  d: 'M 792 450 A 28 28 0 0 1 799.7 430.7',
+  fill: 'none',
+  stroke: C.work,
+  'stroke-width': '2'
+});
+
+s3.appendChild(arcD);
+s3.appendChild(arcB);
+s3.appendChild(arcE);
+s3.appendChild(arcC);
+
+Shell.label(s3, 350, 246, 'มุมสมนัย', { role: 'work', anchor: [336, 222], until: 'step' });
+Shell.label(s3, 538, 246, 'มุมสมนัย', { role: 'work', anchor: [552, 222], until: 'step' });
+
+Shell.group('คำนวณความยาวด้าน');
+
+var s4 = Shell.step('จากสมบัติของสามเหลี่ยมคล้าย อัตราส่วนความยาวของด้านคู่ที่สมนัยกันย่อมเท่ากัน:<br>$\\dfrac{DE}{BC} = \\dfrac{AD}{AB}$', {
+  why: 'รูปสามเหลี่ยมที่คล้ายกันจะมีอัตราส่วนของความยาวของด้านคู่ที่สมนัยกันเท่ากันทุกคู่',
+  uses: [2, 3]
+});
+
+var hlDE = svgEl('line', {
+  x1: Dx, y1: Dy,
+  x2: Ex, y2: Ey,
+  stroke: C.given,
+  'stroke-width': '4'
+});
+var hlBC = svgEl('line', {
+  x1: Bx, y1: By,
+  x2: Cx, y2: Cy,
+  stroke: C.work,
+  'stroke-width': '4'
+});
+
+s4.appendChild(hlDE);
+s4.appendChild(hlBC);
+
+Shell.label(s4, 480, 485, '$BC = ?$', { role: 'work', anchor: [480, By], until: 'step' });
+
+var s5 = Shell.step('แทนค่า $DE = 5$, $AD = 4$ และ $AB = 10$ ลงในสมการอัตราส่วน:<br>$\\dfrac{5}{BC} = \\dfrac{4}{10}$<br>คูณไขว้เพื่อแก้สมการหา $BC$:<br>$4 \\times BC = 5 \\times 10 = 50$<br>$BC = \\dfrac{50}{4} = 12.5$', {
+  why: 'คูณไขว้เพื่อแก้สมการเชิงเส้นตัวแปรเดียวในการหาค่า $BC$',
+  uses: [4]
+});
+
+var ansBC = svgEl('line', {
+  x1: Bx, y1: By,
+  x2: Cx, y2: Cy,
+  stroke: C.answer,
+  'stroke-width': '5'
+});
+var ansB = svgEl('circle', { cx: Bx, cy: By, r: '5.5', fill: C.answer });
+var ansC = svgEl('circle', { cx: Cx, cy: Cy, r: '5.5', fill: C.answer });
+
+s5.appendChild(ansBC);
+s5.appendChild(ansB);
+s5.appendChild(ansC);
+
+Shell.label(s5, 480, 485, '$BC = 12.5$', { role: 'answer', anchor: [480, By], until: 'end' });
+
+Shell.answer('ความยาวของด้าน $BC$', '$BC = 12.5$', {
+  sanity: 'ความยาว $BC = 12.5$ มีขนาดยาวกว่า $DE = 5$ สอดคล้องกับอัตราส่วน $AB : AD = 10 : 4 = 2.5$ เท่า'
+});
+
+Shell.done();
+</script>
+</body></html>

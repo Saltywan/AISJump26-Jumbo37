@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>การแจกแจงปกติ - ความสูงนักเรียน</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+var SVGNS = 'http://www.w3.org/2000/svg';
+
+Shell.page({
+  title: 'การแจกแจงปกติ: หาความน่าจะเป็นจากความสูง',
+  problem: 'ความสูงของนักเรียนกลุ่มหนึ่งมีการแจกแจงปกติ ค่าเฉลี่ย $165$ ซม. ส่วนเบี่ยงเบนมาตรฐาน $8$ ซม. จงหาความน่าจะเป็นที่นักเรียนสุ่มมาคนหนึ่งจะสูงมากกว่า $175$ ซม. (ใช้ตารางค่า Z)'
+});
+
+var g = Shell.canvas(), C = Shell.C;
+var PX_PER_CM = 9.0;
+
+Shell.setup('เนื่องจากความสูงมีการแจกแจงปกติ การหาพื้นที่ใต้กราฟโดยตรงทำได้ยาก จึงต้องแปลงค่าความสูง $X$ เป็นคะแนนมาตรฐาน $Z$ เพื่อเปิดตารางหาความน่าจะเป็น');
+
+Shell.group('สร้างแผนภาพการแจกแจงปกติ');
+
+var s1 = Shell.step('วาดเส้นโค้งปกติ ค่าเฉลี่ย $\\mu = 165$ ซม. และ $\\sigma = 8$ ซม. จุดที่สนใจคือ $X = 175$ ซม.');
+
+var baseline = document.createElementNS(SVGNS, 'line');
+baseline.setAttribute('x1', '50');
+baseline.setAttribute('y1', '380');
+baseline.setAttribute('x2', '480');
+baseline.setAttribute('y2', '380');
+baseline.setAttribute('stroke', C.note);
+baseline.setAttribute('stroke-width', '2');
+s1.appendChild(baseline);
+
+function normalPt(z) {
+  var x = 260 + z * 72;
+  var y = 380 - 220 * Math.exp(-0.5 * z * z);
+  return [x, y];
+}
+
+var curvePath = document.createElementNS(SVGNS, 'path');
+var d = [];
+for (var z = -3.1; z <= 3.101; z += 0.05) {
+  var pt = normalPt(z);
+  d.push((d.length === 0 ? 'M' : 'L') + pt[0].toFixed(2) + ' ' + pt[1].toFixed(2));
+}
+curvePath.setAttribute('d', d.join(' '));
+curvePath.setAttribute('fill', 'none');
+curvePath.setAttribute('stroke', C.note);
+curvePath.setAttribute('stroke-width', '2.5');
+s1.appendChild(curvePath);
+
+var meanLine = document.createElementNS(SVGNS, 'line');
+meanLine.setAttribute('x1', '260');
+meanLine.setAttribute('y1', '380');
+meanLine.setAttribute('x2', '260');
+meanLine.setAttribute('y2', '160');
+meanLine.setAttribute('stroke', C.given);
+meanLine.setAttribute('stroke-width', '2');
+meanLine.setAttribute('stroke-dasharray', '4,4');
+s1.appendChild(meanLine);
+
+var xLine = document.createElementNS(SVGNS, 'line');
+xLine.setAttribute('x1', '350');
+xLine.setAttribute('y1', '380');
+xLine.setAttribute('x2', '350');
+var yTarget = normalPt(1.25)[1];
+xLine.setAttribute('y2', yTarget.toFixed(2));
+xLine.setAttribute('stroke', C.work);
+xLine.setAttribute('stroke-width', '2');
+s1.appendChild(xLine);
+
+function addTick(gStep, x, y, len) {
+  var t = document.createElementNS(SVGNS, 'line');
+  t.setAttribute('x1', x);
+  t.setAttribute('y1', y - len / 2);
+  t.setAttribute('x2', x);
+  t.setAttribute('y2', y + len / 2);
+  t.setAttribute('stroke', C.note);
+  t.setAttribute('stroke-width', '1.5');
+  gStep.appendChild(t);
+}
+
+addTick(s1, 188, 380, 8);
+addTick(s1, 260, 380, 8);
+addTick(s1, 350, 380, 8);
+
+Shell.label(s1, 485, 380, '$X$', {role: 'note', anchor: [480, 380], pin: true, until: 'end'});
+Shell.label(s1, 485, 415, '$Z$', {role: 'note', anchor: [480, 415], pin: true, until: 'end'});
+
+Shell.label(s1, 188, 396, '$157$', {role: 'note', anchor: [188, 380], pin: true, until: 'end'});
+Shell.label(s1, 260, 396, '$165$', {role: 'given', anchor: [260, 380], pin: true, until: 'end'});
+Shell.label(s1, 350, 396, '$175$', {role: 'given', anchor: [350, 380], pin: true, until: 'end'});
+
+Shell.label(s1, 188, 418, '$-1$', {role: 'note', anchor: [188, 418], pin: true, until: 'end'});
+Shell.label(s1, 260, 418, '$0$', {role: 'note', anchor: [260, 418], pin: true, until: 'end'});
+
+Shell.label(s1, 260, 140, '$\\mu = 165$ ซม.', {role: 'given', anchor: [260, 160], until: 'step'});
+
+Shell.group('คำนวณคะแนนมาตรฐาน Z');
+
+var s2 = Shell.step('แปลงค่า $X = 175$ ซม. เป็นคะแนนมาตรฐาน $Z$<br>$Z = \\frac{X - \\mu}{\\sigma} = \\frac{175 - 165}{8} = \\frac{10}{8} = 1.25$', {
+  why: 'คะแนนมาตรฐานบอกระยะห่างจากค่าเฉลี่ยในหน่วยของส่วนเบี่ยงเบนมาตรฐาน เพื่อใช้เทียบกับตารางมาตรฐานได้',
+  uses: [1]
+});
+
+Shell.arrow(s2, 260, 345, 350, 345, {
+  role: 'work',
+  label: '$10$ ซม.',
+  value: 10,
+  unit: 'ซม.',
+  until: 'step'
+});
+
+Shell.label(s2, 350, 418, '$1.25$', {role: 'work', anchor: [350, 418], pin: true, until: 'end'});
+
+Shell.group('เปิดตารางและหาความน่าจะเป็น');
+
+var s3 = Shell.step('เปิดตารางค่า $Z$ หาพื้นที่สะสมทางซ้าย $P(Z \\le 1.25)$<br>ดูแถว $1.2$ ตัดกับหลัก $0.05$ จะได้ค่าพื้นที่สะสมเท่ากับ $0.8944$', {
+  why: 'ตารางค่า Z แบบสะสมให้พื้นที่ใต้กราฟตั้งแต่ $-\\infty$ จนถึงตำแหน่ง $Z$ ที่ระบุ',
+  uses: [2]
+});
+
+var zTableData = [
+  ['Z', '0.04', '0.05', '0.06'],
+  ['1.1', '0.8729', '0.8749', '0.8770'],
+  ['1.2', '0.8925', '0.8944', '0.8962'],
+  ['1.3', '0.9099', '0.9115', '0.9131']
+];
+
+Shell.table(s3, 545, 120, zTableData, {
+  roles: ['note', 'work', 'answer', 'work'],
+  colW: 88,
+  rowH: 36
+});
+
+Shell.label(s3, 765, 290, '$P(Z \\le 1.25) = 0.8944$', {
+  role: 'work',
+  anchor: [765, 210],
+  until: 'step'
+});
+
+var s4 = Shell.step('หาความน่าจะเป็นที่นักเรียนจะสูงมากกว่า $175$ ซม. ซึ่งคือพื้นที่หางขวา ($Z > 1.25$)<br>$P(X > 175) = P(Z > 1.25) = 1 - P(Z \\le 1.25) = 1 - 0.8944 = 0.1056$', {
+  why: 'พื้นที่ทั้งหมดใต้เส้นโค้งการแจกแจงปกติมีค่าเท่ากับ 1 ดังนั้นพื้นที่ส่วนที่มากกว่าจึงหาได้จาก 1 ลบด้วยพื้นที่สะสมทางซ้าย',
+  uses: [3]
+});
+
+var shadePath = document.createElementNS(SVGNS, 'path');
+var sd = [];
+var ptStart = normalPt(1.25);
+sd.push('M ' + ptStart[0].toFixed(2) + ' 380');
+sd.push('L ' + ptStart[0].toFixed(2) + ' ' + ptStart[1].toFixed(2));
+for (var zShade = 1.25; zShade <= 3.101; zShade += 0.05) {
+  var ptS = normalPt(zShade);
+  sd.push('L ' + ptS[0].toFixed(2) + ' ' + ptS[1].toFixed(2));
+}
+var ptEnd = normalPt(3.1);
+sd.push('L ' + ptEnd[0].toFixed(2) + ' 380');
+sd.push('Z');
+shadePath.setAttribute('d', sd.join(' '));
+shadePath.setAttribute('fill', C.answer);
+shadePath.setAttribute('fill-opacity', '0.35');
+shadePath.setAttribute('stroke', C.answer);
+shadePath.setAttribute('stroke-width', '2');
+s4.appendChild(shadePath);
+
+Shell.label(s4, 430, 240, '$P(X > 175) = 0.1056$', {
+  role: 'answer',
+  anchor: [385, 345],
+  until: 'end'
+});
+
+Shell.answer(
+  'ความน่าจะเป็นที่นักเรียนสุ่มมาคนหนึ่งจะสูงมากกว่า $175$ ซม.',
+  '$0.1056$ (หรือ $10.56\\%$)',
+  {sanity: 'สมเหตุสมผล เพราะความสูง $175$ ซม. อยู่สูงกว่าค่าเฉลี่ยเกิน $1\\sigma$ ($165 + 8 = 173$ ซม.) พื้นที่หางขวาจึงต้องน้อยกว่า $0.16$ ซึ่งค่า $0.1056$ สอดคล้องอย่างถูกต้อง'}
+);
+
+Shell.done();
+</script>
+</body></html>

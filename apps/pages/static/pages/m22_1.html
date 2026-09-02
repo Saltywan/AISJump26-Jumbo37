@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>ปริมาตรและพื้นที่ผิวของทรงกระบอก</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+var SVGNS = 'http://www.w3.org/2000/svg';
+
+function createSvg(tag, attrs) {
+  var el = document.createElementNS(SVGNS, tag);
+  for (var k in attrs) {
+    if (attrs.hasOwnProperty(k)) el.setAttribute(k, attrs[k]);
+  }
+  return el;
+}
+
+Shell.page({
+  title: 'ปริมาตรและพื้นที่ผิวทั้งหมดของทรงกระบอก',
+  problem: 'ทรงกระบอกมีรัศมีฐาน 3 ซม. สูง 10 ซม. จงหาปริมาตรและพื้นที่ผิวทั้งหมด'
+});
+
+var g = Shell.canvas(), C = Shell.C;
+var PX_PER_CM = 18;
+
+Shell.setup('ทรงกระบอกมีหน้าตัดเป็นรูปวงกลมที่เท่ากันทุกประการตลอดความสูง ปริมาตรจึงหาได้จากพื้นที่ฐานคูณความสูง ส่วนพื้นที่ผิวทั้งหมดหาได้จากการคลี่ผิวข้างออกเป็นรูปสี่เหลี่ยมผืนผ้ารวมกับพื้นที่ฐานวงกลมทั้งสองด้าน');
+
+/* ==========================================
+   กลุ่มที่ 1: การหาปริมาตรของทรงกระบอก
+   ========================================== */
+Shell.group('คำนวณหาปริมาตรของทรงกระบอก');
+
+var s1 = Shell.step('พิจารณาทรงกระบอกที่โจทย์กำหนด: รัศมีฐาน $r = 3$ ซม. และความสูง $h = 10$ ซม.');
+
+// วาดโครงร่างทรงกระบอกสามมิติ
+var cylBody = createSvg('path', {
+  d: 'M 176 170 L 176 350 A 54 20 0 0 0 284 350 L 284 170 A 54 20 0 0 1 176 170 Z',
+  fill: C.given,
+  'fill-opacity': '0.07'
+});
+var cylBottomBack = createSvg('path', {
+  d: 'M 176 350 A 54 20 0 0 1 284 350',
+  fill: 'none',
+  stroke: C.note,
+  'stroke-width': '1.5',
+  'stroke-dasharray': '4,4'
+});
+var cylBottomFront = createSvg('path', {
+  d: 'M 176 350 A 54 20 0 0 0 284 350',
+  fill: 'none',
+  stroke: C.given,
+  'stroke-width': '2'
+});
+var cylLeftLine = createSvg('line', {
+  x1: '176', y1: '170', x2: '176', y2: '350',
+  stroke: C.given, 'stroke-width': '2'
+});
+var cylRightLine = createSvg('line', {
+  x1: '284', y1: '170', x2: '284', y2: '350',
+  stroke: C.given, 'stroke-width': '2'
+});
+var cylAxis = createSvg('line', {
+  x1: '230', y1: '170', x2: '230', y2: '350',
+  stroke: C.note, 'stroke-width': '1.5', 'stroke-dasharray': '4,4'
+});
+var cylTop = createSvg('ellipse', {
+  cx: '230', cy: '170', rx: '54', ry: '20',
+  fill: C.given, 'fill-opacity': '0.12',
+  stroke: C.given, 'stroke-width': '2'
+});
+var centerTop = createSvg('circle', { cx: '230', cy: '170', r: '3', fill: C.given });
+var centerBottom = createSvg('circle', { cx: '230', cy: '350', r: '3', fill: C.note });
+
+s1.appendChild(cylBody);
+s1.appendChild(cylBottomBack);
+s1.appendChild(cylBottomFront);
+s1.appendChild(cylLeftLine);
+s1.appendChild(cylRightLine);
+s1.appendChild(cylAxis);
+s1.appendChild(cylTop);
+s1.appendChild(centerTop);
+s1.appendChild(centerBottom);
+
+// ลูกศรบอกขนาดรัศมีฐานและความสูง
+Shell.arrow(s1, 230, 170, 284, 170, {
+  role: 'given', label: '$r = 3$ cm', value: 3, unit: 'cm', until: 'end'
+});
+Shell.arrow(s1, 140, 170, 140, 350, {
+  role: 'given', label: '$h = 10$ cm', value: 10, unit: 'cm', until: 'end'
+});
+
+var s2 = Shell.step('หาพื้นที่ฐานรูปวงกลม:<br>พื้นที่ฐาน $= \\pi r^2 = \\pi (3)^2 = 9\\pi$ ซม.²', {
+  why: 'ทรงกระบอกมีหน้าตัดหัวท้ายเป็นวงกลมที่ขนานกัน จึงต้องคำนวณพื้นที่ฐานก่อนนำไปคูณความสูง',
+  uses: [1]
+});
+
+var baseHighlight = createSvg('ellipse', {
+  cx: '230', cy: '170', rx: '54', ry: '20',
+  fill: C.work, 'fill-opacity': '0.35',
+  stroke: C.work, 'stroke-width': '2.5'
+});
+s2.appendChild(baseHighlight);
+Shell.label(s2, 230, 120, 'พื้นที่ฐาน $= 9\\pi$ ซม.²', {
+  role: 'work', anchor: [230, 170], until: 'step'
+});
+
+var s3 = Shell.step('คำนวณปริมาตรของทรงกระบอก ($V$):<br>$V = \\text{พื้นที่ฐาน} \\times h = 9\\pi \\times 10 = 90\\pi$ ซม.³<br>หรือประมาณ $90 \\times 3.1416 \\approx 282.74$ ซม.³', {
+  why: 'ปริมาตรของทรงกระบอกตันเท่ากับผลคูณของพื้นที่ฐานและส่วนสูงตรงตามแนวแกน',
+  uses: [1, 2]
+});
+
+var volumeFill = createSvg('path', {
+  d: 'M 176 170 L 176 350 A 54 20 0 0 0 284 350 L 284 170 A 54 20 0 0 1 176 170 Z',
+  fill: C.answer, 'fill-opacity': '0.22',
+  stroke: C.answer, 'stroke-width': '1.5'
+});
+var volumeTop = createSvg('ellipse', {
+  cx: '230', cy: '170', rx: '54', ry: '20',
+  fill: C.answer, 'fill-opacity': '0.35',
+  stroke: C.answer, 'stroke-width': '2'
+});
+s3.appendChild(volumeFill);
+s3.appendChild(volumeTop);
+Shell.label(s3, 230, 260, '$V = 90\\pi$ ซม.³', {
+  role: 'answer', anchor: [230, 260], until: 'end'
+});
+
+/* ==========================================
+   กลุ่มที่ 2: การหาพื้นที่ผิวทั้งหมด
+   ========================================== */
+Shell.group('คลี่รูปทรงและคำนวณหาพื้นที่ผิวทั้งหมด');
+
+var s4 = Shell.step('คลี่ทรงกระบอกออกเป็น<b>รูปคลี่ (Net)</b>:<br>จะได้รูปสี่เหลี่ยมผืนผ้า 1 รูป และวงกลม 2 วง<br>ความกว้างสี่เหลี่ยมผืนผ้าเท่ากับความสูง $h = 10$ ซม.<br>ความยาวสี่เหลี่ยมผืนผ้าเท่ากับเส้นรอบวงฐาน $2\\pi r = 2\\pi(3) = 6\\pi$ ซม. (ประมาณ $18.85$ ซม.)', {
+  why: 'เมื่อคลี่ผิวด้านข้างของทรงกระบอกออก ขอบตามแนวราบจะกางออกเป็นเส้นตรงยาวเท่ากับเส้นรอบวงกลมของฐานพอดี',
+  uses: [1]
+});
+
+// เส้นประโยงแสดงความสัมพันธ์ความสูงระหว่างทรงกระบอกกับรูปคลี่
+var guideLineTop = createSvg('line', {
+  x1: '284', y1: '170', x2: '470', y2: '170',
+  stroke: C.note, 'stroke-width': '1.5', 'stroke-dasharray': '4,4'
+});
+var guideLineBottom = createSvg('line', {
+  x1: '284', y1: '350', x2: '470', y2: '350',
+  stroke: C.note, 'stroke-width': '1.5', 'stroke-dasharray': '4,4'
+});
+s4.appendChild(guideLineTop);
+s4.appendChild(guideLineBottom);
+
+// รูปคลี่: สี่เหลี่ยมผืนผ้า (ผิวข้าง) และ วงกลมฐาน 2 วง
+var netRect = createSvg('rect', {
+  x: '470', y: '170', width: '339.3', height: '180',
+  fill: C.work, 'fill-opacity': '0.08',
+  stroke: C.work, 'stroke-width': '2'
+});
+var netCircleTop = createSvg('circle', {
+  cx: '640', cy: '116', r: '54',
+  fill: C.work, 'fill-opacity': '0.1',
+  stroke: C.work, 'stroke-width': '2'
+});
+var netCenterTop = createSvg('circle', { cx: '640', cy: '116', r: '3', fill: C.work });
+var netCircleBottom = createSvg('circle', {
+  cx: '640', cy: '404', r: '54',
+  fill: C.work, 'fill-opacity': '0.1',
+  stroke: C.work, 'stroke-width': '2'
+});
+var netCenterBottom = createSvg('circle', { cx: '640', cy: '404', r: '3', fill: C.work });
+
+s4.appendChild(netRect);
+s4.appendChild(netCircleTop);
+s4.appendChild(netCenterTop);
+s4.appendChild(netCircleBottom);
+s4.appendChild(netCenterBottom);
+
+// ขนาดบนรูปคลี่
+Shell.arrow(s4, 470, 145, 809.3, 145, {
+  role: 'work', label: '$2\\pi r \\approx 18.85$ cm', value: 18.85, unit: 'cm', until: 'end'
+});
+Shell.arrow(s4, 835, 170, 835, 350, {
+  role: 'given', label: '$h = 10$ cm', value: 10, unit: 'cm', until: 'end'
+});
+Shell.arrow(s4, 640, 116, 694, 116, {
+  role: 'given', label: '$r = 3$ cm', value: 3, unit: 'cm', until: 'end'
+});
+
+var s5 = Shell.step('คำนวณพื้นที่ผิวข้าง:<br>พื้นที่ผิวข้าง $= 2\\pi r h = 6\\pi \\times 10 = 60\\pi$ ซม.²<br>หรือประมาณ $60 \\times 3.1416 \\approx 188.50$ ซม.²', {
+  why: 'พื้นที่ผิวข้างคือพื้นที่ของรูปสี่เหลี่ยมผืนผ้าที่มีความกว้างคูณความยาว หรือความสูงคูณเส้นรอบวงฐาน',
+  uses: [1, 4]
+});
+
+var lateralHighlight = createSvg('rect', {
+  x: '470', y: '170', width: '339.3', height: '180',
+  fill: C.work, 'fill-opacity': '0.22',
+  stroke: C.work, 'stroke-width': '2.5'
+});
+s5.appendChild(lateralHighlight);
+Shell.label(s5, 640, 260, 'พื้นที่ผิวข้าง $= 60\\pi$ ซม.²', {
+  role: 'work', anchor: [640, 260], until: 'step'
+});
+
+var s6 = Shell.step('คำนวณพื้นที่ผิวทั้งหมด:<br>พื้นที่ผิวทั้งหมด = พื้นที่ผิวข้าง + พื้นที่ฐาน 2 ด้าน<br>$A = 60\\pi + 2(9\\pi) = 60\\pi + 18\\pi = 78\\pi$ ซม.²<br>หรือประมาณ $78 \\times 3.1416 \\approx 245.04$ ซม.²', {
+  why: 'ทรงกระบอกปิดมีฝาปิดหัวและท้ายรูปวงกลม 2 ฝา จึงต้องนำพื้นที่ฐานทั้งสองมารวมกับพื้นที่ผิวข้าง',
+  uses: [2, 5]
+});
+
+var netFinalCircleTop = createSvg('circle', {
+  cx: '640', cy: '116', r: '54',
+  fill: C.answer, 'fill-opacity': '0.25',
+  stroke: C.answer, 'stroke-width': '2'
+});
+var netFinalCircleBottom = createSvg('circle', {
+  cx: '640', cy: '404', r: '54',
+  fill: C.answer, 'fill-opacity': '0.25',
+  stroke: C.answer, 'stroke-width': '2'
+});
+var netFinalRect = createSvg('rect', {
+  x: '470', y: '170', width: '339.3', height: '180',
+  fill: C.answer, 'fill-opacity': '0.25',
+  stroke: C.answer, 'stroke-width': '2'
+});
+
+s6.appendChild(netFinalCircleTop);
+s6.appendChild(netFinalCircleBottom);
+s6.appendChild(netFinalRect);
+
+Shell.label(s6, 640, 116, '$9\\pi$ ซม.²', { role: 'answer', anchor: [640, 116], until: 'end' });
+Shell.label(s6, 640, 404, '$9\\pi$ ซม.²', { role: 'answer', anchor: [640, 404], until: 'end' });
+Shell.label(s6, 640, 260, 'ผิวข้าง $= 60\\pi$ ซม.²', { role: 'answer', anchor: [640, 260], until: 'end' });
+Shell.label(s6, 640, 480, 'พื้นที่ผิวทั้งหมด $= 78\\pi$ ซม.²', { role: 'answer', anchor: [640, 460], until: 'end' });
+
+/* ==========================================
+   สรุปคำตอบ
+   ========================================== */
+Shell.answer(
+  'ปริมาตร $90\\pi\\approx 282.74$ ซม.³ และพื้นที่ผิวทั้งหมด $78\\pi\\approx 245.04$ ซม.²',
+  '$V = 90\\pi\\text{ cm}^3,\\ A = 78\\pi\\text{ cm}^2$',
+  { sanity: 'ปริมาตร $90\\pi \\approx 282.7$ ซม.³ อยู่ระหว่างปริซึมสี่เหลี่ยมแนบใน ($180$ ซม.³) และแนบนอก ($360$ ซม.³) อย่างสมเหตุสมผล' }
+);
+
+Shell.done();
+</script>
+</body></html>

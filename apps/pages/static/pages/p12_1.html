@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>แรงลัพธ์ทางไฟฟ้าที่กระทำต่อประจุ C</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+var SVGNS = 'http://www.w3.org/2000/svg';
+
+function createEl(tag, attrs) {
+  var el = document.createElementNS(SVGNS, tag);
+  for (var k in attrs) {
+    el.setAttribute(k, attrs[k]);
+  }
+  return el;
+}
+
+Shell.page({
+  title: 'แรงทางไฟฟ้าระหว่างประจุบนสามเหลี่ยมมุมฉาก',
+  problem: 'ประจุ $+3\\ \\mu\\text{C}$ วางที่จุด $A$, ประจุ $-3\\ \\mu\\text{C}$ วางที่จุด $B$ และประจุ $+6\\ \\mu\\text{C}$ วางที่จุด $C$ โดยสามเหลี่ยม $ABC$ เป็นสามเหลี่ยมมุมฉากที่มีมุมฉากอยู่ที่ $C$ ด้าน $AC$ ยาว $0.3$ เมตร และด้าน $BC$ ยาว $0.4$ เมตร จงหาขนาดและทิศทางของแรงลัพธ์ที่กระทำต่อประจุที่ $C$ เนื่องจากประจุอีกสองตัว พร้อมวาดแผนภาพแสดงเวกเตอร์แรงย่อยทั้งสองและแรงลัพธ์ที่จุด $C$'
+});
+
+var g = Shell.canvas();
+var C = Shell.C;
+
+// ค่าทางฟิสิกส์
+var qA = 3e-6;   // +3 uC
+var qB = -3e-6;  // -3 uC
+var qC = 6e-6;   // +6 uC
+var rAC = 0.3;   // 0.3 m
+var rBC = 0.4;   // 0.4 m
+var k = 9e9;
+
+// คำนวณขนาดแรงย่อย
+var F_AC = (k * Math.abs(qA * qC)) / (rAC * rAC); // 1.8 N
+var F_BC = (k * Math.abs(qB * qC)) / (rBC * rBC); // 1.0125 N
+var F_net = Math.hypot(F_AC, F_BC);                // ~2.0652 N
+
+// มาตราส่วนภาพ
+var PX_PER_N = 125; // 1 N = 125 px
+
+// พิกัดจุดบนผืนผ้าใบ (Canvas: 960 x 540)
+var xC = 350, yC = 235;
+var xA = 350, yA = 40;   // AC ยาว 195 px (แทน 0.3 m)
+var xB = 610, yB = 235;  // BC ยาว 260 px (แทน 0.4 m)
+
+Shell.setup('เนื่องจากจุด $C$ เป็นมุมฉากของสามเหลี่ยม ($\angle C = 90^\\circ$) แรงจากประจุทั้งสองที่กระทำต่อประจุ $C$ จึงอยู่ในแนวตั้งฉากซึ่งกันและกัน ทำให้เราสามารถคำนวณขนาดของแต่ละแรงตามกฎของคูลอมบ์ แล้วรวมเวกเตอร์ด้วยทฤษฎีบทพีทาโกรัสได้โดยตรง');
+
+Shell.group('ระบุตำแหน่งและเรขาคณิตของระบบ');
+
+var s1 = Shell.step('กำหนดตำแหน่งประจุทั้งสามบนสามเหลี่ยมมุมฉาก $ABC$ ซึ่งมี $\\angle C = 90^\\circ$<br>โดยมีระยะ $AC = 0.3$ m และ $BC = 0.4$ m');
+
+// ด้านของสามเหลี่ยม
+s1.appendChild(createEl('line', {
+  x1: xA, y1: yA, x2: xC, y2: yC,
+  stroke: C.note, 'stroke-width': '2', 'stroke-dasharray': '5,4'
+}));
+s1.appendChild(createEl('line', {
+  x1: xC, y1: yC, x2: xB, y2: yB,
+  stroke: C.note, 'stroke-width': '2', 'stroke-dasharray': '5,4'
+}));
+s1.appendChild(createEl('line', {
+  x1: xA, y1: yA, x2: xB, y2: yB,
+  stroke: C.note, 'stroke-width': '1.5', 'stroke-dasharray': '3,3', opacity: '0.6'
+}));
+
+// สัญลักษณ์มุมฉากที่จุด C
+s1.appendChild(createEl('path', {
+  d: 'M ' + xC + ' ' + (yC - 20) + ' L ' + (xC + 20) + ' ' + (yC - 20) + ' L ' + (xC + 20) + ' ' + yC,
+  stroke: C.note, 'stroke-width': '1.5', fill: 'none'
+}));
+
+// ประจุ A (+3 uC)
+s1.appendChild(createEl('circle', {
+  cx: xA, cy: yA, r: '16',
+  fill: C.given, 'fill-opacity': '0.15', stroke: C.given, 'stroke-width': '2.5'
+}));
+s1.appendChild(createEl('line', {
+  x1: xA, y1: yA - 7, x2: xA, y2: yA + 7, stroke: C.given, 'stroke-width': '2.5'
+}));
+s1.appendChild(createEl('line', {
+  x1: xA - 7, y1: yA, x2: xA + 7, y2: yA, stroke: C.given, 'stroke-width': '2.5'
+}));
+
+// ประจุ B (-3 uC)
+s1.appendChild(createEl('circle', {
+  cx: xB, cy: yB, r: '16',
+  fill: C.given, 'fill-opacity': '0.15', stroke: C.given, 'stroke-width': '2.5'
+}));
+s1.appendChild(createEl('line', {
+  x1: xB - 7, y1: yB, x2: xB + 7, y2: yB, stroke: C.given, 'stroke-width': '2.5'
+}));
+
+// ประจุ C (+6 uC)
+s1.appendChild(createEl('circle', {
+  cx: xC, cy: yC, r: '16',
+  fill: C.given, 'fill-opacity': '0.15', stroke: C.given, 'stroke-width': '2.5'
+}));
+s1.appendChild(createEl('line', {
+  x1: xC, y1: yC - 7, x2: xC, y2: yC + 7, stroke: C.given, 'stroke-width': '2.5'
+}));
+s1.appendChild(createEl('line', {
+  x1: xC - 7, y1: yC, x2: xC + 7, y2: yC, stroke: C.given, 'stroke-width': '2.5'
+}));
+
+// ป้ายกำกับจุดและระยะ
+Shell.label(s1, 350, 12, '$A\\ (+3\\ \\mu\\text{C})$', {role: 'given', anchor: [xA, yA], until: 'end'});
+Shell.label(s1, 675, 235, '$B\\ (-3\\ \\mu\\text{C})$', {role: 'given', anchor: [xB, yB], until: 'end'});
+Shell.label(s1, 280, 255, '$C\\ (+6\\ \\mu\\text{C})$', {role: 'given', anchor: [xC, yC], until: 'end'});
+Shell.label(s1, 295, 137, '$0.3$ m', {role: 'note', anchor: [350, 137], until: 3});
+Shell.label(s1, 480, 205, '$0.4$ m', {role: 'note', anchor: [480, 235], until: 3});
+
+Shell.group('คำนวณแรงย่อยตามกฎของคูลอมบ์');
+
+var s2 = Shell.step('คำนวณแรงที่ประจุ $A$ ผลักประจุ $C$ ($F_{AC}$)<br>ประจุ $A$ ($+3\\ \\mu\\text{C}$) และประจุ $C$ ($+6\\ \\mu\\text{C}$) เป็นประจุบวกเหมือนกัน จึงเกิด<b>แรงผลัก</b>ในทิศพุ่งออกจาก $A$ ตามแนวเส้น $AC$<br>$F_{AC} = \\frac{k|q_A q_C|}{r_{AC}^2} = \\frac{(9 \\times 10^9)(3 \\times 10^{-6})(6 \\times 10^{-6})}{(0.3)^2} = 1.8$ N', {
+  why: 'ประจุชนิดเดียวกันจะส่งแรงผลักกันในแนวเส้นตรงที่เชื่อมระหว่างประจุ',
+  uses: [1]
+});
+
+// เส้นประแสดงแนวแรง
+s2.appendChild(createEl('line', {
+  x1: xC, y1: yC, x2: xC, y2: yC + F_AC * PX_PER_N + 25,
+  stroke: C.note, 'stroke-width': '1', 'stroke-dasharray': '3,3', opacity: '0.4'
+}));
+
+// เวกเตอร์ F_AC (ชี้ลงล่างในแนวดิ่ง)
+Shell.arrow(s2, xC, yC, xC, yC + F_AC * PX_PER_N, {
+  role: 'work',
+  label: '$F_{AC} = 1.8$ N',
+  value: F_AC,
+  unit: 'N',
+  until: 'end'
+});
+
+var s3 = Shell.step('คำนวณแรงที่ประจุ $B$ ดึงดูดประจุ $C$ ($F_{BC}$)<br>ประจุ $B$ ($-3\\ \\mu\\text{C}$) และประจุ $C$ ($+6\\ \\mu\\text{C}$) เป็นประจุต่างชนิดกัน จึงเกิด<b>แรงดึงดูด</b>ในทิศพุ่งเข้าหา $B$ ตามแนวเส้น $BC$<br>$F_{BC} = \\frac{k|q_B q_C|}{r_{BC}^2} = \\frac{(9 \\times 10^9)(3 \\times 10^{-6})(6 \\times 10^{-6})}{(0.4)^2} = 1.0125$ N $\\approx 1.01$ N', {
+  why: 'ประจุต่างชนิดกันจะส่งแรงดึงดูดกันในแนวเส้นตรงที่เชื่อมระหว่างประจุ',
+  uses: [1]
+});
+
+// เวกเตอร์ F_BC (ชี้ไปทางขวาตามแนวราบ)
+Shell.arrow(s3, xC, yC, xC + F_BC * PX_PER_N, yC, {
+  role: 'work',
+  label: '$F_{BC} = 1.01$ N',
+  value: F_BC,
+  unit: 'N',
+  until: 'end'
+});
+
+Shell.group('รวมเวกเตอร์หาแรงลัพธ์ที่จุด C');
+
+var s4 = Shell.step('หาขนาดของแรงลัพธ์ $F$ ที่กระทำต่อประจุ $C$<br>เนื่องจากแนว $AC \\perp BC$ ทำให้เวกเตอร์ $\\vec{F}_{AC}$ และ $\\vec{F}_{BC}$ ทำมุมตั้งฉากกัน ($90^\\circ$)<br>จึงหาขนาดของแรงลัพธ์ได้จากทฤษฎีบทพีทาโกรัส:<br>$F = \\sqrt{F_{AC}^2 + F_{BC}^2} = \\sqrt{1.8^2 + 1.0125^2} = \\sqrt{3.24 + 1.025} \\approx 2.07$ N', {
+  why: 'เวกเตอร์สองเวกเตอร์ที่ตั้งฉากกัน รวมขนาดได้โดยตรงจากทฤษฎีบทพีทาโกรัส',
+  uses: [2, 3]
+});
+
+// เส้นประสร้างรูปสี่เหลี่ยมด้านขนานของเวกเตอร์
+s4.appendChild(createEl('line', {
+  x1: xC + F_BC * PX_PER_N, y1: yC,
+  x2: xC + F_BC * PX_PER_N, y2: yC + F_AC * PX_PER_N,
+  stroke: C.note, 'stroke-width': '1.5', 'stroke-dasharray': '4,4'
+}));
+s4.appendChild(createEl('line', {
+  x1: xC, y1: yC + F_AC * PX_PER_N,
+  x2: xC + F_BC * PX_PER_N, y2: yC + F_AC * PX_PER_N,
+  stroke: C.note, 'stroke-width': '1.5', 'stroke-dasharray': '4,4'
+}));
+
+// เวกเตอร์แรงลัพธ์ F
+Shell.arrow(s4, xC, yC, xC + F_BC * PX_PER_N, yC + F_AC * PX_PER_N, {
+  role: 'answer',
+  label: '$F = 2.07$ N',
+  value: F_net,
+  unit: 'N',
+  until: 'end'
+});
+
+var s5 = Shell.step('หาทิศทางของแรงลัพธ์เทียบกับแนวเส้นตรง $BC$<br>ให้ $\\theta$ เป็นมุมระหว่างแรงลัพธ์กับแนวเส้นตรง $BC$ (แนวชี้ไปทาง $B$):<br>$\\tan\\theta = \\frac{F_{AC}}{F_{BC}} = \\frac{1.8}{1.0125} \\approx 1.778 \\implies \\theta = \\arctan(1.778) \\approx 60.6^\\circ$<br>ดังนั้น แรงลัพธ์มีทิศทำมุม $60.6^\\circ$ กับแนวเส้นตรง $BC$ ในทิศชี้ลง (เบนออกจากแนว $AC$)', {
+  why: 'ใช้อัตราส่วนตรีโกณมิติในสามเหลี่ยมมุมฉากเพื่อระบุมุมทิศทางของเวกเตอร์ลัพธ์',
+  uses: [4]
+});
+
+// ส่วนโค้งมุมเซตา
+var R = 48;
+var cosT = F_BC / F_net;
+var sinT = F_AC / F_net;
+var arcX = xC + R * cosT;
+var arcY = yC + R * sinT;
+
+s5.appendChild(createEl('path', {
+  d: 'M ' + (xC + R) + ' ' + yC + ' A ' + R + ' ' + R + ' 0 0 1 ' + arcX.toFixed(2) + ' ' + arcY.toFixed(2),
+  stroke: C.answer, 'stroke-width': '2', fill: 'none'
+}));
+
+Shell.label(s5, xC + R + 35, yC + 35, '$\\theta \\approx 60.6^\\circ$', {
+  role: 'answer',
+  anchor: [xC + R * 0.7, yC + R * 0.5],
+  until: 'end'
+});
+
+Shell.answer(
+  'ขนาดและทิศทางของแรงลัพธ์ที่กระทำต่อประจุ C',
+  '$F \\approx 2.07$ N ทำมุม $60.6^\\circ$ กับแนวเส้นตรง $BC$ (เบนออกจากแนว $AC$)',
+  {
+    sanity: 'ขนาดแรงลัพธ์ $2.07$ N อยู่ระหว่าง $|1.8 - 1.01| = 0.79$ N ถึง $1.8 + 1.01 = 2.81$ N ตามอสมการสามเหลี่ยม และมีขนาดมากกว่าแรงย่อยแต่ละแรง'
+  }
+);
+
+Shell.done();
+</script>
+</body></html>

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>พิสูจน์ผลรวมมุมภายในรูปสามเหลี่ยม</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/jsxgraph.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/jsxgraphcore.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+Shell.page({
+  title: 'พิสูจน์ผลรวมมุมภายในของรูปสามเหลี่ยม',
+  problem: 'กำหนดเส้นขนานสองเส้นถูกตัดด้วยเส้นตรงสามเส้นที่ต่างมุมกัน เกิดเป็นรูปสามเหลี่ยมจากจุดตัด จงพิสูจน์ว่าผลรวมของมุมภายในของสามเหลี่ยมที่เกิดขึ้นเท่ากับ $180^\\circ$ โดยใช้สมบัติของเส้นขนานเท่านั้น'
+});
+
+var b = Shell.board({box: [-1, 7.6, 11, -0.6], axis: false, grid: false});
+var C = Shell.C;
+
+Shell.setup('เส้นตรงที่ตัดเส้นขนานคู่เดียวกันจะทำมุมกับเส้นขนานเท่ากันเสมอตามสมบัติมุมสมนัยและมุมแย้ง เราจึงสามารถใช้แนวเส้นขนานเป็นแกนอ้างอิงทิศทางเดียวกันสำหรับมุมเอียงของด้านทั้งสาม เพื่อคำนวณมุมภายในแต่ละมุมและหาผลรวมได้อย่างเป็นระบบ');
+
+var pL1_1 = b.create('point', [-1, 6.4], {visible: false, fixed: true});
+var pL1_2 = b.create('point', [11, 6.4], {visible: false, fixed: true});
+var L1 = b.create('line', [pL1_1, pL1_2], {strokeColor: C.given, strokeWidth: 2.5, fixed: true});
+
+var pL2_1 = b.create('point', [-1, 0.4], {visible: false, fixed: true});
+var pL2_2 = b.create('point', [11, 0.4], {visible: false, fixed: true});
+var L2 = b.create('line', [pL2_1, pL2_2], {strokeColor: C.given, strokeWidth: 2.5, fixed: true});
+
+var pt1_1 = b.create('point', [2.0, 1.5], {visible: false, fixed: true});
+var pt1_2 = b.create('point', [5.6, 5.2], {visible: false, fixed: true});
+var t1 = b.create('line', [pt1_1, pt1_2], {strokeColor: C.note, strokeWidth: 1.5, dash: 2});
+
+var pt2_2 = b.create('point', [8.2, 2.6], {visible: false, fixed: true});
+var t2 = b.create('line', [pt1_2, pt2_2], {strokeColor: C.note, strokeWidth: 1.5, dash: 2});
+
+var t3 = b.create('line', [pt1_1, pt2_2], {strokeColor: C.note, strokeWidth: 1.5, dash: 2});
+
+var A = b.create('intersection', [t1, t2, 0], {size: 4, strokeColor: C.given, fillColor: C.given, name: ''});
+var B = b.create('intersection', [t1, t3, 0], {size: 4, strokeColor: C.given, fillColor: C.given, name: ''});
+var Cp = b.create('intersection', [t2, t3, 0], {size: 4, strokeColor: C.given, fillColor: C.given, name: ''});
+
+var tri = b.create('polygon', [A, B, Cp], {
+  fillColor: C.work,
+  fillOpacity: 0.14,
+  borders: {strokeColor: C.work, strokeWidth: 2.5}
+});
+
+var parA = b.create('parallel', [L1, A], {strokeColor: C.note, strokeWidth: 1.5, dash: 3});
+var parB = b.create('parallel', [L2, B], {strokeColor: C.note, strokeWidth: 1.5, dash: 3});
+var parC = b.create('parallel', [L2, Cp], {strokeColor: C.note, strokeWidth: 1.5, dash: 3});
+
+var angA = b.create('angle', [B, A, Cp], {radius: 0.75, strokeColor: C.work, fillColor: C.work, fillOpacity: 0.3, withLabel: false});
+var angB = b.create('angle', [Cp, B, A], {radius: 0.75, strokeColor: C.work, fillColor: C.work, fillOpacity: 0.3, withLabel: false});
+var angC = b.create('angle', [A, Cp, B], {radius: 0.75, strokeColor: C.work, fillColor: C.work, fillOpacity: 0.3, withLabel: false});
+
+Shell.group('กำหนดเส้นขนานและเส้นตัดสามเส้น');
+
+var s1 = Shell.step('กำหนดเส้นขนานคู่ $L_1 \\parallel L_2$ ถูกตัดด้วยเส้นตรงสามเส้น $t_1, t_2, t_3$ ที่มีมุมเอียงต่างกัน เกิดจุดตัดสามจุด $A, B, C$ ซึ่งประกอบกันเป็นรูปสามเหลี่ยม $\\triangle ABC$');
+Shell.on(s1, L1, L2, t1, t2, t3, A, B, Cp, tri);
+Shell.tag(s1, [0.3, 6.4], '$L_1$', {role: 'given'});
+Shell.tag(s1, [0.3, 0.4], '$L_2$', {role: 'given'});
+Shell.tag(s1, A, '$A$', {role: 'given'});
+Shell.tag(s1, B, '$B$', {role: 'given'});
+Shell.tag(s1, Cp, '$C$', {role: 'given'});
+
+Shell.group('เทียบมุมเอียงกับสมบัติของเส้นขนาน');
+
+var s2 = Shell.step('ให้เส้นตรง $t_1, t_2, t_3$ ทำมุมเอียงกับแนวเส้นขนานเท่ากับ $\\theta_1, \\theta_2, \\theta_3$ ตามลำดับ โดยสมบัติของเส้นขนาน เส้นตรงแต่ละเส้นจะทำมุมกับแนวเส้นขนานทุกเส้นเท่ากันเสมอ', {
+  why: 'เมื่อเส้นตรงตัดเส้นขนานคู่หนึ่ง มุมสมนัยและมุมแย้งจะมีขนาดเท่ากันทุกประการ'
+});
+Shell.on(s2, parA, parB, parC);
+Shell.tag(s2, [9.5, 6.4], 'แนวขนาน $\\theta = 0^\\circ$', {role: 'note', until: 'step'});
+
+var s3 = Shell.step('หามุมภายใน $\\angle A$ และ $\\angle B$ จากผลต่างของมุมเอียงเทียบกับแนวเส้นขนาน:<br>• ที่จุดยอด $A$: $\\angle A = \\theta_2 - \\theta_1$<br>• ที่จุดยอด $B$: $\\angle B = \\theta_1 - \\theta_3$', {
+  why: 'มุมระหว่างเส้นตรงสองเส้นที่ตัดกันมีขนาดเท่ากับผลต่างของมุมเอียงของเส้นทั้งสองเทียบกับแนวอ้างอิงเดียวกัน',
+  uses: [2]
+});
+Shell.on(s3, angA, angB);
+Shell.tag(s3, [5.4, 4.4], '$\\angle A = \\theta_2 - \\theta_1$', {role: 'work', until: 'step'});
+Shell.tag(s3, [2.9, 1.9], '$\\angle B = \\theta_1 - \\theta_3$', {role: 'work', until: 'step'});
+
+var s4 = Shell.step('หามุมภายใน $\\angle C$ โดยพิจารณาเส้นตรง $t_2$ และ $t_3$ ที่ตัดกัน:<br>มุมเอียงระหว่างเส้นทั้งสองคือ $\\theta_2 - \\theta_3$ ซึ่งเป็นมุมภายนอกบนเส้นตรง<br>ดังนั้น มุมภายในคือ $\\angle C = 180^\\circ - (\\theta_2 - \\theta_3)$', {
+  why: 'มุมประชิดบนเส้นตรงเดียวกันรวมกันได้ $180^\\circ$',
+  uses: [2]
+});
+Shell.on(s4, angC);
+Shell.tag(s4, [7.3, 3.1], '$\\angle C = 180^\\circ - (\\theta_2 - \\theta_3)$', {role: 'work', until: 'step'});
+
+Shell.group('พิสูจน์ผลรวมของมุมภายใน');
+
+var s5 = Shell.step('นำขนาดของมุมภายในทั้งสามมารวมกัน:<br>$$\\angle A + \\angle B + \\angle C = (\\theta_2 - \\theta_1) + (\\theta_1 - \\theta_3) + [180^\\circ - (\\theta_2 - \\theta_3)]$$จัดรูปพีชคณิตโดยเปิดวงเล็บ:<br>$$= (\\theta_2 - \\theta_2) + (-\\theta_1 + \\theta_1) + (-\\theta_3 + \\theta_3) + 180^\\circ = 180^\\circ$$', {
+  why: 'ตัวแปรมุมเอียง $\\theta_1, \\theta_2, \\theta_3$ หักล้างกันหมดพอดี ผลบวกจึงมีค่าคงที่เสมอ',
+  uses: [3, 4]
+});
+
+Shell.answer(
+  'ผลรวมของมุมภายในของรูปสามเหลี่ยม',
+  '$\\angle A + \\angle B + \\angle C = 180^\\circ$',
+  {sanity: 'ผลรวมของมุมมีค่าเท่ากับ $180^\\circ$ เสมอ ไม่ขึ้นกับค่ามุมเอียง $\\theta_1, \\theta_2, \\theta_3$ หรือระยะห่างระหว่างเส้นขนาน ซึ่งสอดคล้องกับกรณีพื้นฐานของยูคลิดเมื่อวางเส้นขนานทับด้าน $BC$'}
+);
+
+Shell.done();
+</script>
+</body></html>

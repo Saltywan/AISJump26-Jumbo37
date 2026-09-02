@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>การแทรกสอดของแสงผ่านสลิตคู่ (การทดลองของยังก์)</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+var SVGNS = 'http://www.w3.org/2000/svg';
+
+function createSvg(tag, attrs) {
+  var el = document.createElementNS(SVGNS, tag);
+  for (var k in attrs) {
+    el.setAttribute(k, attrs[k]);
+  }
+  return el;
+}
+
+Shell.page({
+  title: 'การแทรกสอดของแสงผ่านสลิตคู่ (Young\'s Experiment)',
+  problem: 'การทดลองยังก์ใช้แสงความยาวคลื่น 500 nm ผ่านสลิตคู่ห่างกัน 0.1 mm บนฉากห่างออกไป 1.5 เมตร จงหาตำแหน่งของแถบสว่างลำดับที่ 3 และอธิบายว่าจะเกิดอะไรขึ้นกับรูปแบบแทรกสอดถ้าใช้แสงสีขาวแทนแสงสีเดียว'
+});
+
+var g = Shell.canvas();
+var C = Shell.C;
+
+var PX_PER_M = 320;
+var PX_PER_MM = 6;
+
+Shell.setup('ระยะระหว่างสลิตถึงฉาก ($L = 1.5$ m) มีค่ามากกว่าระยะห่างระหว่างช่องสลิต ($d = 0.1$ mm) ถึง 15,000 เท่า ทำให้มุมเบน $\\theta$ ของแถบสว่างมีค่าน้อยมาก จึงใช้การประมาณมุมเล็ก $\\sin\\theta \\approx \\tan\\theta = \\frac{y}{L}$ ได้อย่างแม่นยำ');
+
+Shell.group('คำนวณหาตำแหน่งแถบสว่างลำดับที่ 3');
+
+var s1 = Shell.step('ติดตั้งอุปกรณ์: กำหนดระนาบสลิตคู่ที่ห่างกัน $d = 0.1$ mm และฉากรับภาพที่อยู่ห่างออกไป $L = 1.5$ m');
+
+var barrierTop = createSvg('rect', {x: 176, y: 50, width: 8, height: 195, fill: C.note, rx: 2});
+var barrierMid = createSvg('rect', {x: 176, y: 255, width: 8, height: 30, fill: C.note, rx: 2});
+var barrierBot = createSvg('rect', {x: 176, y: 295, width: 8, height: 195, fill: C.note, rx: 2});
+s1.appendChild(barrierTop);
+s1.appendChild(barrierMid);
+s1.appendChild(barrierBot);
+
+var screenBar = createSvg('rect', {x: 658, y: 50, width: 6, height: 440, fill: C.note, rx: 2});
+s1.appendChild(screenBar);
+
+var centerAxis = createSvg('line', {x1: 140, y1: 270, x2: 660, y2: 270, stroke: C.note, 'stroke-dasharray': '6 4', 'stroke-width': 1.5});
+s1.appendChild(centerAxis);
+
+for (var wx = 75; wx <= 165; wx += 30) {
+  var waveFront = createSvg('line', {x1: wx, y1: 220, x2: wx, y2: 320, stroke: C.given, 'stroke-width': 2, 'stroke-opacity': 0.7});
+  s1.appendChild(waveFront);
+}
+
+Shell.label(s1, 110, 195, '$\\lambda = 500$ nm', {role:'given', anchor:[135, 220], until:3});
+Shell.label(s1, 130, 270, '$d = 0.1$ mm', {role:'given', anchor:[176, 270], until:'end'});
+Shell.label(s1, 196, 245, '$S_1$', {role:'note', anchor:[180, 250], until:3});
+Shell.label(s1, 196, 295, '$S_2$', {role:'note', anchor:[180, 290], until:3});
+Shell.label(s1, 660, 35, 'ฉากรับภาพ', {role:'note', anchor:[660, 50], until:'end'});
+
+Shell.arrow(s1, 180, 470, 660, 470, {role:'given', label:'$L = 1.5$ m', value:1.5, unit:'m', until:'end'});
+
+var s2 = Shell.step('แถบสว่างเกิดจากการแทรกสอดแบบเสริมกัน: ผลต่างทางเดินแสง $\\Delta r = d\\sin\\theta = n\\lambda$ โดย $\\sin\\theta \\approx \\frac{y_n}{L}$', {
+  why:'เนื่องจาก $L \\gg d$ แนวรังสีแสงที่ไปยังจุดเดียวกันบนฉากแทบจะขนานกัน มุม $\\theta$ จึงเล็กมากทำให้ $\\sin\\theta \\approx \\tan\\theta = \\frac{y}{L}$'
+});
+
+var ray1 = createSvg('line', {x1: 180, y1: 250, x2: 660, y2: 135, stroke: C.work, 'stroke-width': 2});
+var ray2 = createSvg('line', {x1: 180, y1: 290, x2: 660, y2: 135, stroke: C.work, 'stroke-width': 2});
+s2.appendChild(ray1);
+s2.appendChild(ray2);
+
+var centerRay = createSvg('line', {x1: 180, y1: 270, x2: 660, y2: 135, stroke: C.note, 'stroke-dasharray': '4 4', 'stroke-width': 1.5});
+s2.appendChild(centerRay);
+
+var thetaArc = createSvg('path', {d: 'M 220 270 A 40 40 0 0 0 217 259', fill: 'none', stroke: C.note, 'stroke-width': 1.5});
+s2.appendChild(thetaArc);
+
+var perpLine = createSvg('line', {x1: 180, y1: 250, x2: 192, y2: 286, stroke: C.warn, 'stroke-width': 2, 'stroke-dasharray': '3 3'});
+var pathDiffSeg = createSvg('line', {x1: 180, y1: 290, x2: 192, y2: 286, stroke: C.warn, 'stroke-width': 3.5});
+s2.appendChild(perpLine);
+s2.appendChild(pathDiffSeg);
+
+Shell.label(s2, 235, 260, '$\\theta$', {role:'note', anchor:[219, 265], until:'step'});
+Shell.label(s2, 215, 305, '$\\Delta r = 3\\lambda$', {role:'warn', anchor:[186, 288], until:'step'});
+Shell.label(s2, 705, 270, 'แถบกลาง ($n = 0$)', {role:'note', anchor:[660, 270], until:'end'});
+
+var s3 = Shell.step('แทนค่าสำหรับแถบสว่างลำดับที่ 3 ($n = 3$): $y_3 = \\frac{3\\lambda L}{d} = \\frac{3(500 \\times 10^{-9})(1.5)}{0.1 \\times 10^{-3}} = 22.5$ mm', {
+  uses: [1, 2]
+});
+
+var fringePositions = [270, 225, 315, 180, 360, 135, 405];
+fringePositions.forEach(function(fy) {
+  var isTarget = (fy === 135);
+  var fMark = createSvg('rect', {
+    x: 656, y: fy - 6, width: 14, height: 12, rx: 3,
+    fill: isTarget ? C.answer : C.work,
+    'fill-opacity': isTarget ? 0.95 : 0.4
+  });
+  s3.appendChild(fMark);
+});
+
+var dotP3 = createSvg('circle', {cx: 660, cy: 135, r: 5, fill: C.answer});
+s3.appendChild(dotP3);
+
+Shell.arrow(s3, 680, 270, 680, 135, {role:'answer', label:'$y_3 = 22.5$ mm', value:22.5, unit:'mm', until:'end'});
+Shell.label(s3, 765, 135, 'แถบสว่างที่ 3 ($n = 3$)', {role:'answer', anchor:[660, 135], until:'end'});
+
+Shell.group('ผลของการใช้แสงสีขาวแทนแสงสีเดียว');
+
+var s4 = Shell.step('แถบสว่างกลาง ($n = 0$): ผลต่างทางเดินแสง $\\Delta r = 0$ สำหรับทุกความยาวคลื่น แสงทุกสีจึงเสริมกันที่กึ่งกลางเกิดเป็น <b>แถบสีขาวล้วน</b>');
+
+var whiteCentralFringe = createSvg('rect', {
+  x: 654, y: 261, width: 22, height: 18, rx: 3,
+  fill: C.note, stroke: C.answer, 'stroke-width': 2
+});
+s4.appendChild(whiteCentralFringe);
+
+Shell.label(s4, 765, 270, 'แถบกลาง: สีขาวล้วน ($\\Delta r = 0$ ทุกสี)', {role:'note', anchor:[660, 270], until:'step'});
+
+var s5 = Shell.step('แถบสว่างลำดับถัดไป ($n \\ge 1$): ตำแหน่งแปรผันตรงกับความยาวคลื่น ($y_n \\propto \\lambda$) แสงสีม่วงมีความยาวคลื่นน้อยกว่าแสงสีแดง จึงแยกเป็น <b>สเปกตรัมสีรุ้ง</b> โดยสีม่วงอยู่ขอบในและสีแดงอยู่ขอบนอก');
+
+var rainbowOuter = createSvg('rect', {x: 655, y: 206, width: 18, height: 12, rx: 2, fill: C.warn, 'fill-opacity': 0.85});
+var rainbowInner = createSvg('rect', {x: 655, y: 228, width: 18, height: 12, rx: 2, fill: C.work, 'fill-opacity': 0.85});
+s5.appendChild(rainbowOuter);
+s5.appendChild(rainbowInner);
+
+Shell.label(s5, 780, 210, 'ขอบนอก: แสงสีแดง ($\\lambda$ มาก $\\rightarrow y$ มาก)', {role:'warn', anchor:[673, 212], until:'end'});
+Shell.label(s5, 780, 236, 'ขอบใน: แสงสีม่วง ($\\lambda$ น้อย $\\rightarrow y$ น้อย)', {role:'work', anchor:[673, 234], until:'end'});
+
+Shell.answer(
+  'ตำแหน่งแถบสว่างที่ 3 และผลเมื่อใช้แสงสีขาว',
+  '$y_3 = 22.5$ mm (แสงสีขาว: แถบกลางเป็นสีขาว แถบถัดไปกระจายออกเป็นสเปกตรัมสีรุ้ง ขอบในสีม่วง ขอบนอกสีแดง)',
+  {sanity: 'ระยะ $y_3 = 22.5$ mm สอดคล้องกับมุมเบน $\\theta \\approx 0.86^\\circ$ ซึ่งเล็กมากและสอดคล้องกับสมมติฐานมุมเล็กอย่างแท้จริง และการแยกสเปกตรัมเป็นไปตามความสัมพันธ์ $y \\propto \\lambda$'}
+);
+
+Shell.done();
+</script>
+</body></html>

@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>รูปเชิงขั้วและทฤษฎีบทของเดอมัวร์</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/jsxgraph.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/jsxgraphcore.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+Shell.page({
+  title: 'รูปเชิงขั้วและทฤษฎีบทของเดอมัวร์',
+  problem: 'จงเขียนจำนวนเชิงซ้อน $z = 1 + i$ ในรูปเชิงขั้ว (polar form) แล้วใช้ทฤษฎีบทของเดอมัวร์หาค่า $z^6$'
+});
+
+var b = Shell.board({
+  box: [-6.5, 3.5, 4.5, -9.5],
+  axis: true,
+  grid: true,
+  keepaspect: true
+});
+var C = Shell.C;
+
+Shell.setup('การคำนวณเลขยกกำลังสูงของจำนวนเชิงซ้อนในรูปพีชคณิต $a + bi$ ทำได้ยากหากกระจายทวินามโดยตรง เราจึงแปลงเป็น<b>รูปเชิงขั้ว</b> $r(\\cos\\theta + i\\sin\\theta)$ แล้วใช้<b>ทฤษฎีบทของเดอมัวร์</b> ซึ่งเปลี่ยนการยกกำลังเป็นการคูณมุม $n\\theta$ และยกกำลังขนาด $r^n$ แนวทางนี้ใช้ได้กับจำนวนเชิงซ้อนทุกตัวที่ต้องการยกกำลังหรือถอดกรณฑ์');
+
+/* --- จุดและเวกเตอร์หลักบนระนาบเชิงซ้อน --- */
+var O = b.create('point', [0, 0], {fixed: true, visible: false, name: '', withLabel: false});
+var ptXAxis = b.create('point', [2, 0], {fixed: true, visible: false, name: '', withLabel: false});
+
+/* z = 1 + i */
+var ptZ = b.create('point', [1, 1], {
+  fixed: true,
+  strokeColor: C.given,
+  fillColor: C.given,
+  size: 5,
+  name: '',
+  withLabel: false
+});
+var segZ = b.create('segment', [O, ptZ], {
+  strokeColor: C.given,
+  strokeWidth: 2.5,
+  lastArrow: true,
+  name: '',
+  withLabel: false
+});
+
+/* เส้นฉายแกนของ z */
+var ptX = b.create('point', [1, 0], {fixed: true, visible: false, name: '', withLabel: false});
+var ptY = b.create('point', [0, 1], {fixed: true, visible: false, name: '', withLabel: false});
+var projX = b.create('segment', [ptZ, ptX], {
+  strokeColor: C.note,
+  strokeWidth: 1.5,
+  dash: 2,
+  name: '',
+  withLabel: false
+});
+var projY = b.create('segment', [ptZ, ptY], {
+  strokeColor: C.note,
+  strokeWidth: 1.5,
+  dash: 2,
+  name: '',
+  withLabel: false
+});
+
+/* มุม theta = pi/4 */
+var angTheta = b.create('angle', [ptXAxis, O, ptZ], {
+  radius: 0.8,
+  strokeColor: C.work,
+  fillColor: C.work,
+  fillOpacity: 0.25,
+  name: '',
+  withLabel: false
+});
+
+/* เส้นทางเกลียวก้นหอยแสดงการหมุนและขยายขนาดตามทฤษฎีบทของเดอมัวร์ */
+var spiral = b.create('curve', [
+  function(t) {
+    var angle = Math.PI / 4 + t * (5 * Math.PI / 4);
+    var r = Math.pow(2, 2 * angle / Math.PI);
+    return r * Math.cos(angle);
+  },
+  function(t) {
+    var angle = Math.PI / 4 + t * (5 * Math.PI / 4);
+    var r = Math.pow(2, 2 * angle / Math.PI);
+    return r * Math.sin(angle);
+  },
+  0, 1
+], {
+  strokeColor: C.work,
+  strokeWidth: 2,
+  dash: 2,
+  name: '',
+  withLabel: false
+});
+
+/* ส่วนโค้งของมุม 6*theta = 3*pi/2 */
+var arc6Theta = b.create('curve', [
+  function(t) { return 1.6 * Math.cos(t); },
+  function(t) { return 1.6 * Math.sin(t); },
+  0, 1.5 * Math.PI
+], {
+  strokeColor: C.work,
+  strokeWidth: 2,
+  dash: 1,
+  name: '',
+  withLabel: false
+});
+
+/* จุดค่ายกกำลังระหว่างทาง z^2 ถึง z^5 */
+var ptZ2 = b.create('point', [0, 2], {fixed: true, strokeColor: C.note, fillColor: C.note, size: 3, name: '', withLabel: false});
+var ptZ3 = b.create('point', [-2, 2], {fixed: true, strokeColor: C.note, fillColor: C.note, size: 3, name: '', withLabel: false});
+var ptZ4 = b.create('point', [-4, 0], {fixed: true, strokeColor: C.note, fillColor: C.note, size: 3, name: '', withLabel: false});
+var ptZ5 = b.create('point', [-4, -4], {fixed: true, strokeColor: C.note, fillColor: C.note, size: 3, name: '', withLabel: false});
+
+/* จุดเคลื่อนที่แสดงการหมุนและขยายขนาด */
+var mover = b.create('point', [1, 1], {
+  strokeColor: C.work,
+  fillColor: C.work,
+  size: 4,
+  name: '',
+  withLabel: false
+});
+
+/* z^6 = -8i ที่ (0, -8) */
+var ptZ6 = b.create('point', [0, -8], {
+  fixed: true,
+  strokeColor: C.answer,
+  fillColor: C.answer,
+  size: 6,
+  name: '',
+  withLabel: false
+});
+var segZ6 = b.create('segment', [O, ptZ6], {
+  strokeColor: C.answer,
+  strokeWidth: 3,
+  lastArrow: true,
+  name: '',
+  withLabel: false
+});
+
+/* --- กลุ่มขั้นตอนที่ 1: แปลงเป็นรูปเชิงขั้ว --- */
+Shell.group('แปลงเป็นรูปเชิงขั้ว $z = r(\\cos\\theta + i\\sin\\theta)$');
+
+var s1 = Shell.step('เขียน $z = 1 + i$ บนระนาบเชิงซ้อน เพื่อระบุส่วนจริง $x = 1$ และส่วนจินตภาพ $y = 1$<br>จุด $(1, 1)$ อยู่ในจตุภาคที่ 1', {
+  why: 'ต้องแยกส่วนจริงและส่วนจินตภาพเพื่อนำไปคำนวณขนาดและทิศทางบนระนาบเชิงซ้อน'
+});
+Shell.on(s1, ptZ, segZ, ptX, ptY, projX, projY);
+Shell.tag(s1, ptZ, '$z = 1 + i$', {role: 'given'});
+Shell.tag(s1, ptX, '$x = 1$', {role: 'note', until: 'step'});
+Shell.tag(s1, ptY, '$y = 1$', {role: 'note', until: 'step'});
+Shell.tag(s1, [4.0, 0.3], '$\\text{Re}$', {role: 'note'});
+Shell.tag(s1, [0.3, 3.0], '$\\text{Im}$', {role: 'note'});
+
+var s2 = Shell.step('คำนวณมอดุลัส (ขนาด) $r = |z|$ จากทฤษฎีบทพีทาโกรัส<br>$r = \\sqrt{x^2 + y^2} = \\sqrt{1^2 + 1^2} = \\sqrt{2}$', {
+  why: 'มอดุลัสคือระยะห่างจากจุดกำเนิดถึงจุด $(x, y)$ ตามทฤษฎีบทพีทาโกรัส',
+  uses: [1]
+});
+Shell.tag(s2, [0.35, 0.75], '$r = \\sqrt{2}$', {role: 'work'});
+
+var s3 = Shell.step('หาอาร์กิวเมนต์ (มุม) $\\theta$ จาก $\\tan\\theta = \\frac{y}{x} = \\frac{1}{1} = 1$<br>เนื่องจากจุดอยู่ในจตุภาคที่ 1 จะได้ $\\theta = \\frac{\\pi}{4}$ (หรือ $45^\\circ$)<br>ดังนั้น รูปเชิงขั้วคือ $z = \\sqrt{2}\\left(\\cos\\frac{\\pi}{4} + i\\sin\\frac{\\pi}{4}\\right)$', {
+  why: 'มุม $\\theta$ วัดทวนเข็มนาฬิกาจากแกนจริงบวก ในจตุภาคที่ 1 ค่า $\\tan\\theta = 1$ ให้มุม $\\frac{\\pi}{4}$',
+  uses: [1, 2]
+});
+Shell.on(s3, angTheta);
+Shell.tag(s3, [0.9, 0.35], '$\\theta = \\frac{\\pi}{4}$', {role: 'work'});
+
+/* --- กลุ่มขั้นตอนที่ 2: ทฤษฎีบทของเดอมัวร์ --- */
+Shell.group('ใช้ทฤษฎีบทของเดอมัวร์หาค่า $z^6$');
+
+var s4 = Shell.step('ประยุกต์ทฤษฎีบทของเดอมัวร์ $[r(\\cos\\theta + i\\sin\\theta)]^n = r^n(\\cos n\\theta + i\\sin n\\theta)$ สำหรับ $n = 6$:<br>• ขนาดใหม่: $r^6 = (\\sqrt{2})^6 = (\\sqrt{2}^2)^3 = 2^3 = 8$<br>• มุมใหม่: $6\\theta = 6\\left(\\frac{\\pi}{4}\\right) = \\frac{3\\pi}{2}$ rad (หรือ $270^\\circ$)', {
+  why: 'การคูณจำนวนเชิงซ้อนในรูปเชิงขั้วคือการคูณขนาดและบวกมุม เมื่อยกกำลัง $n$ จึงได้ขนาด $r^n$ และมุม $n\\theta$',
+  uses: [3]
+});
+Shell.on(s4, spiral, arc6Theta);
+Shell.on(s4, mover, ptZ2, ptZ3, ptZ4, ptZ5, {until: 'step'});
+Shell.tag(s4, [-1.4, -1.4], '$6\\theta = \\frac{3\\pi}{2}$', {role: 'work'});
+
+Shell.motion(s4, mover, function(t) {
+  var angle = Math.PI / 4 + t * (5 * Math.PI / 4);
+  var r = Math.pow(2, 2 * angle / Math.PI);
+  return [r * Math.cos(angle), r * Math.sin(angle)];
+}, {dur: 1500});
+
+var s5 = Shell.step('แปลงกลับเป็นรูปพีชคณิต $a + bi$:<br>$z^6 = 8\\left(\\cos\\frac{3\\pi}{2} + i\\sin\\frac{3\\pi}{2}\\right) = 8(0 + i(-1)) = -8i$', {
+  why: 'มุม $\\frac{3\\pi}{2}$ ชี้ไปตามแกนจินตภาพด้านลบ ทำให้ $\\cos\\frac{3\\pi}{2} = 0$ และ $\\sin\\frac{3\\pi}{2} = -1$',
+  uses: [4]
+});
+Shell.on(s5, ptZ6, segZ6);
+Shell.tag(s5, ptZ6, '$z^6 = -8i$', {role: 'answer'});
+Shell.tag(s5, [0.6, -4.0], '$|z^6| = 8$', {role: 'answer'});
+
+Shell.answer(
+  'รูปเชิงขั้วและค่าของ $z^6$',
+  '$z = \\sqrt{2}\\left(\\cos\\frac{\\pi}{4} + i\\sin\\frac{\\pi}{4}\\right),\\quad z^6 = -8i$',
+  {sanity: 'มุม $\\frac{\\pi}{4}$ หมุนทวนเข็มนาฬิกา 6 ครั้งเป็นมุม $\\frac{3\\pi}{2}$ ซึ่งอยู่บนแกนจินตภาพด้านลบพอดี คำตอบจึงเป็นจำนวนจินตภาพแท้ลบ $-8i$ และมีขนาด $|z^6| = (\\sqrt{2})^6 = 8$ ถูกต้อง'}
+);
+
+Shell.done();
+</script>
+</body></html>

@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>สมการเส้นตรงตั้งฉากและพื้นที่สามเหลี่ยม</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/jsxgraph.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/jsxgraphcore.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+Shell.page({
+  title: 'สมการเส้นตรงตั้งฉากและพื้นที่สามเหลี่ยม',
+  problem: 'กำหนดเส้นตรง $l_1: 2x + 3y = 12$ และเส้นตรง $l_2$ ที่ตั้งฉากกับ $l_1$ และผ่านจุดตัดของ $l_1$ กับแกน $x$ จงหาสมการของ $l_2$ และหาพื้นที่สามเหลี่ยมที่เกิดจาก $l_1, l_2$ และแกน $y$'
+});
+
+var b = Shell.board({
+  box: [-4, 7, 9, -11],
+  grid: true,
+  keepaspect: true
+});
+var C = Shell.C;
+
+Shell.setup('ใช้ความสัมพันธ์ของเส้นตรงที่ตั้งฉากกันคือผลคูณความชัน $m_1 \\cdot m_2 = -1$ เพื่อหาสมการของ $l_2$ จากนั้นหาจุดตัดแกน $y$ ของเส้นตรงทั้งสองเพื่อใช้เป็นฐานของรูปสามเหลี่ยม');
+
+var pOrigin = b.create('point', [0, 0], {visible: false});
+var pX1 = b.create('point', [1, 0], {visible: false});
+var pY1 = b.create('point', [0, 1], {visible: false});
+var axisX = b.create('line', [pOrigin, pX1], {visible: false});
+var axisY = b.create('line', [pOrigin, pY1], {visible: false});
+
+var l1 = b.create('line', [-12, 2, 3], {
+  strokeColor: C.given,
+  strokeWidth: 2.5,
+  withLabel: false,
+  name: ''
+});
+
+var A = b.create('intersection', [l1, axisX, 0], {
+  strokeColor: C.given,
+  fillColor: C.given,
+  size: 4,
+  withLabel: false,
+  name: ''
+});
+
+var B = b.create('intersection', [l1, axisY, 0], {
+  strokeColor: C.given,
+  fillColor: C.given,
+  size: 4,
+  withLabel: false,
+  name: ''
+});
+
+var l2 = b.create('perpendicular', [l1, A], {
+  strokeColor: C.work,
+  strokeWidth: 2.5,
+  withLabel: false,
+  name: ''
+});
+
+var Cpt = b.create('intersection', [l2, axisY, 0], {
+  strokeColor: C.work,
+  fillColor: C.work,
+  size: 4,
+  withLabel: false,
+  name: ''
+});
+
+var rightAngle = b.create('angle', [B, A, Cpt], {
+  type: 'square',
+  radius: 0.7,
+  strokeColor: C.note,
+  strokeWidth: 1.5,
+  withLabel: false,
+  name: ''
+});
+
+var tri = b.create('polygon', [A, B, Cpt], {
+  fillColor: C.answer,
+  fillOpacity: 0.25,
+  strokeColor: C.answer,
+  strokeWidth: 2,
+  borders: {strokeColor: C.answer, strokeWidth: 2, withLabel: false},
+  vertices: {visible: false},
+  withLabel: false,
+  name: ''
+});
+
+var baseSeg = b.create('segment', [B, Cpt], {
+  strokeColor: C.note,
+  strokeWidth: 2.5,
+  dash: 2,
+  withLabel: false,
+  name: ''
+});
+
+var hSeg = b.create('segment', [pOrigin, A], {
+  strokeColor: C.note,
+  strokeWidth: 2.5,
+  dash: 2,
+  withLabel: false,
+  name: ''
+});
+
+Shell.group('หาจุดตัดแกนและวาดเส้นตรง $l_1$');
+
+var s1 = Shell.step(
+  'หาจุดตัดแกนของเส้นตรง $l_1: 2x + 3y = 12$<br>' +
+  '• จุดตัดแกน $x$: แทน $y = 0$ ได้ $2x = 12 \\implies x = 6$ ได้จุด $A(6, 0)$<br>' +
+  '• จุดตัดแกน $y$: แทน $x = 0$ ได้ $3y = 12 \\implies y = 4$ ได้จุด $B(0, 4)$',
+  {why: 'การหาจุดตัดแกน $x$ และแกน $y$ ช่วยให้ลากเส้นตรงบนระนาบพิกัดฉากได้อย่างแม่นยำ'}
+);
+Shell.on(s1, l1, A, B);
+Shell.tag(s1, A, 'A(6, 0)', {role: 'given'});
+Shell.tag(s1, B, 'B(0, 4)', {role: 'given'});
+Shell.tag(s1, [-2, 5.3], 'l_1: 2x + 3y = 12', {role: 'given', until: 2});
+
+Shell.group('สร้างสมการของเส้นตรง $l_2$');
+
+var s2 = Shell.step(
+  'จัดรูปสมการ $l_1$ เพื่อหาความชัน:<br>' +
+  '$3y = -2x + 12 \\implies y = -\\frac{2}{3}x + 4$ จะได้ความชัน $m_1 = -\\frac{2}{3}$<br>' +
+  'เนื่องจาก $l_2 \\perp l_1$ จึงได้ผลคูณความชัน $m_1 \\cdot m_2 = -1$<br>' +
+  'ดังนั้นความชันของ $l_2$ คือ $m_2 = -\\frac{1}{m_1} = \\frac{3}{2}$',
+  {
+    why: 'เส้นตรงสองเส้นที่ตั้งฉากกันในระนาบ ผลคูณของความชันต้องเท่ากับ $-1$',
+    uses: [1]
+  }
+);
+
+var s3 = Shell.step(
+  'สร้างสมการของเส้นตรง $l_2$ ซึ่งผ่านจุด $A(6, 0)$ และมีความชัน $m_2 = \\frac{3}{2}$:<br>' +
+  'จากสมการจุด-ความชัน $y - y_1 = m(x - x_1)$<br>' +
+  '$y - 0 = \\frac{3}{2}(x - 6) \\implies 2y = 3(x - 6)$<br>' +
+  '$2y = 3x - 18 \\implies 3x - 2y = 18$ (หรือ $3x - 2y - 18 = 0$)',
+  {
+    why: 'ใช้รูปสมการจุด-ความชัน เพราะทราบจุดที่เส้นตรงตัดผ่านและความชันที่ตั้งฉากแล้ว',
+    uses: [1, 2]
+  }
+);
+Shell.on(s3, l2, rightAngle);
+Shell.tag(s3, [7.2, 1.8], 'l_2: 3x - 2y = 18', {role: 'answer'});
+
+Shell.group('หาจุดยอดและพื้นที่ของสามเหลี่ยม');
+
+var s4 = Shell.step(
+  'หาจุดตัดของเส้นตรง $l_2$ กับแกน $y$ เพื่อเป็นจุดยอดที่สามของสามเหลี่ยม:<br>' +
+  'แทน $x = 0$ ในสมการ $3x - 2y = 18$:<br>' +
+  '$3(0) - 2y = 18 \\implies -2y = 18 \\implies y = -9$<br>' +
+  'ดังนั้นจุดตัดแกน $y$ ของ $l_2$ คือจุด $C(0, -9)$',
+  {
+    why: 'แกน $y$ เป็นหนึ่งในขอบเขตของรูปสามเหลี่ยม จุดตัดนี้จึงเป็นจุดยอดของรูป',
+    uses: [3]
+  }
+);
+Shell.on(s4, Cpt);
+Shell.tag(s4, Cpt, 'C(0, -9)', {role: 'work'});
+
+var s5 = Shell.step(
+  'คำนวณพื้นที่รูปสามเหลี่ยม $ABC$ ที่เกิดจาก $l_1, l_2$ และแกน $y$:<br>' +
+  '• ให้ด้าน $BC$ บนแกน $y$ เป็นฐาน จะได้ความยาวฐาน $= 4 - (-9) = 13$ หน่วย<br>' +
+  '• ส่วนสูงคือระยะทางตั้งฉากจากจุด $A(6, 0)$ ไปยังแกน $y$ ซึ่งเท่ากับ $6 - 0 = 6$ หน่วย<br>' +
+  'พื้นที่สามเหลี่ยม $= \\frac{1}{2} \\times 13 \\times 6 = 39$ ตารางหน่วย',
+  {
+    why: 'ด้าน $BC$ วางตัวอยู่บนแกน $y$ พอดี จึงใช้ความยาวบนแกน $y$ เป็นฐานและใช้ระยะแนวนอนจากจุดยอด $A$ เป็นส่วนสูงได้ทันที',
+    uses: [1, 4]
+  }
+);
+Shell.on(s5, tri, baseSeg, hSeg);
+Shell.tag(s5, [2, -1.7], 'พื้นที่ = 39', {role: 'answer'});
+
+Shell.answer(
+  'สมการของ $l_2$ และพื้นที่รูปสามเหลี่ยม',
+  '$3x - 2y = 18$ และ พื้นที่ $= 39$ ตารางหน่วย',
+  {
+    sanity: 'ตรวจสอบด้วยสูตรพื้นที่สามเหลี่ยมมุมฉาก $\\triangle ABC$ ที่มี $\\angle A = 90^\\circ$: ความยาวด้านประกอบมุมฉาก $AB = \\sqrt{6^2 + (-4)^2} = \\sqrt{52} = 2\\sqrt{13}$ และ $AC = \\sqrt{6^2 + 9^2} = \\sqrt{117} = 3\\sqrt{13}$ จะได้พื้นที่ $\\frac{1}{2} \\times 2\\sqrt{13} \\times 3\\sqrt{13} = 39$ ตารางหน่วย ซึ่งได้ผลลัพธ์ตรงกัน'
+  }
+);
+
+Shell.done();
+</script>
+</body></html>

@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>การแก้ระบบอสมการเชิงเส้นตัวแปรเดียว</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+var SVGNS = 'http://www.w3.org/2000/svg';
+
+Shell.page({
+  title: 'การแก้ระบบอสมการเชิงเส้นตัวแปรเดียว',
+  problem: 'จงหาคำตอบของระบบอสมการ $2x - 1 < 3x + 4$ และ $5 - x \\le 2x - 1$ พร้อมเขียนกราฟแสดงคำตอบร่วมบนเส้นจำนวน'
+});
+
+var g = Shell.canvas();
+var C = Shell.C;
+
+// กำหนดมาตราส่วน: 1 หน่วยบนเส้นจำนวน = 55 พิกเซล
+var PX_PER_UNIT = 55;
+var X_ORIGIN = 480;
+var Y_LINE = 410;
+
+function toX(val) {
+  return X_ORIGIN + val * PX_PER_UNIT;
+}
+
+function svgEl(tag, attrs) {
+  var el = document.createElementNS(SVGNS, tag);
+  for (var k in attrs) {
+    el.setAttribute(k, attrs[k]);
+  }
+  return el;
+}
+
+// -------------------------------------------------------------------------
+// ส่วนโครงสร้างพื้นฐานของเส้นจำนวน (แกนหลักและสเกลแสดงตลอดเวลา)
+// -------------------------------------------------------------------------
+var axisGroup = svgEl('g', {});
+g.appendChild(axisGroup);
+
+// เส้นแกนจำนวนหลัก
+var mainAxis = svgEl('line', {
+  x1: 95, y1: Y_LINE,
+  x2: 865, y2: Y_LINE,
+  stroke: C.note,
+  'stroke-width': '2'
+});
+axisGroup.appendChild(mainAxis);
+
+// หัวลูกศรซ้าย-ขวาของเส้นจำนวน
+var arrowLeft = svgEl('polygon', {
+  points: '95,' + Y_LINE + ' 108,' + (Y_LINE - 6) + ' 108,' + (Y_LINE + 6),
+  fill: C.note
+});
+var arrowRight = svgEl('polygon', {
+  points: '865,' + Y_LINE + ' 852,' + (Y_LINE - 6) + ' 852,' + (Y_LINE + 6),
+  fill: C.note
+});
+axisGroup.appendChild(arrowLeft);
+axisGroup.appendChild(arrowRight);
+
+// ขีดสเกลและตัวเลขบนเส้นจำนวน (-6 ถึง 6)
+for (var i = -6; i <= 6; i++) {
+  var xp = toX(i);
+  var isKey = (i === -5 || i === 2 || i === 0);
+  var tick = svgEl('line', {
+    x1: xp, y1: Y_LINE - 6,
+    x2: xp, y2: Y_LINE + 6,
+    stroke: C.note,
+    'stroke-width': isKey ? '2.5' : '1.5'
+  });
+  axisGroup.appendChild(tick);
+
+  Shell.label(g, xp, Y_LINE + 32, String(i), {
+    role: (i === -5 || i === 2) ? 'work' : 'note',
+    anchor: [xp, Y_LINE],
+    pin: true
+  });
+}
+
+// ป้ายกำกับหัวข้อภาพ
+Shell.label(g, 480, 80, 'แผนภาพแสดงช่วงคำตอบบนเส้นจำนวน', {
+  role: 'note',
+  anchor: [480, 80],
+  pin: true
+});
+
+// -------------------------------------------------------------------------
+// แนวทางการแก้โจทย์
+// -------------------------------------------------------------------------
+Shell.setup('ระบบอสมการที่มีคำว่า "และ" หมายถึงการหาเซตคำตอบร่วม (Intersection) ของทุกอสมการ โดยต้องแก้อสมการแต่ละข้อให้เสร็จสิ้น แล้วนำช่วงคำตอบมาเขียนลงบนเส้นจำนวนเดียวกันเพื่อหาจุดร่วม');
+
+// -------------------------------------------------------------------------
+// กลุ่มที่ 1: แก้อสมการที่ 1
+// -------------------------------------------------------------------------
+Shell.group('แก้อสมการที่ 1');
+
+var s1 = Shell.step(
+  'แก้อสมการ $2x - 1 < 3x + 4$<br>' +
+  'ย้ายข้าง: $2x - 3x < 4 + 1 \\implies -x < 5$<br>' +
+  'คูณด้วย $-1$ ทั้งสองข้างและกลับเครื่องหมาย: <b>$x > -5$</b><br>' +
+  'เขียนกราฟได้เป็น <b>จุดโปร่งที่ $-5$</b> แล้วลากเส้นตรงไปทางขวา',
+  {
+    why: 'เมื่อคูณหรือหารด้วยจำนวนลบ ต้องกลับทิศทางของเครื่องหมายอสมการเสมอ'
+  }
+);
+
+var Y1 = 175;
+
+// ป้ายชื่ออสมการที่ 1
+Shell.label(s1, 100, Y1, 'อสมการ (1)', {
+  role: 'work',
+  anchor: [toX(-5), Y1],
+  pin: true
+});
+
+// เส้นประโยงตำแหน่ง -5 ลงมายังแกนหลัก
+var guide1 = svgEl('line', {
+  x1: toX(-5), y1: Y1,
+  x2: toX(-5), y2: Y_LINE,
+  stroke: C.note,
+  'stroke-width': '1.5',
+  'stroke-dasharray': '4,4'
+});
+s1.appendChild(guide1);
+
+// รังสีแสดงคำตอบ x > -5 (ความยาว 11 หน่วย)
+Shell.arrow(s1, toX(-5), Y1, toX(-5) + 11 * PX_PER_UNIT, Y1, {
+  role: 'work',
+  label: '$x > -5$',
+  value: 11,
+  unit: 'UNIT',
+  until: 'end'
+});
+
+// จุดโปร่งที่ x = -5
+var circle1 = svgEl('circle', {
+  cx: toX(-5), cy: Y1, r: '6.5',
+  fill: '#ffffff',
+  stroke: C.work,
+  'stroke-width': '2.5'
+});
+s1.appendChild(circle1);
+
+Shell.label(s1, toX(-5), Y1 - 32, 'จุดโปร่ง (ไม่รวม $-5$)', {
+  role: 'work',
+  anchor: [toX(-5), Y1],
+  until: 'step'
+});
+
+// -------------------------------------------------------------------------
+// กลุ่มที่ 2: แก้อสมการที่ 2
+// -------------------------------------------------------------------------
+Shell.group('แก้อสมการที่ 2');
+
+var s2 = Shell.step(
+  'แก้อสมการ $5 - x \\le 2x - 1$<br>' +
+  'ย้ายข้าง: $-x - 2x \\le -1 - 5 \\implies -3x \\le -6$<br>' +
+  'หารด้วย $-3$ ทั้งสองข้างและกลับเครื่องหมาย: <b>$x \\ge 2$</b><br>' +
+  'เขียนกราฟได้เป็น <b>จุดทึบที่ $2$</b> แล้วลากเส้นตรงไปทางขวา',
+  {
+    why: 'หารด้วยจำนวนลบ ($-3$) เครื่องหมายอสมการจะเปลี่ยนจาก $\\le$ เป็น $\\ge$'
+  }
+);
+
+var Y2 = 275;
+
+// ป้ายชื่ออสมการที่ 2
+Shell.label(s2, 100, Y2, 'อสมการ (2)', {
+  role: 'work',
+  anchor: [toX(2), Y2],
+  pin: true
+});
+
+// เส้นประโยงตำแหน่ง 2 ลงมายังแกนหลัก
+var guide2 = svgEl('line', {
+  x1: toX(2), y1: Y2,
+  x2: toX(2), y2: Y_LINE,
+  stroke: C.note,
+  'stroke-width': '1.5',
+  'stroke-dasharray': '4,4'
+});
+s2.appendChild(guide2);
+
+// รังสีแสดงคำตอบ x >= 2 (ความยาว 4 หน่วย)
+Shell.arrow(s2, toX(2), Y2, toX(2) + 4 * PX_PER_UNIT, Y2, {
+  role: 'work',
+  label: '$x \\ge 2$',
+  value: 4,
+  unit: 'UNIT',
+  until: 'end'
+});
+
+// จุดทึบที่ x = 2
+var circle2 = svgEl('circle', {
+  cx: toX(2), cy: Y2, r: '6.5',
+  fill: C.work
+});
+s2.appendChild(circle2);
+
+Shell.label(s2, toX(2), Y2 - 32, 'จุดทึบ (รวม $2$)', {
+  role: 'work',
+  anchor: [toX(2), Y2],
+  until: 'step'
+});
+
+// -------------------------------------------------------------------------
+// กลุ่มที่ 3: หาคำตอบร่วมบนเส้นจำนวน
+// -------------------------------------------------------------------------
+Shell.group('หาคำตอบร่วมบนเส้นจำนวน');
+
+var s3 = Shell.step(
+  'พิจารณาช่วงที่เส้นกราฟทั้งสองทับซ้อนกัน (Intersection)<br>' +
+  'ช่วงที่สอดคล้องกับทั้ง $x > -5$ และ $x \\ge 2$ พร้อมกัน คือบริเวณตั้งแต่ $2$ ขึ้นไป<br>' +
+  'ดังนั้น คำตอบร่วมคือ <b>$x \\ge 2$</b> หรือช่วง <b>$[2, \\infty)$</b>',
+  {
+    why: 'คำว่า "และ" ในระบบอสมการต้องการค่า $x$ ที่ทำให้อสมการทั้งสองเป็นจริงพร้อมกัน',
+    uses: [1, 2]
+  }
+);
+
+// แถบไฮไลต์บริเวณที่ทับซ้อนกัน
+var overlapShade = svgEl('rect', {
+  x: toX(2), y: 135,
+  width: 4 * PX_PER_UNIT + 20, height: Y_LINE - 135,
+  fill: C.answer,
+  'fill-opacity': '0.12',
+  rx: '4'
+});
+s3.appendChild(overlapShade);
+
+Shell.label(s3, toX(2) + 110, 150, 'บริเวณคำตอบร่วม (ซ้ำกัน)', {
+  role: 'answer',
+  anchor: [toX(2) + 110, 225],
+  until: 'step'
+});
+
+// ป้ายกำกับผลลัพธ์ที่แกนหลัก
+Shell.label(s3, 100, Y_LINE, 'คำตอบร่วม', {
+  role: 'answer',
+  anchor: [toX(2), Y_LINE],
+  pin: true
+});
+
+// รังสีแสดงคำตอบร่วมบนเส้นจำนวน (ความยาว 4 หน่วย)
+Shell.arrow(s3, toX(2), Y_LINE, toX(2) + 4 * PX_PER_UNIT, Y_LINE, {
+  role: 'answer',
+  label: '$x \\ge 2$',
+  value: 4,
+  unit: 'UNIT'
+});
+
+// จุดทึบของคำตอบร่วมที่ x = 2 บนเส้นจำนวนหลัก
+var circleAns = svgEl('circle', {
+  cx: toX(2), cy: Y_LINE, r: '7.5',
+  fill: C.answer
+});
+s3.appendChild(circleAns);
+
+Shell.label(s3, 480, 485, 'เซตคำตอบร่วมคือ $[2, \\infty)$ หรือ $\\{x \\mid x \\ge 2\\}$', {
+  role: 'answer',
+  anchor: [toX(2), Y_LINE],
+  pin: true
+});
+
+// -------------------------------------------------------------------------
+// กล่องคำตอบสุดท้าย
+// -------------------------------------------------------------------------
+Shell.answer(
+  'เซตคำตอบของระบบอสมการ',
+  '$[2, \\infty)$ หรือ $\\{x \\mid x \\ge 2\\}$',
+  {
+    sanity: 'ตรวจสอบ: ที่ $x = 2$ อสมการแรกได้ $3 < 10$ (จริง) และอสมการสองได้ $3 \\le 3$ (จริง), หากทดสอบค่าที่อยู่นอกช่วง เช่น $x = 0$ จะพบว่าอสมการสองได้ $5 \\le -1$ ซึ่งเป็นเท็จ'
+  }
+);
+
+Shell.done();
+</script>
+</body></html>

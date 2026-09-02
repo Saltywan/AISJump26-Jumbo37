@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>สมการเส้นสัมผัสเส้นโค้ง</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/jsxgraph.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/jsxgraphcore.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+Shell.page({
+  title: 'สมการเส้นสัมผัสเส้นโค้ง',
+  problem: 'จงหาสมการเส้นสัมผัสเส้นโค้ง $y = x^3 - 2x$ ที่จุด $(2, 4)$'
+});
+
+var b = Shell.board({
+  box: [-4, 8, 6, -6],
+  grid: true,
+  keepaspect: true
+});
+var C = Shell.C;
+
+Shell.setup('ความชันของเส้นสัมผัสเส้นโค้ง ณ จุดใด ๆ มีค่าเท่ากับอนุพันธ์ $f\'(x)$ ณ จุดนั้น เมื่อทราบความชัน $m$ และจุดสัมผัส $(x_1, y_1)$ จึงสามารถสร้างสมการเส้นตรงได้จากรูปจุดและความชัน $y - y_1 = m(x - x_1)$');
+
+var curve = b.create('functiongraph', [function(x) {
+  return x * x * x - 2 * x;
+}], {
+  strokeColor: C.given,
+  strokeWidth: 2.5,
+  withLabel: false
+});
+
+var pt = b.create('glider', [2, 4, curve], {
+  strokeColor: C.given,
+  fillColor: C.given,
+  size: 4,
+  fixed: true,
+  withLabel: false
+});
+
+var tanLine = b.create('tangent', [pt], {
+  strokeColor: C.answer,
+  strokeWidth: 2.5,
+  withLabel: false
+});
+
+Shell.group('หาความชันของเส้นสัมผัสด้วยอนุพันธ์');
+
+var s1 = Shell.step('พิจารณาเส้นโค้ง $y = f(x) = x^3 - 2x$ และจุดสัมผัส $P(2, 4)$ บนเส้นโค้ง');
+Shell.on(s1, curve, pt);
+Shell.tag(s1, pt, 'P(2, 4)', {role: 'given', until: 'end'});
+Shell.tag(s1, [-1, 1], '$y = x^3 - 2x$', {role: 'given', until: 'end'});
+
+var s2 = Shell.step('หาอนุพันธ์ของฟังก์ชัน $f(x)$ เพื่อหาสูตรความชันทั่วไปของเส้นสัมผัส:<br>$\\displaystyle f\'(x) = \\frac{d}{dx}(x^3 - 2x) = 3x^2 - 2$', {
+  why: 'อนุพันธ์ของฟังก์ชันแทนอัตราการเปลี่ยนแปลงขณะใดขณะหนึ่ง ซึ่งก็คือความชันของเส้นสัมผัสเส้นโค้ง ณ ค่า $x$ ใด ๆ',
+  uses: [1]
+});
+
+var s3 = Shell.step('หาความชัน $m$ ณ จุดสัมผัส โดยแทนค่า $x = 2$ ใน $f\'(x)$:<br>$\\displaystyle m = f\'(2) = 3(2)^2 - 2 = 12 - 2 = 10$', {
+  why: 'ต้องการความชันเฉพาะที่จุด $x = 2$ จึงแทนค่า $x = 2$ ลงในสูตรอนุพันธ์ $f\'(x)$',
+  uses: [1, 2]
+});
+
+Shell.group('สร้างสมการเส้นสัมผัส');
+
+var s4 = Shell.step('ใช้สมการเส้นตรงในรูปจุดและความชัน $y - y_1 = m(x - x_1)$<br>แทนจุด $(x_1, y_1) = (2, 4)$ และความชัน $m = 10$:<br>$\\displaystyle y - 4 = 10(x - 2)$', {
+  why: 'เมื่อทราบจุดผ่านหนึ่งจุดและความชัน สามารถสร้างสมการเส้นตรงได้ทันทีจากรูปจุดและความชัน',
+  uses: [1, 3]
+});
+
+var s5 = Shell.step('จัดรูปสมการเส้นสัมผัสให้อยู่ในรูป $y = mx + c$:<br>$\\displaystyle y - 4 = 10x - 20 \\implies y = 10x - 16$<br>(หรือรูปทั่วไป $10x - y - 16 = 0$)', {
+  uses: [4]
+});
+Shell.on(s5, tanLine);
+Shell.tag(s5, [2.3, 7], '$y = 10x - 16$', {role: 'answer', until: 'end'});
+
+Shell.answer(
+  'สมการเส้นสัมผัสเส้นโค้งที่จุด $(2, 4)$ คือ',
+  '$y = 10x - 16$',
+  {sanity: 'ตรวจสอบ: ที่จุด $x = 2$ จะได้ $y = 10(2) - 16 = 4$ ตรงกับจุดสัมผัส $(2, 4)$ และความชัน $m = 10 > 0$ สอดคล้องกับกราฟที่กำลังเพิ่มขึ้น'}
+);
+
+Shell.done();
+</script>
+</body></html>

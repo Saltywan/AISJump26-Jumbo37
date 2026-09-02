@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>การเคลื่อนที่ของมวลบนโต๊ะผูกติดกับมวลห้อย</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+var SVGNS = 'http://www.w3.org/2000/svg';
+
+Shell.page({
+  title: 'การเคลื่อนที่ของระบบมวลและแรงตึงในเส้นเชือก',
+  problem: 'มวล A ($5$ kg) และมวล B ($3$ kg) ผูกด้วยเชือกผ่านรอกลื่นไร้แรงเสียดทาน โดย A วางบนโต๊ะแนวราบที่มี $\\mu = 0.2$ ส่วน B ห้อยอยู่ในแนวดิ่ง จงหาความเร่ง $a$ ของระบบและแรงตึงในเส้นเชือก $T$ พร้อมวาดแผนภาพวัตถุอิสระ (FBD)'
+});
+
+var g = Shell.canvas(), C = Shell.C;
+var PX_PER_N = 2.5;
+
+function svgEl(tag, attrs) {
+  var el = document.createElementNS(SVGNS, tag);
+  for (var k in attrs) {
+    el.setAttribute(k, attrs[k]);
+  }
+  return el;
+}
+
+Shell.setup('เนื่องจากเชือกไร้น้ำหนักและไม่ยืด มวลทั้งสองจึงเคลื่อนที่ด้วยขนาดความเร่ง $a$ เท่ากัน และแรงตึงเชือก $T$ มีขนาดเท่ากันตลอดเส้น กำหนดใช้ความเร่งโน้มถ่วง $g = 9.8$ m/s²');
+
+/* --- 1. ภาพจำลองสถานการณ์จริง (ด้านซ้าย) --- */
+var divLine = svgEl('line', {
+  x1: 440, y1: 40, x2: 440, y2: 490,
+  stroke: C.note, 'stroke-dasharray': '5 5', 'stroke-width': '1.5'
+});
+g.appendChild(divLine);
+
+Shell.label(g, 240, 50, 'ภาพจำลองสถานการณ์', {role: 'note', anchor: [240, 50], until: 'end', pin: true});
+
+/* โต๊ะ */
+var tableTop = svgEl('rect', {
+  x: 60, y: 240, width: 290, height: 14,
+  fill: 'none', stroke: C.note, 'stroke-width': '2'
+});
+var legLeft = svgEl('rect', {
+  x: 80, y: 254, width: 14, height: 196,
+  fill: 'none', stroke: C.note, 'stroke-width': '2'
+});
+var legRight = svgEl('rect', {
+  x: 320, y: 254, width: 14, height: 196,
+  fill: 'none', stroke: C.note, 'stroke-width': '2'
+});
+var floor = svgEl('line', {
+  x1: 40, y1: 450, x2: 420, y2: 450,
+  stroke: C.note, 'stroke-width': '2'
+});
+g.appendChild(tableTop);
+g.appendChild(legLeft);
+g.appendChild(legRight);
+g.appendChild(floor);
+
+/* รอก */
+var bracket = svgEl('line', {
+  x1: 350, y1: 254, x2: 358, y2: 240,
+  stroke: C.note, 'stroke-width': '3'
+});
+var pulley = svgEl('circle', {
+  cx: 358, cy: 240, r: 12,
+  fill: 'none', stroke: C.note, 'stroke-width': '2'
+});
+var pulleyPin = svgEl('circle', {
+  cx: 358, cy: 240, r: 2.5,
+  fill: C.note
+});
+g.appendChild(bracket);
+g.appendChild(pulley);
+g.appendChild(pulleyPin);
+
+/* มวล A บนโต๊ะ */
+var blockA_sim = svgEl('rect', {
+  x: 140, y: 180, width: 80, height: 60,
+  fill: 'none', stroke: C.given, 'stroke-width': '2', rx: '4'
+});
+g.appendChild(blockA_sim);
+Shell.label(g, 180, 210, '$m_A = 5$ kg', {role: 'given', anchor: [180, 210], until: 'end', pin: true});
+
+/* เส้นเชือก */
+var stringPath = svgEl('path', {
+  d: 'M 220 228 L 358 228 A 12 12 0 0 1 370 240 L 370 320',
+  fill: 'none', stroke: C.note, 'stroke-width': '2'
+});
+g.appendChild(stringPath);
+
+/* มวล B แขวน */
+var blockB_sim = svgEl('rect', {
+  x: 345, y: 320, width: 50, height: 60,
+  fill: 'none', stroke: C.given, 'stroke-width': '2', rx: '4'
+});
+g.appendChild(blockB_sim);
+Shell.label(g, 370, 350, '$m_B = 3$ kg', {role: 'given', anchor: [370, 350], until: 'end', pin: true});
+
+Shell.label(g, 260, 260, '$\\mu = 0.2$', {role: 'note', anchor: [260, 240], until: 'end'});
+
+/* --- 2. แผนภาพวัตถุอิสระ (FBD) ด้านขวา --- */
+Shell.label(g, 590, 50, 'FBD มวล A', {role: 'note', anchor: [590, 50], until: 'end', pin: true});
+Shell.label(g, 820, 50, 'FBD มวล B', {role: 'note', anchor: [820, 50], until: 'end', pin: true});
+
+/* กล่องจำลองใน FBD */
+var fbdBoxA = svgEl('rect', {
+  x: 550, y: 220, width: 80, height: 60,
+  fill: 'none', stroke: C.given, 'stroke-width': '2', rx: '4'
+});
+var fbdDotA = svgEl('circle', {
+  cx: 590, cy: 250, r: 3,
+  fill: C.given
+});
+g.appendChild(fbdBoxA);
+g.appendChild(fbdDotA);
+Shell.label(g, 590, 250, '$m_A$', {role: 'given', anchor: [590, 250], until: 'end', pin: true});
+
+var fbdBoxB = svgEl('rect', {
+  x: 790, y: 220, width: 60, height: 60,
+  fill: 'none', stroke: C.given, 'stroke-width': '2', rx: '4'
+});
+var fbdDotB = svgEl('circle', {
+  cx: 820, cy: 250, r: 3,
+  fill: C.given
+});
+g.appendChild(fbdBoxB);
+g.appendChild(fbdDotB);
+Shell.label(g, 820, 250, '$m_B$', {role: 'given', anchor: [820, 250], until: 'end', pin: true});
+
+/* ========================================================
+   ขั้นตอนการเฉลย
+   ======================================================== */
+Shell.group('สร้างแผนภาพวัตถุอิสระ (FBD)');
+
+/* ขั้นที่ 1: แนวดิ่งของมวล A */
+var s1 = Shell.step(
+  'พิจารณามวล A ในแนวดิ่ง: มีแรงดึงดูดของโลก $W_A = m_A g = 5 \\times 9.8 = 49$ N และมีแรงแนวฉากจากพื้นโต๊ะ $N_A = 49$ N ในทิศพุ่งขึ้น',
+  {why: 'มวล A ไม่มีการเคลื่อนที่ในแนวดิ่ง แรงลัพธ์ในแนวดิ่งจึงเป็นศูนย์ ($N_A = W_A$)'}
+);
+Shell.arrow(s1, 590, 220, 590, 220 - 49 * PX_PER_N, {
+  role: 'work', label: '$N_A = 49$ N', value: 49, unit: 'N', until: 'end'
+});
+Shell.arrow(s1, 590, 280, 590, 280 + 49 * PX_PER_N, {
+  role: 'given', label: '$W_A = 49$ N', value: 49, unit: 'N', until: 'end'
+});
+
+/* ขั้นที่ 2: แรงเสียดทานมวล A */
+var s2 = Shell.step(
+  'หาแรงเสียดทานจลน์ที่พื้นโต๊ะต้านมวล A: $f_k = \\mu N_A = 0.2 \\times 49 = 9.8$ N มีทิศไปทางซ้าย',
+  {why: 'เมื่อวัตถุเริ่มไถลไปทางขวา พื้นผิวสัมผัสจะออกแรงเสียดทานจลน์ต้านการเคลื่อนที่ในทิศตรงข้าม', uses: [1]}
+);
+Shell.arrow(s2, 550, 250, 550 - 9.8 * PX_PER_N, 250, {
+  role: 'work', label: '$f_k = 9.8$ N', value: 9.8, unit: 'N', until: 'end'
+});
+
+/* ขั้นที่ 3: แนวดิ่งของมวล B */
+var s3 = Shell.step(
+  'พิจารณามวล B ในแนวดิ่ง: มีแรงดึงดูดของโลก $W_B = m_B g = 3 \\times 9.8 = 29.4$ N ในทิศพุ่งลงสู่พื้นโลก',
+  {why: 'โลกออกแรงดึงดูดมวล B ในทิศลงสู่ศูนย์กลางโลกเสมอ'}
+);
+Shell.arrow(s3, 820, 280, 820, 280 + 29.4 * PX_PER_N, {
+  role: 'given', label: '$W_B = 29.4$ N', value: 29.4, unit: 'N', until: 'end'
+});
+
+/* ขั้นที่ 4: แรงตึงเชือก T */
+var s4 = Shell.step(
+  'แรงตึงเชือก $T$: เชือกดึงมวล A ไปทางขวา และดึงมวล B ขึ้นด้านบน ด้วยขนาดเท่ากัน',
+  {why: 'เชือกเบาเส้นเดียวกันผ่านรอกลื่น แรงตึงจึงมีขนาดเท่ากันตลอดเส้นและมีทิศดึงออกจากวัตถุเสมอ'}
+);
+Shell.arrow(s4, 630, 250, 630 + 22.05 * PX_PER_N, 250, {
+  role: 'work', label: '$T = 22.05$ N', value: 22.05, unit: 'N', until: 'end'
+});
+Shell.arrow(s4, 820, 220, 820, 220 - 22.05 * PX_PER_N, {
+  role: 'work', label: '$T = 22.05$ N', value: 22.05, unit: 'N', until: 'end'
+});
+
+Shell.group('คำนวณความเร่งและแรงตึงเชือก');
+
+/* ขั้นที่ 5: ตั้งสมการนิวตัน */
+var s5 = Shell.step(
+  'ใช้กฎข้อที่สองของนิวตัน $\\sum F = ma$ ในทิศทางการเคลื่อนที่ของแต่ละมวล:<br>• มวล A (แนวราบ): $T - f_k = m_A a \\implies T - 9.8 = 5a$ &nbsp;&nbsp;--- (สมการที่ 1)<br>• มวล B (แนวดิ่ง): $W_B - T = m_B a \\implies 29.4 - T = 3a$ &nbsp;&nbsp;--- (สมการที่ 2)',
+  {why: 'มวลทั้งสองผูกติดกันด้วยเชือก จึงเคลื่อนที่ไปพร้อมกันด้วยขนาดความเร่ง $a$ เท่ากัน', uses: [2, 3, 4]}
+);
+
+/* ขั้นที่ 6: หาความเร่ง a */
+var s6 = Shell.step(
+  'นำสมการที่ 1 รวมกับสมการที่ 2 เพื่อกำจัดแรงตึงเชือก $T$:<br>$(T - 9.8) + (29.4 - T) = 5a + 3a$<br>$19.6 = 8a \\implies a = 2.45$ m/s²',
+  {uses: [5]}
+);
+Shell.label(s6, 590, 435, '$\\vec{a} = 2.45$ m/s² (ไปทางขวา)', {role: 'answer', anchor: [590, 280], until: 'end'});
+Shell.label(s6, 820, 435, '$\\vec{a} = 2.45$ m/s² (พุ่งลง)', {role: 'answer', anchor: [820, 280], until: 'end'});
+
+/* ขั้นที่ 7: หาแรงตึง T */
+var s7 = Shell.step(
+  'แทนค่า $a = 2.45$ m/s² ลงในสมการที่ 1 เพื่อหาค่าแรงตึงเชือก $T$:<br>$T = 5(2.45) + 9.8 = 12.25 + 9.8 = 22.05$ N<br><i>(ตรวจสอบกับสมการที่ 2: $T = 29.4 - 3(2.45) = 22.05$ N ได้ค่าตรงกัน)</i>',
+  {uses: [5, 6]}
+);
+
+/* คำตอบสุดท้าย */
+Shell.answer(
+  'ความเร่งของระบบและแรงตึงในเส้นเชือก',
+  '$a = 2.45$ m/s² , $T = 22.05$ N',
+  {sanity: 'แรงตึงเชือก $T = 22.05$ N มีค่าอยู่ระหว่าง $f_k = 9.8$ N กับ $W_B = 29.4$ N ระบบจึงเร่งไปข้างหน้าได้จริง'}
+);
+
+Shell.done();
+</script>
+</body></html>

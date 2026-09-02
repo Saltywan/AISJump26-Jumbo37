@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>การหาความสูงของตึกจากมุมเงย</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+var SVGNS = 'http://www.w3.org/2000/svg';
+
+Shell.page({
+  title: 'การหาความสูงของตึกจากมุมเงยสองจุด',
+  problem: 'ชายคนหนึ่งยืนที่จุด A มองเห็นยอดตึกทำมุมเงย $30^\\circ$ เมื่อเดินเข้าใกล้ตึกอีก $50$ เมตรถึงจุด B มองเห็นยอดตึกทำมุมเงย $60^\\circ$ จงหาความสูงของตึก'
+});
+
+var g = Shell.canvas();
+var C = Shell.C;
+
+// มาตราส่วน: 8.0 พิกเซล ต่อ 1 เมตร
+var PX_PER_M = 8.0;
+
+// พิกัดสำคัญ
+var GROUND_Y = 440;
+var DX = 820; // โคนตึก D
+var DY = GROUND_Y;
+var BX = DX - 25 * PX_PER_M; // 820 - 200 = 620
+var BY = GROUND_Y;
+var AX = BX - 50 * PX_PER_M; // 620 - 400 = 220
+var AY = GROUND_Y;
+var H_METERS = 25 * Math.sqrt(3); // 43.301... m
+var CY = DY - H_METERS * PX_PER_M; // 440 - 346.41 = 93.59
+
+// วาดพื้นดิน
+var groundGroup = document.createElementNS(SVGNS, 'g');
+var gLine = document.createElementNS(SVGNS, 'line');
+gLine.setAttribute('x1', '120');
+gLine.setAttribute('y1', String(GROUND_Y));
+gLine.setAttribute('x2', '930');
+gLine.setAttribute('y2', String(GROUND_Y));
+gLine.setAttribute('stroke', C.note);
+gLine.setAttribute('stroke-width', '2');
+groundGroup.appendChild(gLine);
+
+for (var gx = 130; gx <= 920; gx += 25) {
+  var hLine = document.createElementNS(SVGNS, 'line');
+  hLine.setAttribute('x1', String(gx));
+  hLine.setAttribute('y1', String(GROUND_Y));
+  hLine.setAttribute('x2', String(gx - 10));
+  hLine.setAttribute('y2', String(GROUND_Y + 12));
+  hLine.setAttribute('stroke', C.note);
+  hLine.setAttribute('stroke-width', '1');
+  groundGroup.appendChild(hLine);
+}
+g.appendChild(groundGroup);
+
+// วาดรูปตึก
+var bldgGroup = document.createElementNS(SVGNS, 'g');
+var bldg = document.createElementNS(SVGNS, 'rect');
+bldg.setAttribute('x', String(DX));
+bldg.setAttribute('y', String(CY));
+bldg.setAttribute('width', '80');
+bldg.setAttribute('height', String(DY - CY));
+bldg.setAttribute('stroke', C.note);
+bldg.setAttribute('stroke-width', '2');
+bldg.setAttribute('fill', 'none');
+bldgGroup.appendChild(bldg);
+
+var roof = document.createElementNS(SVGNS, 'rect');
+roof.setAttribute('x', String(DX - 4));
+roof.setAttribute('y', String(CY - 6));
+roof.setAttribute('width', '88');
+roof.setAttribute('height', '6');
+roof.setAttribute('stroke', C.note);
+roof.setAttribute('stroke-width', '1.5');
+roof.setAttribute('fill', 'none');
+bldgGroup.appendChild(roof);
+
+var ant = document.createElementNS(SVGNS, 'line');
+ant.setAttribute('x1', String(DX + 40));
+ant.setAttribute('y1', String(CY - 6));
+ant.setAttribute('x2', String(DX + 40));
+ant.setAttribute('y2', String(CY - 30));
+ant.setAttribute('stroke', C.note);
+ant.setAttribute('stroke-width', '2');
+bldgGroup.appendChild(ant);
+
+for (var row = 0; row < 7; row++) {
+  for (var col = 0; col < 2; col++) {
+    var win = document.createElementNS(SVGNS, 'rect');
+    win.setAttribute('x', String(DX + 14 + col * 32));
+    win.setAttribute('y', String(CY + 22 + row * 44));
+    win.setAttribute('width', '20');
+    win.setAttribute('height', '26');
+    win.setAttribute('stroke', C.note);
+    win.setAttribute('stroke-width', '1');
+    win.setAttribute('fill', 'none');
+    bldgGroup.appendChild(win);
+  }
+}
+
+var door = document.createElementNS(SVGNS, 'rect');
+door.setAttribute('x', String(DX + 28));
+door.setAttribute('y', String(GROUND_Y - 35));
+door.setAttribute('width', '24');
+door.setAttribute('height', '35');
+door.setAttribute('stroke', C.note);
+door.setAttribute('stroke-width', '1.5');
+door.setAttribute('fill', 'none');
+bldgGroup.appendChild(door);
+
+// สัญลักษณ์มุมฉากที่จุด D
+var rightAngle = document.createElementNS(SVGNS, 'path');
+rightAngle.setAttribute('d', 'M ' + (DX - 16) + ' ' + DY + ' L ' + (DX - 16) + ' ' + (DY - 16) + ' L ' + DX + ' ' + (DY - 16));
+rightAngle.setAttribute('stroke', C.note);
+rightAngle.setAttribute('stroke-width', '1.5');
+rightAngle.setAttribute('fill', 'none');
+bldgGroup.appendChild(rightAngle);
+
+g.appendChild(bldgGroup);
+
+function makeDot(cx, cy, color) {
+  var dot = document.createElementNS(SVGNS, 'circle');
+  dot.setAttribute('cx', String(cx));
+  dot.setAttribute('cy', String(cy));
+  dot.setAttribute('r', '4');
+  dot.setAttribute('fill', color);
+  return dot;
+}
+
+Shell.setup('สร้างแบบจำลองด้วยสามเหลี่ยมมุมฉากสองรูป $\\triangle ACD$ และ $\\triangle BCD$ ที่มีความสูงร่วมกันคือ $CD = h$ แล้วใช้ฟังก์ชันตรีโกณมิติ $\\tan\\theta$ เชื่อมโยงความสูงแนวดิ่งกับระยะทางแนวราบ');
+
+Shell.group('สร้างแผนภาพและระบุข้อมูลจากโจทย์');
+
+var s1 = Shell.step('กำหนดจุดยอดตึก $C$ และโคนตึก $D$ ให้ตึกสูง $h$<br>ชายคนนี้ยืนที่จุด $A$ มองยอดตึกด้วยมุมเงย $30^\\circ$');
+s1.appendChild(makeDot(AX, AY, C.given));
+s1.appendChild(makeDot(BX, BY, C.given));
+s1.appendChild(makeDot(DX, DY, C.note));
+s1.appendChild(makeDot(DX, CY, C.note));
+
+Shell.label(s1, AX, AY + 18, 'A', {role:'given', anchor:[AX, AY], until:'end'});
+Shell.label(s1, BX, BY + 18, 'B', {role:'given', anchor:[BX, BY], until:'end'});
+Shell.label(s1, DX, DY + 18, 'D', {role:'note', anchor:[DX, DY], until:'end'});
+Shell.label(s1, DX, CY - 18, 'C (ยอดตึก)', {role:'note', anchor:[DX, CY], until:'end'});
+
+// แนวสายตาจาก A ไป C
+var sightA = document.createElementNS(SVGNS, 'line');
+sightA.setAttribute('x1', String(AX));
+sightA.setAttribute('y1', String(AY));
+sightA.setAttribute('x2', String(DX));
+sightA.setAttribute('y2', String(CY));
+sightA.setAttribute('stroke', C.given);
+sightA.setAttribute('stroke-width', '2');
+sightA.setAttribute('stroke-dasharray', '6,4');
+s1.appendChild(sightA);
+
+// ส่วนโค้งมุม 30 องศาที่ A (รัศมี 55 px)
+var arcA = document.createElementNS(SVGNS, 'path');
+arcA.setAttribute('d', 'M ' + (AX + 55) + ' ' + AY + ' A 55 55 0 0 0 267.63 412.5');
+arcA.setAttribute('stroke', C.given);
+arcA.setAttribute('stroke-width', '2');
+arcA.setAttribute('fill', 'none');
+s1.appendChild(arcA);
+Shell.label(s1, AX + 70, AY - 15, '$30^\\circ$', {role:'given', anchor:[AX + 50, AY - 15], until:'end'});
+
+// ลูกศรบอกระยะทาง AB = 50 m
+Shell.arrow(s1, AX, GROUND_Y + 40, BX, GROUND_Y + 40, {role:'given', label:'$50$ m', value:50, unit:'m', until:'end'});
+
+var s2 = Shell.step('เดินเข้าใกล้ตึก $50$ เมตร ถึงจุด $B$ แล้วมองยอดตึกด้วยมุมเงย $60^\\circ$');
+
+// แอนิเมชันคนเดินจาก A ไป B
+var walker = Shell.motion(s2, null, [[AX, GROUND_Y - 20], [BX, GROUND_Y - 20]], {dur: 1300});
+var wHead = document.createElementNS(SVGNS, 'circle');
+wHead.setAttribute('cx', '0');
+wHead.setAttribute('cy', '-15');
+wHead.setAttribute('r', '5');
+wHead.setAttribute('fill', C.given);
+walker.appendChild(wHead);
+
+var wBody = document.createElementNS(SVGNS, 'line');
+wBody.setAttribute('x1', '0'); wBody.setAttribute('y1', '-10');
+wBody.setAttribute('x2', '0'); wBody.setAttribute('y2', '8');
+wBody.setAttribute('stroke', C.given); wBody.setAttribute('stroke-width', '2.5');
+walker.appendChild(wBody);
+
+var wLegs = document.createElementNS(SVGNS, 'path');
+wLegs.setAttribute('d', 'M -5 20 L 0 8 L 5 20');
+wLegs.setAttribute('stroke', C.given); wLegs.setAttribute('stroke-width', '2');
+wLegs.setAttribute('fill', 'none');
+walker.appendChild(wLegs);
+
+// แนวสายตาจาก B ไป C
+var sightB = document.createElementNS(SVGNS, 'line');
+sightB.setAttribute('x1', String(BX));
+sightB.setAttribute('y1', String(BY));
+sightB.setAttribute('x2', String(DX));
+sightB.setAttribute('y2', String(CY));
+sightB.setAttribute('stroke', C.given);
+sightB.setAttribute('stroke-width', '2');
+sightB.setAttribute('stroke-dasharray', '6,4');
+s2.appendChild(sightB);
+
+// ส่วนโค้งมุม 60 องศาที่ B (รัศมี 45 px)
+var arcB = document.createElementNS(SVGNS, 'path');
+arcB.setAttribute('d', 'M ' + (BX + 45) + ' ' + BY + ' A 45 45 0 0 0 642.5 401.03');
+arcB.setAttribute('stroke', C.given);
+arcB.setAttribute('stroke-width', '2');
+arcB.setAttribute('fill', 'none');
+s2.appendChild(arcB);
+Shell.label(s2, BX + 48, BY - 26, '$60^\\circ$', {role:'given', anchor:[BX + 35, BY - 20], until:'end'});
+
+Shell.group('สร้างสมการจากอัตราส่วนตรีโกณมิติ');
+
+var s3 = Shell.step('พิจารณาสามเหลี่ยมมุมฉากรูปใน $\\triangle BCD$:<br>$$\\tan 60^\\circ = \\frac{CD}{BD} = \\frac{h}{BD}$$<br>เนื่องจาก $\\tan 60^\\circ = \\sqrt{3}$ จะได้ $$BD = \\frac{h}{\\sqrt{3}}$$', {
+  why: 'ใช้ฟังก์ชัน $\\tan\\theta$ เชื่อมโยงความสูงแนวดิ่ง $h$ กับระยะแนวราบ $BD$'
+});
+
+var triBCD = document.createElementNS(SVGNS, 'polygon');
+triBCD.setAttribute('points', BX + ',' + BY + ' ' + DX + ',' + DY + ' ' + DX + ',' + CY);
+triBCD.setAttribute('fill', C.work);
+triBCD.setAttribute('fill-opacity', '0.15');
+triBCD.setAttribute('stroke', C.work);
+triBCD.setAttribute('stroke-width', '2');
+s3.appendChild(triBCD);
+
+Shell.arrow(s3, BX, GROUND_Y + 40, DX, GROUND_Y + 40, {role:'work', label:'$BD = \\frac{h}{\\sqrt{3}}$', value:25, unit:'m', until:'end'});
+
+var s4 = Shell.step('พิจารณาสามเหลี่ยมมุมฉากรูปใหญ่ $\\triangle ACD$:<br>ระยะจากจุดสังเกต $A$ ถึงโคนตึกคือ $AD = AB + BD = 50 + BD$<br>$$\\tan 30^\\circ = \\frac{CD}{AD} = \\frac{h}{50 + BD}$$', {
+  why: 'ระยะแนวราบทั้งหมด $AD$ คือผลรวมของระยะเดิน $50$ m กับระยะที่เหลือ $BD$',
+  uses: [1, 3]
+});
+
+var triACD = document.createElementNS(SVGNS, 'polygon');
+triACD.setAttribute('points', AX + ',' + AY + ' ' + DX + ',' + DY + ' ' + DX + ',' + CY);
+triACD.setAttribute('fill', 'none');
+triACD.setAttribute('stroke', C.work);
+triACD.setAttribute('stroke-width', '2');
+triACD.setAttribute('stroke-dasharray', '5,5');
+s4.appendChild(triACD);
+
+Shell.label(s4, (AX + DX) / 2, GROUND_Y + 75, '$AD = 50 + BD$', {role:'work', anchor:[(AX + DX) / 2, GROUND_Y + 40], until:'step'});
+
+Shell.group('แก้ระบบสมการหาความสูง $h$');
+
+var s5 = Shell.step('แทนค่า $\\tan 30^\\circ = \\frac{1}{\\sqrt{3}}$ และ $BD = \\frac{h}{\\sqrt{3}}$ ลงในสมการ:<br>$$\\frac{1}{\\sqrt{3}} = \\frac{h}{50 + \\frac{h}{\\sqrt{3}}}$$<br>คูณไขว้เพื่อกำจัดตัวส่วน:<br>$$50 + \\frac{h}{\\sqrt{3}} = h\\sqrt{3}$$', {
+  uses: [3, 4]
+});
+
+var s6 = Shell.step('ย้ายข้างพจน์ที่มี $h$ ไปรวมกันทางขวา:<br>$$50 = h\\sqrt{3} - \\frac{h}{\\sqrt{3}} = h\\left(\\sqrt{3} - \\frac{1}{\\sqrt{3}}\\right) = h\\left(\\frac{3 - 1}{\\sqrt{3}}\\right) = \\frac{2h}{\\sqrt{3}}$$<br>คูณไขว้เพื่อแก้สมการหา $h$:<br>$$h = \\frac{50\\sqrt{3}}{2} = 25\\sqrt{3} \\approx 43.30\\text{ เมตร}$$', {
+  uses: [5]
+});
+
+// เน้นเส้นความสูงตึกเป็นสีคำตอบ
+var hHighlight = document.createElementNS(SVGNS, 'line');
+hHighlight.setAttribute('x1', String(DX));
+hHighlight.setAttribute('y1', String(DY));
+hHighlight.setAttribute('x2', String(DX));
+hHighlight.setAttribute('y2', String(CY));
+hHighlight.setAttribute('stroke', C.answer);
+hHighlight.setAttribute('stroke-width', '4');
+s6.appendChild(hHighlight);
+
+Shell.arrow(s6, DX + 95, DY, DX + 95, CY, {role:'answer', label:'$h = 25\\sqrt{3} \\approx 43.3$ m', value:43.3, unit:'m', until:'end'});
+
+Shell.answer('ความสูงของตึก', '$h = 25\\sqrt{3} \\approx 43.3$ เมตร', {
+  sanity: 'ใน $\\triangle ABC$ มุมภายนอกคือ $60^\\circ$ ทำให้มุมยอด $\\angle BCA = 60^\\circ - 30^\\circ = 30^\\circ$ จึงเป็นสามเหลี่ยมหน้าจั่วที่มี $BC = AB = 50$ m ดังนั้น $h = BC\\sin 60^\\circ = 50\\left(\\frac{\\sqrt{3}}{2}\\right) = 25\\sqrt{3} \\approx 43.3$ m ผลลัพธ์ตรงกันอย่างสมบูรณ์'
+});
+
+Shell.done();
+</script>
+</body></html>

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>การเคลื่อนที่แนวดิ่งและสมการพาราโบลา</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/jsxgraph.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/jsxgraphcore.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+Shell.page({
+  title: 'การเคลื่อนที่แนวดิ่งและสมการพาราโบลา',
+  problem: 'ลูกบอลถูกโยนขึ้นในแนวดิ่งด้วยสมการความสูง $h(t) = -5t^2 + 20t + 1.5$ (เมตร) จงหาความสูงสูงสุดที่ลูกบอลขึ้นไปได้ และเวลาที่ลูกบอลตกถึงพื้น'
+});
+
+var b = Shell.board({
+  box: [-0.8, 25.5, 4.8, -3.5],
+  axis: true,
+  grid: true,
+  keepaspect: false
+});
+var C = Shell.C;
+
+Shell.setup('สมการความสูง $h(t) = -5t^2 + 20t + 1.5$ เป็นฟังก์ชันกำลังสองที่มีกราฟเป็นพาราโบลาคว่ำ จุดสูงสุดอยู่ที่จุดยอดของพาราโบลา ($t = -\\frac{b}{2a}$) และเวลาที่ลูกบอลตกถึงพื้นหาได้จากเงื่อนไขความสูง $h(t) = 0$');
+
+Shell.group('หาความสูงสูงสุดของลูกบอล');
+
+var s1 = Shell.step('พิจารณาสมการความสูง $h(t) = -5t^2 + 20t + 1.5$<br>ที่เวลาเริ่มต้น $t = 0$ จะได้ความสูงเริ่มต้น $h(0) = 1.5$ m คือระดับความสูงขณะเริ่มโยนลูกบอล', {
+  why: 'ที่จุดเริ่มต้นโยนลูกบอล เวลา $t = 0$ ความสูงเริ่มต้นจึงเท่ากับค่าคงที่ในสมการ'
+});
+
+var curve = b.create('functiongraph', [
+  function(t) { return -5 * t * t + 20 * t + 1.5; },
+  0, 4.12
+], {
+  strokeColor: C.given,
+  strokeWidth: 3,
+  highlight: false,
+  name: ''
+});
+
+var p0 = b.create('point', [0, 1.5], {
+  size: 4,
+  strokeColor: C.given,
+  fillColor: C.given,
+  fixed: true,
+  name: ''
+});
+
+Shell.on(s1, curve, p0);
+Shell.tag(s1, p0, 'จุดปล่อย $(0, 1.5)$', {role: 'given'});
+Shell.tag(s1, [4.5, 0], '$t$ (s)', {role: 'note'});
+Shell.tag(s1, [0, 24.2], '$h$ (m)', {role: 'note'});
+
+var s2 = Shell.step('หาเวลาที่ลูกบอลขึ้นไปถึงจุดสูงสุดจากแกนสมมาตรของพาราโบลา<br>$t = -\\frac{b}{2a} = -\\frac{20}{2(-5)} = 2$ s', {
+  why: 'ฟังก์ชันกำลังสอง $h(t) = at^2 + bt + c$ เมื่อ $a < 0$ จะมีจุดสูงสุดที่แกนสมมาตร $t = -\\frac{b}{2a}$'
+});
+
+var symLine = b.create('segment', [[2, 0], [2, 21.5]], {
+  strokeColor: C.work,
+  strokeWidth: 1.5,
+  dash: 2,
+  fixed: true,
+  name: ''
+});
+
+var tPeak = b.create('point', [2, 0], {
+  size: 3,
+  strokeColor: C.work,
+  fillColor: C.work,
+  fixed: true,
+  name: ''
+});
+
+Shell.on(s2, symLine, tPeak);
+Shell.tag(s2, tPeak, '$t = 2$ s', {role: 'work', until: 'step'});
+
+var s3 = Shell.step('แทนค่า $t = 2$ s ลงในสมการความสูงเพื่อหาความสูงสูงสุด<br>$h(2) = -5(2)^2 + 20(2) + 1.5 = -20 + 40 + 1.5 = 21.5$ m', {
+  uses: [2],
+  why: 'ค่าของฟังก์ชันที่จุดยอดคือความสูงที่มากที่สุดของการเคลื่อนที่'
+});
+
+var pMax = b.create('point', [2, 21.5], {
+  size: 5,
+  strokeColor: C.answer,
+  fillColor: C.answer,
+  fixed: true,
+  name: ''
+});
+
+var hLine = b.create('segment', [[0, 21.5], [2, 21.5]], {
+  strokeColor: C.note,
+  strokeWidth: 1.5,
+  dash: 2,
+  fixed: true,
+  name: ''
+});
+
+var hPeak = b.create('point', [0, 21.5], {
+  size: 3,
+  strokeColor: C.note,
+  fillColor: C.note,
+  fixed: true,
+  name: ''
+});
+
+Shell.on(s3, pMax, hLine, hPeak);
+Shell.tag(s3, pMax, 'จุดสูงสุด $(2, 21.5)$', {role: 'answer'});
+Shell.tag(s3, hPeak, '$h_{\\max} = 21.5$ m', {role: 'note'});
+
+Shell.group('หาเวลาที่ลูกบอลตกถึงพื้น');
+
+var s4 = Shell.step('เมื่อลูกบอลตกถึงพื้น ความสูงเทียบกับพื้นดินจะเป็นศูนย์ ($h = 0$)<br>ตั้งสมการ $-5t^2 + 20t + 1.5 = 0$<br>ใช้สูตรกำลังสอง $t = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$<br>$t = \\frac{-20 \\pm \\sqrt{20^2 - 4(-5)(1.5)}}{2(-5)} = \\frac{20 \\mp \\sqrt{430}}{10} \\approx 2 \\mp 2.07$ s', {
+  why: 'ลูกบอลแตะพื้นดินเมื่อระดับความสูงลดลงเหลือศูนย์ ($h(t) = 0$)'
+});
+
+var pGround = b.create('point', [4.074, 0], {
+  size: 5,
+  strokeColor: C.work,
+  fillColor: C.work,
+  fixed: true,
+  name: ''
+});
+
+Shell.on(s4, pGround);
+Shell.tag(s4, pGround, '$t \\approx 4.07$ s', {role: 'work', until: 'step'});
+
+var s5 = Shell.step('เนื่องจากเวลาหลังโยนต้องเป็นค่าบวก ($t \\ge 0$)<br>จึงเลือก $t = 2 + 2.07 = 4.07$ s (ตัดค่า $t = -0.07$ s ทิ้งเพราะเป็นเวลาก่อนโยน)<br>ดูลูกบอลเคลื่อนที่ตามฟังก์ชันความสูงจากจุดปล่อยจนตกถึงพื้น', {
+  uses: [4],
+  why: 'การเคลื่อนที่ทางกายภาพเริ่มนับเวลาที่ $t = 0$ คำตอบของเวลาที่นำมาใช้จึงต้องมากกว่าศูนย์'
+});
+
+Shell.tag(s5, pGround, 'ตกถึงพื้น $t \\approx 4.07$ s', {role: 'answer'});
+
+var ball = b.create('point', [0, 1.5], {
+  size: 6,
+  strokeColor: C.answer,
+  fillColor: C.answer,
+  fixed: true,
+  name: ''
+});
+
+Shell.on(s5, ball);
+Shell.motion(s5, ball, function(s) {
+  var t = s * 4.0736;
+  var h = -5 * t * t + 20 * t + 1.5;
+  return [t, Math.max(0, h)];
+}, {dur: 2400});
+
+Shell.answer(
+  'ความสูงสูงสุดและเวลาตกถึงพื้น',
+  'ความสูงสูงสุด $h_{\\max} = 21.5$ m และเวลาตกถึงพื้น $t \\approx 4.07$ s',
+  {
+    sanity: 'เวลาขาลง ($2.07$ s) นานกว่าขาขึ้น ($2$ s) เล็กน้อย เพราะลูกบอลตกจากความสูง $21.5$ m ลงสู่พื้น $0$ m ซึ่งเป็นระยะทางมากกว่าขาขึ้นที่เริ่มจาก $1.5$ m'
+  }
+);
+
+Shell.done();
+</script>
+</body></html>

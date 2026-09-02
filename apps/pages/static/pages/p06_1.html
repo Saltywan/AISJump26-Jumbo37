@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>กราฟ P-V และงานในกระบวนการแก๊สอุดมคติ</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/jsxgraph.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/jsxgraphcore.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+Shell.page({
+  title: 'กราฟ P-V และงานในกระบวนการแก๊สอุดมคติ',
+  problem: 'แก๊สอุดมคติปริมาณหนึ่งขยายตัวแบบไอโซเทอร์มอลจากปริมาตร 2 ลิตรไปเป็น 6 ลิตร ที่อุณหภูมิ 300 K แล้วถูกอัดกลับแบบความดันคงที่จนปริมาตรกลับมาเป็น 2 ลิตร จงเขียนกราฟ P-V ของกระบวนการทั้งสอง และหางานที่แก๊สทำในแต่ละขั้นตอน'
+});
+
+var b = Shell.board({
+  box: [-1.2, 15.5, 7.8, -2],
+  axis: true,
+  grid: true,
+  keepaspect: false
+});
+var C = Shell.C;
+
+Shell.setup('เนื่องจากโจทย์ไม่ได้ระบุจำนวนโมล เพื่อให้เห็นภาพกราฟ $P\\text{-}V$ และค่าตัวเลขที่ชัดเจน จึงคิดคำนวณสำหรับแก๊ส $n = 1$ mol ที่ $T = 300$ K โดยงานในแต่ละขั้นตอนจะแปรผันตรงกับ $nRT$');
+
+Shell.group('กระบวนการที่ 1: การขยายตัวแบบไอโซเทอร์มอล ($1 \\to 2$)');
+
+var s1 = Shell.step('สถานะที่ 1: แก๊สมีปริมาตร $V_1 = 2$ L ที่อุณหภูมิ $T_1 = 300$ K คำนวณความดันเริ่มต้นได้ $P_1 = \\frac{nRT_1}{V_1} = \\frac{(1)(8.314)(300)}{2 \\times 10^{-3}} \\approx 12.47 \\times 10^5$ Pa', {
+  why: 'ใช้กฎของแก๊สอุดมคติ $PV = nRT$ หาความดันที่สภาวะเริ่มต้น'
+});
+
+var ptA = b.create('point', [2, 12.471], {strokeColor: C.given, fillColor: C.given, size: 4, fixed: true, withLabel: false});
+var guideA_x = b.create('segment', [[2, 0], [2, 12.471]], {strokeColor: C.note, strokeWidth: 1.5, dash: 2, withLabel: false});
+var guideA_y = b.create('segment', [[0, 12.471], [2, 12.471]], {strokeColor: C.note, strokeWidth: 1.5, dash: 2, withLabel: false});
+
+Shell.on(s1, ptA, guideA_x, guideA_y);
+Shell.tag(s1, [7.2, 0.7], '$V$ (L)', {role: 'note'});
+Shell.tag(s1, [0.6, 14.8], '$P$ ($\\times 10^5$ Pa)', {role: 'note'});
+Shell.tag(s1, ptA, 'สถานะ 1: ($2$ L, $12.47 \\times 10^5$ Pa)', {role: 'given'});
+
+var s2 = Shell.step('แก๊สขยายตัวแบบอุณหภูมิคงที่ ($T = 300$ K) จนถึง $V_2 = 6$ L ความดันลดลงเหลือ $P_2 = \\frac{nRT_1}{V_2} \\approx 4.16 \\times 10^5$ Pa เส้นทางบนกราฟเป็นเส้นโค้งไฮเพอร์โบลา $P \\propto \\frac{1}{V}$', {
+  why: 'ในกระบวนการไอโซเทอร์มอล ผลคูณ $PV$ คงที่ตามกฎของบอยล์ กราฟจึงเป็นเส้นโค้งไฮเพอร์โบลา',
+  uses: [1]
+});
+
+var ptB = b.create('point', [6, 4.157], {strokeColor: C.work, fillColor: C.work, size: 4, fixed: true, withLabel: false});
+var guideB_x = b.create('segment', [[6, 0], [6, 4.157]], {strokeColor: C.note, strokeWidth: 1.5, dash: 2, withLabel: false});
+var guideB_y = b.create('segment', [[0, 4.157], [6, 4.157]], {strokeColor: C.note, strokeWidth: 1.5, dash: 2, withLabel: false});
+var isoCurve = b.create('functiongraph', [function(v) { return 24.942 / v; }, 2, 6], {strokeColor: C.work, strokeWidth: 3, withLabel: false});
+
+Shell.on(s2, ptB, guideB_x, guideB_y, isoCurve);
+Shell.tag(s2, ptB, 'สถานะ 2: ($6$ L, $4.16 \\times 10^5$ Pa)', {role: 'work'});
+Shell.tag(s2, [4.2, 7.2], 'ไอโซเทอร์มอล ($T = 300$ K)', {role: 'work'});
+
+var s3 = Shell.step('งานที่แก๊สทำระหว่างการขยายตัวเท่ากับพื้นที่ใต้กราฟไฮเพอร์โบลา $W_{1\\to 2} = \\int_{V_1}^{V_2} P\\,dV = nRT\\ln\\left(\\frac{V_2}{V_1}\\right) = (1)(8.314)(300)\\ln(3) \\approx +2.74$ kJ', {
+  why: 'ความดันเปลี่ยนไปตามปริมาตร จึงต้องหาผลรวมงานด้วยการอินทิเกรต $P\\,dV$',
+  uses: [1, 2]
+});
+
+var area1 = b.create('integral', [[2, 6], isoCurve], {fillColor: C.work, fillOpacity: 0.25, strokeWidth: 0, withLabel: false});
+Shell.on(s3, area1, {until: 'step'});
+Shell.tag(s3, [3.8, 2.5], '$W_{1\\to 2} = +2.74$ kJ', {role: 'work', until: 'step'});
+
+Shell.group('กระบวนการที่ 2: การอัดแบบความดันคงที่ ($2 \\to 3$)');
+
+var s4 = Shell.step('แก๊สถูกอัดที่ความดันคงที่ $P_2 = 4.16 \\times 10^5$ Pa จาก $V_2 = 6$ L กลับมาเป็น $V_3 = 2$ L เส้นทางเป็นส่วนของเส้นตรงแนวนอนไปยังสถานะ 3', {
+  why: 'กระบวนการไอโซบาริกมีความดันคงที่ กราฟจึงเป็นเส้นตรงในแนวนอนขนานกับแกน $V$',
+  uses: [2]
+});
+
+var ptC = b.create('point', [2, 4.157], {strokeColor: C.work, fillColor: C.work, size: 4, fixed: true, withLabel: false});
+var segBC = b.create('segment', [ptB, ptC], {strokeColor: C.warn, strokeWidth: 3, withLabel: false});
+
+Shell.on(s4, ptC, segBC);
+Shell.tag(s4, ptC, 'สถานะ 3: ($2$ L, $4.16 \\times 10^5$ Pa)', {role: 'work'});
+Shell.tag(s4, [4.0, 4.7], 'ความดันคงที่ ($P = 4.16 \\times 10^5$ Pa)', {role: 'warn'});
+
+var s5 = Shell.step('งานในกระบวนการความดันคงที่คำนวณจาก $W_{2\\to 3} = P_2(V_3 - V_2) = (4.16 \\times 10^5)(2 - 6)\\times 10^{-3} \\approx -1.66$ kJ เครื่องหมายลบแสดงว่าแก๊สได้รับงานจากการอัด', {
+  why: 'เมื่อความดันคงที่ งานคือ $P\\Delta V$ โดยมีค่าเป็นลบเพราะปริมาตรลดลง',
+  uses: [4]
+});
+
+var area2 = b.create('polygon', [[2, 0], [6, 0], [6, 4.157], [2, 4.157]], {fillColor: C.warn, fillOpacity: 0.25, borders: {strokeWidth: 0}, withLabel: false});
+Shell.on(s5, area2, {until: 'step'});
+Shell.tag(s5, [4.0, 2.0], '$W_{2\\to 3} = -1.66$ kJ', {role: 'warn', until: 'step'});
+
+Shell.group('สรุปผลและงานสุทธิ');
+
+var s6 = Shell.step('งานสุทธิของทั้งสองกระบวนการคือ $W_{\\text{net}} = W_{1\\to 2} + W_{2\\to 3} = +2.74 - 1.66 = +1.08$ kJ สอดคล้องกับพื้นที่ปิดที่ล้อมรอบด้วยเส้นทางทั้งสอง', {
+  uses: [3, 5]
+});
+
+var netArea = b.create('curve', [
+  function(t) {
+    if (t <= 0.5) return 2 + 8 * t;
+    return 10 - 8 * t;
+  },
+  function(t) {
+    if (t <= 0.5) return 24.942 / (2 + 8 * t);
+    return 4.157;
+  },
+  0, 1
+], {fillColor: C.answer, fillOpacity: 0.3, strokeColor: C.answer, strokeWidth: 1.5, withLabel: false});
+
+Shell.on(s6, netArea);
+Shell.tag(s6, [3.3, 6.2], 'งานสุทธิ $W_{\\text{net}} = +1.08$ kJ', {role: 'answer'});
+
+Shell.answer('งานที่แก๊สทำในแต่ละขั้นตอน (คิดต่อ 1 mol ของแก๊ส)', '$W_{1\\to 2} = +2.74\\text{ kJ},\\quad W_{2\\to 3} = -1.66\\text{ kJ}$', {
+  sanity: 'ในกระบวนการขยายตัวไอโซเทอร์มอล แก๊สทำงานเป็นบวก ($W > 0$) ส่วนการอัดความดันคงที่แก๊สถูกทำงานให้ ($W < 0$) และงานสุทธิเป็นบวกเพราะความดันเฉลี่ยช่วงขยายตัวสูงกว่าช่วงอัด'
+});
+
+Shell.done();
+</script>
+</body></html>

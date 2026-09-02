@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>การเคลื่อนที่ของอนุภาคมีประจุในสนามแม่เหล็ก</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+var SVGNS = 'http://www.w3.org/2000/svg';
+
+Shell.page({
+  title: 'การเคลื่อนที่ของอนุภาคมีประจุในสนามแม่เหล็ก',
+  problem: 'อนุภาคประจุ $+2\\times 10^{-6}$ C เคลื่อนที่ด้วยความเร็ว $4\\times 10^5$ m/s พุ่งเข้าไปในบริเวณที่มีสนามแม่เหล็กสม่ำเสมอขนาด $0.5$ เทสลา โดยทิศทางความเร็วของอนุภาคตั้งฉากกับทิศทางของสนามแม่เหล็กพอดี จงหาทิศทางของแรงที่กระทำต่ออนุภาคขณะเข้าสู่สนามแม่เหล็ก และขนาดของแรงแม่เหล็กนั้น และหารัศมีของวงกลมที่อนุภาคเคลื่อนที่ (เมื่อมวลของอนุภาค $= 3.2\\times 10^{-26}$ kg)'
+});
+
+var g = Shell.canvas();
+var C = Shell.C;
+
+Shell.setup('กำหนดให้สนามแม่เหล็ก $\\vec{B}$ มีทิศพุ่งเข้าตั้งฉากกับระนาบภาพ ($\otimes$) และอนุภาคเคลื่อนที่ในแนวระดับไปทางขวา เพื่อให้สามารถใช้กฎมือขยาวิเคราะห์เวกเตอร์ 3 มิติบนระนาบ 2 มิติได้อย่างชัดเจน');
+
+// กำหนดมาตราส่วนสำหรับเวกเตอร์และระยะทาง
+var PX_PER_N = 250;              // 0.4 N = 100 px
+var PX_PER_V = 100 / 400000;     // 400,000 m/s = 100 px
+var PX_PER_M = 150 / 1.28e-14;   // 1.28e-14 m = 150 px
+
+// วาดกรอบและสัญลักษณ์สนามแม่เหล็กพุ่งเข้า (B-field region)
+var fieldBox = document.createElementNS(SVGNS, 'rect');
+fieldBox.setAttribute('x', '280');
+fieldBox.setAttribute('y', '50');
+fieldBox.setAttribute('width', '620');
+fieldBox.setAttribute('height', '440');
+fieldBox.setAttribute('fill', 'none');
+fieldBox.setAttribute('stroke', C.note);
+fieldBox.setAttribute('stroke-dasharray', '6 4');
+fieldBox.setAttribute('stroke-width', '1.5');
+g.appendChild(fieldBox);
+
+var bGrid = document.createElementNS(SVGNS, 'g');
+bGrid.setAttribute('opacity', '0.35');
+for (var bx = 340; bx <= 840; bx += 70) {
+  for (var by = 90; by <= 450; by += 60) {
+    var circ = document.createElementNS(SVGNS, 'circle');
+    circ.setAttribute('cx', bx);
+    circ.setAttribute('cy', by);
+    circ.setAttribute('r', '8');
+    circ.setAttribute('fill', 'none');
+    circ.setAttribute('stroke', C.given);
+    circ.setAttribute('stroke-width', '1.5');
+    bGrid.appendChild(circ);
+
+    var l1 = document.createElementNS(SVGNS, 'line');
+    l1.setAttribute('x1', bx - 5); l1.setAttribute('y1', by - 5);
+    l1.setAttribute('x2', bx + 5); l1.setAttribute('y2', by + 5);
+    l1.setAttribute('stroke', C.given);
+    l1.setAttribute('stroke-width', '1.5');
+    bGrid.appendChild(l1);
+
+    var l2 = document.createElementNS(SVGNS, 'line');
+    l2.setAttribute('x1', bx - 5); l2.setAttribute('y1', by + 5);
+    l2.setAttribute('x2', bx + 5); l2.setAttribute('y2', by - 5);
+    l2.setAttribute('stroke', C.given);
+    l2.setAttribute('stroke-width', '1.5');
+    bGrid.appendChild(l2);
+  }
+}
+g.appendChild(bGrid);
+
+// เส้นทางก่อนเข้าสนามแม่เหล็ก
+var approachLine = document.createElementNS(SVGNS, 'line');
+approachLine.setAttribute('x1', '120');
+approachLine.setAttribute('y1', '370');
+approachLine.setAttribute('x2', '280');
+approachLine.setAttribute('y2', '370');
+approachLine.setAttribute('stroke', C.note);
+approachLine.setAttribute('stroke-dasharray', '4 4');
+approachLine.setAttribute('stroke-width', '1.5');
+g.appendChild(approachLine);
+
+// -------------------------------------------------------------
+// กลุ่มที่ 1: วิเคราะห์ขนาดและทิศทางของแรงแม่เหล็ก
+// -------------------------------------------------------------
+Shell.group('วิเคราะห์แรงแม่เหล็ก (Magnetic Force)');
+
+var s1 = Shell.step('อนุภาคประจุบวก $q = +2\\times 10^{-6}$ C วิ่งด้วยความเร็ว $v = 4\\times 10^5$ m/s เข้าสู่สนามแม่เหล็กสม่ำเสมอ $B = 0.5$ T', {
+  why: 'ระบุตำแหน่งเริ่มต้นและทิศทางของเวกเตอร์ความเร็วที่จุดเข้าสู่สนามแม่เหล็ก'
+});
+
+var p0 = document.createElementNS(SVGNS, 'g');
+var p0Dot = document.createElementNS(SVGNS, 'circle');
+p0Dot.setAttribute('cx', '280');
+p0Dot.setAttribute('cy', '370');
+p0Dot.setAttribute('r', '10');
+p0Dot.setAttribute('fill', C.given);
+p0.appendChild(p0Dot);
+
+var plus1 = document.createElementNS(SVGNS, 'line');
+plus1.setAttribute('x1', '275'); plus1.setAttribute('y1', '370');
+plus1.setAttribute('x2', '285'); plus1.setAttribute('y2', '370');
+plus1.setAttribute('stroke', '#ffffff'); plus1.setAttribute('stroke-width', '2');
+p0.appendChild(plus1);
+
+var plus2 = document.createElementNS(SVGNS, 'line');
+plus2.setAttribute('x1', '280'); plus2.setAttribute('y1', '365');
+plus2.setAttribute('x2', '280'); plus2.setAttribute('y2', '375');
+plus2.setAttribute('stroke', '#ffffff'); plus2.setAttribute('stroke-width', '2');
+p0.appendChild(plus2);
+s1.appendChild(p0);
+
+Shell.arrow(s1, 280, 370, 280 + 400000 * PX_PER_V, 370, {
+  role: 'given',
+  label: '$v = 4\\times 10^5$ m/s',
+  value: 400000,
+  unit: 'm/s',
+  until: 'step'
+});
+
+Shell.label(s1, 350, 40, 'ขอบเขตสนามแม่เหล็ก', {role: 'note', anchor: [280, 50], until: 'end'});
+Shell.label(s1, 720, 80, 'สนามแม่เหล็ก $\\vec{B} = 0.5$ T (พุ่งเข้า)', {role: 'given', anchor: [720, 100], until: 'end'});
+Shell.label(s1, 180, 395, 'ประจุ $q = +2\\times 10^{-6}$ C', {role: 'given', anchor: [280, 370], until: 'end'});
+
+var s2 = Shell.step('คำนวณขนาดของแรงแม่เหล็กจากสูตร $F_B = |q|vB\\sin\\theta$<br>เนื่องจากความเร็วตั้งฉากกับสนามแม่เหล็ก $\\theta = 90^\\circ$ จึงได้ $\\sin 90^\\circ = 1$<br>$F_B = (2\\times 10^{-6}\\text{ C})(4\\times 10^5\\text{ m/s})(0.5\\text{ T})(1) = 0.4$ N', {
+  why: 'แรงแม่เหล็กกระทำต่อประจุที่เคลื่อนที่ในสนามแม่เหล็กตามกฎแรงของลอเรนตซ์',
+  uses: [1]
+});
+
+var s3 = Shell.step('หาทิศทางของแรงแม่เหล็กโดยใช้ <b>กฎมือขวา</b> สำหรับประจุบวก<br>• ชี้นิ้วทั้งสี่ไปตามทิศของความเร็ว $\\vec{v}$ (ไปทางขวา)<br>• กำนิ้วทั้งสี่ตามทิศของสนามแม่เหล็ก $\\vec{B}$ (พุ่งเข้าหน้าจอ)<br>• นิ้วหัวแม่มือจะชี้ในทิศของแรง $\\vec{F}_B$ (<b>ชี้ขึ้นด้านบนในแนวตั้งฉาก</b>)', {
+  why: 'ประจุมีชนิดเป็นบวก ทิศของแรงจึงเป็นไปตามทิศของผลคูณไขว้ $\\vec{v} \\times \\vec{B}$ โดยตรง',
+  uses: [2]
+});
+
+Shell.arrow(s3, 280, 370, 280 + 400000 * PX_PER_V, 370, {
+  role: 'given',
+  label: '$v = 4\\times 10^5$ m/s',
+  value: 400000,
+  unit: 'm/s',
+  until: 'step'
+});
+
+Shell.arrow(s3, 280, 370, 280, 370 - 0.4 * PX_PER_N, {
+  role: 'work',
+  label: '$F_B = 0.4$ N',
+  value: 0.4,
+  unit: 'N',
+  until: 'step'
+});
+
+var rightAngle = document.createElementNS(SVGNS, 'path');
+rightAngle.setAttribute('d', 'M 280 356 L 294 356 L 294 370');
+rightAngle.setAttribute('fill', 'none');
+rightAngle.setAttribute('stroke', C.work);
+rightAngle.setAttribute('stroke-width', '1.5');
+s3.appendChild(rightAngle);
+
+Shell.label(s3, 330, 260, 'ทิศของแรง $\\vec{F}_B$ ชี้ขึ้น', {role: 'work', anchor: [280, 270], until: 'step'});
+
+// -------------------------------------------------------------
+// กลุ่มที่ 2: การเคลื่อนที่แบบวงกลมและคำนวณรัศมี
+// -------------------------------------------------------------
+Shell.group('การเคลื่อนที่แบบวงกลมและรัศมีความโค้ง');
+
+var s4 = Shell.step('เนื่องจากแรง $\\vec{F}_B$ ตั้งฉากกับความเร็ว $\\vec{v}$ ตลอดเวลา แรงนี้จึงทำหน้าที่เป็น <b>แรงสู่ศูนย์กลาง</b> ($F_c$)<br>ทำให้ประจุเบี่ยงเบนเป็นวงกลมด้วยอัตราเร็วคงตัว โดย $\\frac{mv^2}{R} = qvB$<br>จัดรูปเพื่อหารัศมีความโค้งได้ $R = \\frac{mv}{qB}$', {
+  why: 'แรงที่ตั้งฉากกับความเร็วตลอดเวลาจะไม่ทำงานและไม่เปลี่ยนขนาดความเร็ว แต่เปลี่ยนทิศทางจนเกิดวิถีวงกลม',
+  uses: [2, 3]
+});
+
+// ศูนย์กลางของวงกลม O(280, 220) รัศมีภาพ 150 px
+var centerDot = document.createElementNS(SVGNS, 'circle');
+centerDot.setAttribute('cx', '280');
+centerDot.setAttribute('cy', '220');
+centerDot.setAttribute('r', '4');
+centerDot.setAttribute('fill', C.note);
+s4.appendChild(centerDot);
+
+var pathArc = document.createElementNS(SVGNS, 'path');
+pathArc.setAttribute('d', 'M 280 370 A 150 150 0 0 0 280 70');
+pathArc.setAttribute('fill', 'none');
+pathArc.setAttribute('stroke', C.work);
+pathArc.setAttribute('stroke-width', '2');
+pathArc.setAttribute('stroke-dasharray', '6 4');
+s4.appendChild(pathArc);
+
+Shell.arrow(s4, 280, 220, 280 + 1.28e-14 * PX_PER_M, 220, {
+  role: 'work',
+  label: '$R$',
+  value: 1.28e-14,
+  unit: 'm',
+  until: 'step'
+});
+
+Shell.label(s4, 255, 220, '$O$', {role: 'note', anchor: [280, 220], until: 'end'});
+Shell.label(s4, 460, 220, 'แรงสู่ศูนย์กลาง $\\vec{F}_c = \\vec{F}_B$', {role: 'work', anchor: [430, 220], until: 'step'});
+
+var s5 = Shell.step('แทนค่ามวล ความเร็ว ประจุ และสนามแม่เหล็กลงในสมการ<br>$R = \\frac{(3.2\\times 10^{-26}\\text{ kg})(4\\times 10^5\\text{ m/s})}{(2\\times 10^{-6}\\text{ C})(0.5\\text{ T})} = \\frac{1.28\\times 10^{-20}}{1.0\\times 10^{-6}} = 1.28\\times 10^{-14}$ m', {
+  why: 'แทนค่าตัวแปรเพื่อหารัศมีวงกลมที่แท้จริงตามความสัมพันธ์ของแรงสู่ศูนย์กลาง',
+  uses: [4]
+});
+
+var fullPath = document.createElementNS(SVGNS, 'path');
+fullPath.setAttribute('d', 'M 120 370 L 280 370 A 150 150 0 0 0 280 70 L 120 70');
+fullPath.setAttribute('fill', 'none');
+fullPath.setAttribute('stroke', C.answer);
+fullPath.setAttribute('stroke-width', '2.5');
+fullPath.setAttribute('opacity', '0.7');
+s5.appendChild(fullPath);
+
+Shell.arrow(s5, 280, 220, 280 + 1.28e-14 * PX_PER_M, 220, {
+  role: 'answer',
+  label: '$R = 1.28\\times 10^{-14}$ m',
+  value: 1.28e-14,
+  unit: 'm',
+  until: 'end'
+});
+
+Shell.label(s5, 480, 300, 'แนวการเคลื่อนที่แบบครึ่งวงกลม', {role: 'answer', anchor: [430, 220], until: 'end'});
+
+// แอนิเมชันแสดงอนุภาคเคลื่อนที่ตามเส้นทางจริง
+var motionPath = function(t) {
+  if (t < 0.2) {
+    var u = t / 0.2;
+    return [120 + 160 * u, 370];
+  } else if (t <= 0.8) {
+    var u = (t - 0.2) / 0.6;
+    var phi = u * Math.PI;
+    return [280 + 150 * Math.sin(phi), 220 + 150 * Math.cos(phi)];
+  } else {
+    var u = (t - 0.8) / 0.2;
+    return [280 - 160 * u, 70];
+  }
+};
+
+var mover = Shell.motion(s5, null, motionPath, {dur: 2400, loop: true});
+var mCirc = document.createElementNS(SVGNS, 'circle');
+mCirc.setAttribute('cx', '0');
+mCirc.setAttribute('cy', '0');
+mCirc.setAttribute('r', '9');
+mCirc.setAttribute('fill', C.answer);
+mover.appendChild(mCirc);
+
+var mLine1 = document.createElementNS(SVGNS, 'line');
+mLine1.setAttribute('x1', '-4'); mLine1.setAttribute('y1', '0');
+mLine1.setAttribute('x2', '4');  mLine1.setAttribute('y2', '0');
+mLine1.setAttribute('stroke', '#ffffff'); mLine1.setAttribute('stroke-width', '2');
+mover.appendChild(mLine1);
+
+var mLine2 = document.createElementNS(SVGNS, 'line');
+mLine2.setAttribute('x1', '0'); mLine2.setAttribute('y1', '-4');
+mLine2.setAttribute('x2', '0'); mLine2.setAttribute('y2', '4');
+mLine2.setAttribute('stroke', '#ffffff'); mLine2.setAttribute('stroke-width', '2');
+mover.appendChild(mLine2);
+
+// -------------------------------------------------------------
+// กล่องคำตอบสรุป
+// -------------------------------------------------------------
+Shell.answer(
+  'ขนาดและทิศทางของแรงแม่เหล็ก',
+  '$F_B = 0.4$ N โดยมีทิศชี้ขึ้น (ตั้งฉากกับทั้ง $\\vec{v}$ และ $\\vec{B}$ ตามกฎมือขวา)',
+  {sanity: 'แรงมีค่าสูงสุดเนื่องจากทิศทางความเร็วตั้งฉากกับสนามแม่เหล็กพอดี ($\\sin 90^\\circ = 1$)'}
+);
+
+Shell.answer(
+  'รัศมีการเคลื่อนที่แบบวงกลม',
+  '$R = 1.28\\times 10^{-14}$ m',
+  {sanity: 'มวลระดับจุลภาค $10^{-26}$ kg มีโมเมนตัมต่ำ จึงถูกสนามแม่เหล็ก $0.5$ T เบี่ยงเบนเป็นวงกลมรัศมีระดับนิวเคลียส'}
+);
+
+Shell.done();
+</script>
+</body></html>

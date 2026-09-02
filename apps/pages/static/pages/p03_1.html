@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>พลังงานจลน์และทฤษฎีบทงาน-พลังงาน</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+var SVGNS = 'http://www.w3.org/2000/svg';
+function svgEl(tag, attrs) {
+  var el = document.createElementNS(SVGNS, tag);
+  for (var k in attrs) {
+    if (attrs.hasOwnProperty(k)) {
+      el.setAttribute(k, attrs[k]);
+    }
+  }
+  return el;
+}
+
+Shell.page({
+  title: 'พลังงานจลน์และทฤษฎีบทงาน-พลังงาน',
+  problem: 'วัตถุมวล 2 กก. เคลื่อนที่ด้วยความเร็ว 3 m/s จงหาพลังงานจลน์ของวัตถุ และหางานที่ต้องทำเพื่อเพิ่มความเร็วเป็น 6 m/s'
+});
+
+var g = Shell.canvas(), C = Shell.C;
+var PX_PER_V = 25;
+
+Shell.setup('เลือกใช้ทฤษฎีบทงาน-พลังงานจลน์ ($W = \\Delta E_k$) แทนการใช้กฎการเคลื่อนที่ของนิวตัน เพราะสามารถหาคำตอบได้โดยตรงจากอัตราเร็วเริ่มต้นและอัตราเร็วปลาย โดยไม่จำเป็นต้องทราบแรงลัพธ์หรือระยะทาง');
+
+Shell.group('ส่วนที่ 1: คำนวณพลังงานจลน์เริ่มต้น');
+
+var s1 = Shell.step('พิจารณาสภาวะเริ่มต้น วัตถุมวล $m = 2$ kg กำลังเคลื่อนที่ด้วยความเร็ว $v_1 = 3$ m/s');
+
+s1.appendChild(svgEl('line', {
+  x1: 60, y1: 250, x2: 900, y2: 250,
+  stroke: C.note, 'stroke-width': 2
+}));
+
+for (var hx = 70; hx <= 890; hx += 20) {
+  s1.appendChild(svgEl('line', {
+    x1: hx, y1: 250, x2: hx - 10, y2: 260,
+    stroke: C.note, 'stroke-width': 1.5, opacity: 0.6
+  }));
+}
+
+s1.appendChild(svgEl('rect', {
+  x: 140, y: 185, width: 90, height: 65, rx: 6,
+  fill: C.given, 'fill-opacity': 0.15,
+  stroke: C.given, 'stroke-width': 2.5
+}));
+
+Shell.label(s1, 185, 120, 'สภาวะที่ 1 (เริ่มต้น)', {role: 'note', anchor: [185, 120], until: 'end'});
+Shell.label(s1, 185, 218, '$m = 2$ kg', {role: 'given', anchor: [185, 218], until: 'end'});
+
+Shell.arrow(s1, 230, 218, 230 + 3 * PX_PER_V, 218, {
+  role: 'given',
+  label: '$v_1 = 3$ m/s',
+  value: 3,
+  unit: 'm/s',
+  until: 'end'
+});
+
+var s2 = Shell.step('คำนวณพลังงานจลน์เริ่มต้นจากสูตร $E_{k1} = \\frac{1}{2}mv_1^2 = \\frac{1}{2}(2)(3)^2 = 9$ J', {
+  why: 'พลังงานจลน์คือพลังงานเนื่องจากการเคลื่อนที่ คำนวณได้จากมวลและอัตราเร็วยกกำลังสองของวัตถุ',
+  uses: [1]
+});
+
+s2.appendChild(svgEl('line', {
+  x1: 110, y1: 450, x2: 850, y2: 450,
+  stroke: C.note, 'stroke-dasharray': '4 4', 'stroke-width': 1.5
+}));
+
+s2.appendChild(svgEl('rect', {
+  x: 150, y: 423, width: 70, height: 27, rx: 4,
+  fill: C.answer, 'fill-opacity': 0.25,
+  stroke: C.answer, 'stroke-width': 2
+}));
+
+Shell.label(s2, 110, 445, 'ระดับ 0 J', {role: 'note', anchor: [110, 445], until: 'end', pin: true});
+Shell.label(s2, 185, 400, '$E_{k1} = 9$ J', {role: 'answer', anchor: [185, 423], until: 'end'});
+Shell.label(s2, 185, 475, 'พลังงานเริ่มต้น', {role: 'note', anchor: [185, 450], until: 'end'});
+
+Shell.group('ส่วนที่ 2: ทฤษฎีบทงาน-พลังงานจลน์');
+
+var s3 = Shell.step('เมื่อวัตถุมีความเร็วเพิ่มขึ้นเป็น $v_2 = 6$ m/s จะมีพลังงานจลน์ปลาย $E_{k2} = \\frac{1}{2}mv_2^2 = \\frac{1}{2}(2)(6)^2 = 36$ J', {
+  why: 'ต้องคำนวณพลังงานจลน์ที่สภาวะปลายก่อน เพื่อนำไปหาผลต่างของพลังงาน'
+});
+
+s3.appendChild(svgEl('line', {
+  x1: 230, y1: 218, x2: 640, y2: 218,
+  stroke: C.note, 'stroke-dasharray': '5 5', 'stroke-width': 1.5, opacity: 0.5
+}));
+
+s3.appendChild(svgEl('rect', {
+  x: 640, y: 185, width: 90, height: 65, rx: 6,
+  fill: C.work, 'fill-opacity': 0.15,
+  stroke: C.work, 'stroke-width': 2.5
+}));
+
+Shell.label(s3, 685, 120, 'สภาวะที่ 2 (ความเร็วเพิ่มขึ้น)', {role: 'note', anchor: [685, 120], until: 'end'});
+Shell.label(s3, 685, 218, '$m = 2$ kg', {role: 'note', anchor: [685, 218], until: 'end'});
+
+Shell.arrow(s3, 730, 218, 730 + 6 * PX_PER_V, 218, {
+  role: 'work',
+  label: '$v_2 = 6$ m/s',
+  value: 6,
+  unit: 'm/s',
+  until: 'end'
+});
+
+s3.appendChild(svgEl('rect', {
+  x: 650, y: 342, width: 70, height: 108, rx: 4,
+  fill: C.work, 'fill-opacity': 0.2,
+  stroke: C.work, 'stroke-width': 2
+}));
+
+Shell.label(s3, 685, 320, '$E_{k2} = 36$ J', {role: 'work', anchor: [685, 342], until: 'end'});
+Shell.label(s3, 685, 475, 'พลังงานปลาย', {role: 'note', anchor: [685, 450], until: 'end'});
+
+var s4 = Shell.step('หางานที่ต้องทำจากทฤษฎีบทงาน-พลังงาน $W = \\Delta E_k = E_{k2} - E_{k1} = 36 - 9 = 27$ J', {
+  why: 'งานของแรงลัพธ์ภายนอกที่กระทำต่อวัตถุจะเปลี่ยนเป็นพลังงานจลน์ที่เพิ่มขึ้นของวัตถุทั้งหมด',
+  uses: [2, 3]
+});
+
+Shell.label(s4, 465, 175, '$W = \\Delta E_k = E_{k2} - E_{k1}$', {role: 'work', anchor: [465, 175], until: 'end'});
+Shell.label(s4, 465, 210, '$W = 36 - 9 = 27$ J', {role: 'answer', anchor: [465, 210], until: 'end'});
+
+s4.appendChild(svgEl('rect', {
+  x: 430, y: 369, width: 70, height: 81, rx: 4,
+  fill: C.answer, 'fill-opacity': 0.25,
+  stroke: C.answer, 'stroke-width': 2
+}));
+
+s4.appendChild(svgEl('line', {
+  x1: 650, y1: 423, x2: 720, y2: 423,
+  stroke: C.answer, 'stroke-dasharray': '3 3', 'stroke-width': 1.5
+}));
+
+Shell.label(s4, 465, 345, '$W = +27$ J', {role: 'answer', anchor: [465, 369], until: 'end'});
+Shell.label(s4, 465, 475, 'งานที่ใส่เพิ่ม', {role: 'note', anchor: [465, 450], until: 'end'});
+Shell.label(s4, 325, 410, '$+$', {role: 'note', anchor: [325, 410], until: 'end', pin: true});
+Shell.label(s4, 570, 410, '$=$', {role: 'note', anchor: [570, 410], until: 'end', pin: true});
+
+Shell.answer('พลังงานจลน์เริ่มต้นและงานที่ต้องทำ', '$E_{k1} = 9$ J และ $W = 27$ J', {
+  sanity: 'งาน $W = 27$ J เป็นบวก สอดคล้องกับความเร็วที่เพิ่มขึ้น และเมื่อความเร็วเพิ่มเป็น 2 เท่า ($3 \\to 6$ m/s) พลังงานจลน์จะเพิ่มเป็น $2^2 = 4$ เท่า (จาก 9 J เป็น 36 J)'
+});
+
+Shell.done();
+</script>
+</body></html>

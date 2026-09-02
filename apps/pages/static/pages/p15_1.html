@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>แรงลอยตัวของวัตถุที่จมในน้ำ</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+var SVGNS = 'http://www.w3.org/2000/svg';
+
+Shell.page({
+  title: 'แรงลอยตัวของวัตถุที่จมในน้ำ',
+  problem: 'วัตถุมวล $5$ kg จมอยู่ในน้ำทั้งก้อน จงหาแรงลอยตัวที่กระทำต่อวัตถุ ถ้าความหนาแน่นน้ำ $= 1000$ kg/m³ และปริมาตรวัตถุ $= 0.002$ m³'
+});
+
+var g = Shell.canvas(), C = Shell.C;
+var PX_PER_N = 4.0;
+
+function createSvg(tag, attrs) {
+  var el = document.createElementNS(SVGNS, tag);
+  for (var k in attrs) {
+    el.setAttribute(k, attrs[k]);
+  }
+  return el;
+}
+
+// โต๊ะวางภาชนะ
+g.appendChild(createSvg('rect', {x: 80, y: 485, width: 800, height: 14, rx: 3, fill: '#cbd5e1'}));
+g.appendChild(createSvg('line', {x1: 60, y1: 485, x2: 900, y2: 485, stroke: '#94a3b8', 'stroke-width': 2.5}));
+
+// น้ำในภาชนะ
+g.appendChild(createSvg('rect', {x: 242, y: 150, width: 476, height: 333, fill: '#38bdf8', 'fill-opacity': 0.18}));
+
+// ผิวน้ำและขอบผิวน้ำ (Meniscus)
+g.appendChild(createSvg('line', {x1: 242, y1: 150, x2: 718, y2: 150, stroke: '#0284c7', 'stroke-width': 2.5}));
+g.appendChild(createSvg('path', {d: 'M 242,144 Q 245,150 252,150', fill: 'none', stroke: '#0284c7', 'stroke-width': 2}));
+g.appendChild(createSvg('path', {d: 'M 718,144 Q 715,150 708,150', fill: 'none', stroke: '#0284c7', 'stroke-width': 2}));
+
+// ขอบแก้วภาชนะ
+g.appendChild(createSvg('path', {
+  d: 'M 234,110 L 240,110 L 240,475 Q 240,485 252,485 L 708,485 Q 720,485 720,475 L 720,110 L 726,110',
+  fill: 'none', stroke: '#64748b', 'stroke-width': 3.5, 'stroke-linecap': 'round'
+}));
+g.appendChild(createSvg('rect', {x: 240, y: 480, width: 480, height: 5, fill: '#64748b', opacity: 0.2, rx: 2}));
+
+// ขีดบอกระดับบนภาชนะ
+var ticks = [190, 230, 270, 310, 350, 390, 430];
+for (var i = 0; i < ticks.length; i++) {
+  var yt = ticks[i];
+  var len = (i % 2 === 0) ? 18 : 12;
+  g.appendChild(createSvg('line', {x1: 240, y1: yt, x2: 240 + len, y2: yt, stroke: '#94a3b8', 'stroke-width': 1.5}));
+}
+
+// วัตถุที่จมอยู่ใต้น้ำ
+g.appendChild(createSvg('rect', {
+  x: 420, y: 225, width: 120, height: 90, rx: 8,
+  fill: '#64748b', 'fill-opacity': 0.35, stroke: '#334155', 'stroke-width': 2.5
+}));
+// จุดกึ่งกลางวัตถุ (จุดศูนย์กลางมวล / จุดศูนย์กลางแรงลอยตัว)
+g.appendChild(createSvg('circle', {cx: 480, cy: 270, r: 4.5, fill: '#1e293b'}));
+
+Shell.setup('ตามหลักการของอาร์คิมีดีส แรงลอยตัวขึ้นอยู่กับความหนาแน่นของของเหลวและปริมาตรส่วนที่จมเท่านั้น มวลของวัตถุไม่ได้นำมาใช้คำนวณแรงลอยตัวโดยตรง แต่เป็นตัวกำหนดน้ำหนักซึ่งบอกว่าจะจมหรือลอย');
+
+Shell.group('คำนวณแรงลอยตัวตามหลักการของอาร์คิมีดีส');
+
+// ขั้นที่ 1: วิเคราะห์ปริมาตรส่วนที่จม
+var s1 = Shell.step(
+  'วัตถุจมอยู่ในน้ำทั้งก้อน หมายความว่าปริมาตรของน้ำที่ถูกแทนที่ ($V_{\\text{sub}}$) เท่ากับปริมาตรของวัตถุทั้งหมดพอดี จะได้ $V_{\\text{sub}} = 0.002$ m³',
+  {why: 'เมื่อวัตถุจมมิดทั้งก้อน ปริมาตรของเหลวที่ถูกแทนที่จะเท่ากับปริมาตรวัตถุพอดี'}
+);
+
+s1.appendChild(createSvg('rect', {
+  x: 414, y: 219, width: 132, height: 102, rx: 11,
+  fill: 'none', stroke: C.work, 'stroke-width': 2.5, 'stroke-dasharray': '6,4'
+}));
+
+Shell.label(s1, 140, 140, 'ผิวน้ำ', {role: 'note', anchor: [242, 150], until: 'end'});
+Shell.label(s1, 140, 200, 'น้ำ $\\rho = 1000$ kg/m³', {role: 'given', anchor: [242, 200], until: 'end'});
+Shell.label(s1, 305, 270, 'วัตถุ $m = 5$ kg, $V = 0.002$ m³', {role: 'given', anchor: [420, 270], until: 'end'});
+Shell.label(s1, 640, 270, '$V_{\\text{sub}} = 0.002$ m³', {role: 'work', anchor: [540, 270], until: 'step'});
+
+// ขั้นที่ 2: ระบุสูตรแรงลอยตัว
+var s2 = Shell.step(
+  'หลักการของอาร์คิมีดีสระบุว่า แรงลอยตัว ($F_B$) มีขนาดเท่ากับน้ำหนักของของเหลวที่ถูกแทนที่ คำนวณจาก $F_B = \\rho g V_{\\text{sub}}$',
+  {why: 'แรงลอยตัวเกิดจากผลต่างของแรงดันของเหลวด้านล่างและด้านบนของวัตถุ จึงมีขนาดเท่ากับน้ำหนักของของเหลวปริมาตรเท่าส่วนที่จม'}
+);
+Shell.label(s2, 640, 230, '$F_B = \\rho g V_{\\text{sub}}$', {role: 'work', anchor: [540, 240], until: 'step'});
+
+// ขั้นที่ 3: แทนค่าและคำนวณขนาดแรงลอยตัว
+var s3 = Shell.step(
+  'แทนค่า $\\rho = 1000$ kg/m³, $g = 9.8$ m/s², และ $V_{\\text{sub}} = 0.002$ m³<br>จะได้ $F_B = (1000)(9.8)(0.002) = 19.6$ N (หรือ $20$ N หากใช้ $g = 10$ m/s²)',
+  {uses: [1, 2]}
+);
+Shell.arrow(s3, 480, 270, 480, 270 - 19.6 * PX_PER_N, {
+  role: 'answer',
+  label: '$F_B = 19.6$ N',
+  value: 19.6,
+  unit: 'N',
+  until: 'end'
+});
+
+// ขั้นที่ 4: เปรียบเทียบกับน้ำหนักของวัตถุ (อธิบายบทบาทของมวล 5 กก.)
+var s4 = Shell.step(
+  'พิจารณาน้ำหนักของวัตถุ $W = mg = (5)(9.8) = 49$ N มีทิศลงสู่พื้น<br>เนื่องจากน้ำหนัก $W > F_B$ ($49$ N $> 19.6$ N) วัตถุจึงจมลงสู่ก้นภาชนะจริง โดยมวล $5$ kg เป็นตัวกำหนดน้ำหนัก ไม่ได้ใช้หาแรงลอยตัว',
+  {why: 'น้ำหนักเป็นแรงดึงดูดของโลกที่กระทำต่อมวลในทิศลง เพื่อเปรียบเทียบกับแรงลอยตัวในทิศขึ้นและยืนยันสถานะการจม', uses: [3]}
+);
+Shell.arrow(s4, 480, 270, 480, 270 + 49 * PX_PER_N, {
+  role: 'given',
+  label: '$W = 49$ N',
+  value: 49,
+  unit: 'N',
+  until: 'end'
+});
+Shell.label(s4, 630, 400, '$W > F_B$ วัตถุจึงจม', {
+  role: 'warn',
+  anchor: [480, 410],
+  until: 'end'
+});
+
+Shell.answer(
+  'แรงลอยตัวที่กระทำต่อวัตถุ',
+  '$F_B = 19.6$ N (หรือ $20$ N เมื่อใช้ $g = 10$ m/s²)',
+  {sanity: 'แรงลอยตัวมีทิศชี้ขึ้น และมีค่าน้อยกว่าน้ำหนักของวัตถุ ($49$ N) สอดคล้องกับที่โจทย์ระบุว่าวัตถุจมทั้งก้อน'}
+);
+
+Shell.done();
+</script>
+</body></html>

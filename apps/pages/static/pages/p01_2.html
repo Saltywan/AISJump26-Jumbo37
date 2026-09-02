@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>กราฟ v-t และความเร่งของการเคลื่อนที่ของรถยนต์</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/jsxgraph.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/jsxgraphcore.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+Shell.page({
+  title: 'กราฟ $v-t$ และความเร่งของการเคลื่อนที่ของรถยนต์',
+  problem: 'รถยนต์เคลื่อนที่ด้วยความเร็ว $20$ m/s แล้วเบรกด้วยความหน่วงคงที่จนหยุดในระยะทาง $50$ เมตร จากนั้นจอดนิ่ง $3$ วินาที แล้วเร่งความเร็วกลับไปที่ $15$ m/s ด้วยความเร่งคงที่ภายใน $5$ วินาที จงเขียนกราฟ $v-t$ ตลอดการเคลื่อนที่ทั้งหมด และหาความเร่ง/ความหน่วงในแต่ละช่วง'
+});
+
+var b = Shell.board({
+  box: [-2, 24, 15, -3],
+  axis: true,
+  grid: true,
+  keepaspect: false
+});
+var C = Shell.C;
+
+Shell.setup(
+  'การวิเคราะห์การเคลื่อนที่ผ่านกราฟความเร็ว-เวลา ($v-t$):<br>' +
+  '1. <b>พื้นที่ใต้กราฟ</b> แสดงถึงการกระจัดหรือระยะทาง ($s$)<br>' +
+  '2. <b>ความชันของกราฟ</b> แสดงถึงความเร่ง ($a = \\frac{\\Delta v}{\\Delta t}$) โดยความชันเป็นลบคือความหน่วง'
+);
+
+var origin = b.create('point', [0, 0], {visible: false, fixed: true});
+
+var p0 = b.create('point', [0, 20], {
+  name: '', withLabel: false, fixed: true, size: 4,
+  strokeColor: C.given, fillColor: C.given
+});
+
+var p1 = b.create('point', [5, 0], {
+  name: '', withLabel: false, fixed: true, size: 4,
+  strokeColor: C.work, fillColor: C.work
+});
+
+var p2 = b.create('point', [8, 0], {
+  name: '', withLabel: false, fixed: true, size: 4,
+  strokeColor: C.work, fillColor: C.work
+});
+
+var p3 = b.create('point', [13, 15], {
+  name: '', withLabel: false, fixed: true, size: 4,
+  strokeColor: C.answer, fillColor: C.answer
+});
+
+var p3x = b.create('point', [13, 0], {visible: false, fixed: true});
+var p3y = b.create('point', [0, 15], {visible: false, fixed: true});
+
+var seg1 = b.create('segment', [p0, p1], {
+  strokeColor: C.answer, strokeWidth: 3, fixed: true, withLabel: false
+});
+
+var seg2 = b.create('segment', [p1, p2], {
+  strokeColor: C.answer, strokeWidth: 3, fixed: true, withLabel: false
+});
+
+var seg3 = b.create('segment', [p2, p3], {
+  strokeColor: C.answer, strokeWidth: 3, fixed: true, withLabel: false
+});
+
+var dashX3 = b.create('segment', [p3, p3x], {
+  strokeColor: C.note, strokeWidth: 1.5, dash: 2, fixed: true, withLabel: false
+});
+
+var dashY3 = b.create('segment', [p3, p3y], {
+  strokeColor: C.note, strokeWidth: 1.5, dash: 2, fixed: true, withLabel: false
+});
+
+var area1 = b.create('polygon', [origin, p0, p1], {
+  fillColor: C.work, fillOpacity: 0.18, fixed: true,
+  borders: {strokeWidth: 0, visible: false}, withLabel: false
+});
+
+Shell.group('ช่วงที่ 1: การเบรกจนหยุดนิ่ง');
+
+var s1 = Shell.step(
+  'เริ่มต้นที่เวลา $t = 0$ s รถยนต์มีความเร็วต้น $u_1 = 20$ m/s จุดเริ่มต้นบนกราฟจึงอยู่ที่พิกัด $(0, 20)$',
+  {why: 'โจทย์กำหนดความเร็วเริ่มต้น ณ จุดตั้งต้นของการสังเกต'}
+);
+Shell.on(s1, p0);
+Shell.tag(s1, p0, '(0, 20)', {role: 'given'});
+Shell.tag(s1, [14, 0.6], '$t$ (s)', {role: 'note'});
+Shell.tag(s1, [0.6, 22.5], '$v$ (m/s)', {role: 'note'});
+
+var s2 = Shell.step(
+  'หาเวลาเบรกจนหยุด ($t_1$) จากระยะทาง $s_1 = 50$ เมตร และความเร็วปลาย $v_1 = 0$ m/s<br>' +
+  'จากสูตร $s_1 = \\left(\\frac{u_1 + v_1}{2}\\right) t_1 \\implies 50 = \\left(\\frac{20 + 0}{2}\\right) t_1 = 10 t_1 \\implies t_1 = 5$ s<br>' +
+  'จุดที่รถหยุดนิ่งอยู่บนแกนนอนที่พิกัด $(5, 0)$',
+  {why: 'การเคลื่อนที่ด้วยความเร่งคงที่มีความเร็วเฉลี่ยเท่ากับ $\\frac{u+v}{2}$ และพื้นที่ใต้กราฟเท่ากับระยะทางเบรก $50$ เมตร'}
+);
+Shell.on(s2, p1, seg1);
+Shell.on(s2, area1, {until: 'step'});
+Shell.tag(s2, p1, '(5, 0)', {role: 'work'});
+Shell.tag(s2, [2.2, 6], '$s_1 = 50$ m', {role: 'work', until: 'step'});
+
+var s3 = Shell.step(
+  'คำนวณความเร่งช่วงที่ 1 จากความชันของกราฟเส้นตรง:<br>' +
+  '$$a_1 = \\frac{v_1 - u_1}{t_1 - 0} = \\frac{0 - 20}{5 - 0} = -4\\text{ m/s}^2$$' +
+  'เครื่องหมายลบแสดงถึงทิศตรงข้ามการเคลื่อนที่ นั่นคือ <b>ความหน่วงมีค่า $4$ m/s²</b> (หรือความเร่ง $-4$ m/s²)',
+  {why: 'ความชันของกราฟ $v-t$ คืออัตราการเปลี่ยนแปลงความเร็วต่อหนึ่งหน่วยเวลา ซึ่งคือนิยามของความเร่ง', uses: [1, 2]}
+);
+Shell.tag(s3, [2.5, 12], '$a_1 = -4$ m/s²', {role: 'answer'});
+
+Shell.group('ช่วงที่ 2: จอดนิ่งอยู่กับที่');
+
+var s4 = Shell.step(
+  'รถจอดนิ่งเป็นเวลา $3$ วินาที ความเร็วคงที่ $v = 0$ m/s ในช่วงเวลา $t = 5$ s ถึง $t = 5 + 3 = 8$ s<br>' +
+  'ลากเส้นกราฟทับแกนนอนไปยังจุด $(8, 0)$ และมีความเร่ง:' +
+  '$$a_2 = \\frac{0 - 0}{8 - 5} = 0\\text{ m/s}^2$$',
+  {why: 'วัตถุหยุดนิ่งอยู่กับที่ ความเร็วไม่เปลี่ยนแปลงตามเวลา ความเร่งจึงเป็นศูนย์', uses: [2]}
+);
+Shell.on(s4, p2, seg2);
+Shell.tag(s4, p2, '(8, 0)', {role: 'work'});
+Shell.tag(s4, [6.5, 1.2], '$a_2 = 0$ m/s²', {role: 'answer'});
+
+Shell.group('ช่วงที่ 3: การเร่งความเร็ว');
+
+var s5 = Shell.step(
+  'รถเร่งจากหยุดนิ่งที่ $t = 8$ s จนมีความเร็ว $v_3 = 15$ m/s ภายในเวลา $5$ วินาที<br>' +
+  'เวลาสิ้นสุดคือ $t = 8 + 5 = 13$ s ลากเส้นตรงจากจุด $(8, 0)$ ไปยังจุดปลาย $(13, 15)$',
+  {why: 'ความเร็วเพิ่มขึ้นอย่างสม่ำเสมอด้วยความเร่งคงที่ เส้นกราฟจึงเป็นเส้นตรงเอียงขึ้น', uses: [4]}
+);
+Shell.on(s5, p3, seg3, dashX3, dashY3);
+Shell.tag(s5, p3, '(13, 15)', {role: 'answer'});
+
+var s6 = Shell.step(
+  'คำนวณความเร่งช่วงที่ 3 จากความชันของกราฟเส้นตรง:<br>' +
+  '$$a_3 = \\frac{v_3 - 0}{\\Delta t_3} = \\frac{15 - 0}{13 - 8} = \\frac{15}{5} = +3\\text{ m/s}^2$$' +
+  'ได้ <b>ความเร่งมีค่า $+3$ m/s²</b> ในทิศไปข้างหน้า',
+  {why: 'ความเร่งคงที่คำนวณจากอัตราส่วนการเปลี่ยนแปลงความเร็วต่อช่วงเวลาที่ใช้เร่ง', uses: [4, 5]}
+);
+Shell.tag(s6, [10.5, 9.5], '$a_3 = 3$ m/s²', {role: 'answer'});
+
+Shell.answer(
+  'กราฟ $v-t$ ตลอดการเคลื่อนที่ และค่าความเร่งแต่ละช่วง',
+  'ช่วงที่ 1: ความหน่วง $4$ m/s² (ความเร่ง $a_1 = -4$ m/s²)<br>' +
+  'ช่วงที่ 2: ความเร่ง $a_2 = 0$ m/s²<br>' +
+  'ช่วงที่ 3: ความเร่ง $a_3 = 3$ m/s²',
+  {
+    sanity: 'ความเร่งช่วงแรกติดลบสอดคล้องกับการลดความเร็ว โดยพื้นที่รูปสามเหลี่ยม $\\frac{1}{2} \\times 5 \\times 20 = 50$ m เท่ากับระยะทางเบรกจริง และช่วงสุดท้ายความเร็วเพิ่มขึ้นความเร่งจึงเป็นบวก'
+  }
+);
+
+Shell.done();
+</script>
+</body></html>

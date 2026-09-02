@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>วงจรไฟฟ้าแบบผสมและการหากระแสไฟฟ้า</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+var SVGNS = 'http://www.w3.org/2000/svg';
+
+Shell.page({
+  title: 'วงจรไฟฟ้าแบบผสมและการหากระแสไฟฟ้า',
+  problem: 'วงจรไฟฟ้าประกอบด้วยตัวต้านทาน 3 ตัว ($6\\,\\Omega$, $3\\,\\Omega$, $4\\,\\Omega$) โดย $6\\,\\Omega$ กับ $3\\,\\Omega$ ต่อขนานกัน แล้วต่ออนุกรมกับตัวต้านทาน $4\\,\\Omega$ เชื่อมกับแบตเตอรี่ $24$ โวลต์ จงวาดวงจรและหากระแสไฟฟ้าที่ไหลผ่านตัวต้านทานแต่ละตัว'
+});
+
+var canvas = Shell.canvas();
+var C = Shell.C;
+var PX_PER_A = 30;
+
+function createSvg(tag, attrs) {
+  var el = document.createElementNS(SVGNS, tag);
+  for (var k in attrs) {
+    el.setAttribute(k, attrs[k]);
+  }
+  return el;
+}
+
+function makeResistorPath(xCenter, yCenter, width, height) {
+  var x0 = xCenter - width / 2;
+  var x1 = x0 + 15;
+  var x2 = xCenter + width / 2 - 15;
+  var zw = (x2 - x1) / 6;
+  var h = height / 2;
+  var d = 'M ' + x0 + ' ' + yCenter + ' L ' + x1 + ' ' + yCenter;
+  d += ' L ' + (x1 + zw * 0.5) + ' ' + (yCenter - h);
+  d += ' L ' + (x1 + zw * 1.5) + ' ' + (yCenter + h);
+  d += ' L ' + (x1 + zw * 2.5) + ' ' + (yCenter - h);
+  d += ' L ' + (x1 + zw * 3.5) + ' ' + (yCenter + h);
+  d += ' L ' + (x1 + zw * 4.5) + ' ' + (yCenter - h);
+  d += ' L ' + (x1 + zw * 5.5) + ' ' + (yCenter + h);
+  d += ' L ' + x2 + ' ' + yCenter;
+  d += ' L ' + (xCenter + width / 2) + ' ' + yCenter;
+  return d;
+}
+
+Shell.setup('วิเคราะห์วงจรผสมโดยยุบตัวต้านทานคู่ขนาน ($6\\,\\Omega$ และ $3\\,\\Omega$) ให้เป็นความต้านทานสมมูลหนึ่งตัวก่อน เพื่อหาความต้านทานรวมและกระแสไฟฟ้ารวมทั้งวงจร จากนั้นจึงกระจายกลับไปหากระแสในแต่ละกิ่ง');
+
+Shell.group('วาดวงจรไฟฟ้าและหาความต้านทานรวม');
+
+var s1 = Shell.step('วาดแผนภาพวงจรไฟฟ้าตามที่โจทย์กำหนด ประกอบด้วยแบตเตอรี่ $24$ V ตัวต้านทาน $R_1, R_2$ ต่อขนานกัน และต่ออนุกรมกับ $R_3$');
+
+var wireColor = C.given;
+var wireWidth = '2.5';
+
+// สายไฟหลักและกิ่งขนาน
+var circuitPaths = [
+  // สายจากแบตเตอรี่ไปจุดแยก J1
+  'M 120 290 L 120 160 L 280 160',
+  // กิ่งบน (R1)
+  'M 280 160 L 280 80 L 380 80',
+  'M 460 80 L 560 80 L 560 160',
+  // กิ่งล่าง (R2)
+  'M 280 160 L 280 240 L 380 240',
+  'M 460 240 L 560 240 L 560 160',
+  // จากจุดรวม J2 ผ่าน R3 ไปมุมขวา
+  'M 560 160 L 610 160',
+  'M 690 160 L 860 160',
+  // สายกลับด้านขวาและล่างเข้าขั้วลบแบตเตอรี่
+  'M 860 160 L 860 450 L 120 450 L 120 315'
+];
+
+for (var i = 0; i < circuitPaths.length; i++) {
+  var p = createSvg('path', {
+    d: circuitPaths[i],
+    stroke: wireColor,
+    'stroke-width': wireWidth,
+    fill: 'none',
+    'stroke-linecap': 'round',
+    'stroke-linejoin': 'round'
+  });
+  s1.appendChild(p);
+}
+
+// ตัวต้านทาน R1, R2, R3
+var r1Path = makeResistorPath(420, 80, 80, 24);
+var r2Path = makeResistorPath(420, 240, 80, 24);
+var r3Path = makeResistorPath(650, 160, 80, 24);
+
+s1.appendChild(createSvg('path', { d: r1Path, stroke: wireColor, 'stroke-width': wireWidth, fill: 'none' }));
+s1.appendChild(createSvg('path', { d: r2Path, stroke: wireColor, 'stroke-width': wireWidth, fill: 'none' }));
+s1.appendChild(createSvg('path', { d: r3Path, stroke: wireColor, 'stroke-width': wireWidth, fill: 'none' }));
+
+// แผ่นขั้วแบตเตอรี่
+var batPos = createSvg('line', { x1: 95, y1: 290, x2: 145, y2: 290, stroke: wireColor, 'stroke-width': 3 });
+var batNeg = createSvg('line', { x1: 107, y1: 315, x2: 133, y2: 315, stroke: wireColor, 'stroke-width': 6 });
+s1.appendChild(batPos);
+s1.appendChild(batNeg);
+
+// จุดต่อแยก (Junction nodes)
+s1.appendChild(createSvg('circle', { cx: 280, cy: 160, r: 4.5, fill: wireColor }));
+s1.appendChild(createSvg('circle', { cx: 560, cy: 160, r: 4.5, fill: wireColor }));
+
+// ป้ายกำกับอุปกรณ์
+Shell.label(s1, 60, 302, '$V = 24$ V', { role: 'given', anchor: [100, 302], until: 'end' });
+Shell.label(s1, 420, 48, '$R_1 = 6\\,\\Omega$', { role: 'given', anchor: [420, 80], until: 'end' });
+Shell.label(s1, 420, 272, '$R_2 = 3\\,\\Omega$', { role: 'given', anchor: [420, 240], until: 'end' });
+Shell.label(s1, 650, 128, '$R_3 = 4\\,\\Omega$', { role: 'given', anchor: [650, 160], until: 'end' });
+
+var s2 = Shell.step('ยุบความต้านทานคู่ขนาน $R_1$ และ $R_2$ ได้ความต้านทานสมมูล $R_p = 2\\,\\Omega$', {
+  why: 'ตัวต้านทานต่อขนานกันตกคร่อมจุดร่วมคู่เดียวกัน จึงมีความต่างศักย์เท่ากัน ส่วนกลับความต้านทานสมมูลเท่ากับผลบวกของส่วนกลับแต่ละตัว'
+});
+
+var boxP = createSvg('rect', {
+  x: 265, y: 55, width: 310, height: 210, rx: 12,
+  fill: 'none', stroke: C.work, 'stroke-width': 2, 'stroke-dasharray': '6,4'
+});
+s2.appendChild(boxP);
+Shell.label(s2, 420, 160, '$R_p = 2\\,\\Omega$', { role: 'work', anchor: [420, 160], until: 3 });
+
+var s3 = Shell.step('หาความต้านทานรวมทั้งวงจร ($R_{\\text{total}}$) โดยนำ $R_p$ มาบวกกับ $R_3$ ได้ $R_{\\text{total}} = 2 + 4 = 6\\,\\Omega$', {
+  why: 'กิ่งขนานที่ยุบแล้วต่ออนุกรมกับ $R_3$ มีกระแสไหลผ่านเส้นทางเดียว จึงนำค่าความต้านทานมารวมกันได้โดยตรง',
+  uses: [2]
+});
+
+var boxTotal = createSvg('rect', {
+  x: 260, y: 50, width: 445, height: 220, rx: 14,
+  fill: 'none', stroke: C.work, 'stroke-width': 2, 'stroke-dasharray': '8,5'
+});
+s3.appendChild(boxTotal);
+Shell.label(s3, 500, 310, 'ความต้านทานรวม $R_{\\text{total}} = 2 + 4 = 6\\,\\Omega$', { role: 'work', anchor: [500, 160], until: 'step' });
+
+Shell.group('คำนวณหากระแสไฟฟ้าในแต่ละส่วนของวงจร');
+
+var s4 = Shell.step('หากระแสไฟฟ้ารวม ($I_{\\text{total}}$) ที่จ่ายออกจากแบตเตอรี่จากกฎของโอห์ม $I_{\\text{total}} = \\frac{V}{R_{\\text{total}}} = \\frac{24}{6} = 4$ A', {
+  why: 'ใช้กฎของโอห์มกับทั้งวงจรเพื่อหาปริมาณกระแสไฟฟ้าทั้งหมดที่ออกจากแหล่งกำเนิด',
+  uses: [3]
+});
+
+Shell.arrow(s4, 140, 160, 260, 160, {
+  role: 'work',
+  label: '$I_{\\text{total}} = 4$ A',
+  value: 4,
+  unit: 'A',
+  until: 'end'
+});
+
+var s5 = Shell.step('หากระแสไฟฟ้าที่ไหลผ่าน $R_3$ จะได้ $I_3 = I_{\\text{total}} = 4$ A', {
+  why: 'ตัวต้านทาน $R_3$ ต่ออนุกรมอยู่บนสายหลัก กระแสไฟฟ้ารวมทั้งหมดจึงต้องไหลผ่านตัวมันโดยตรง',
+  uses: [4]
+});
+
+Shell.arrow(s5, 710, 160, 830, 160, {
+  role: 'answer',
+  label: '$I_3 = 4$ A',
+  value: 4,
+  unit: 'A',
+  until: 'end'
+});
+
+var s6 = Shell.step('หาความต่างศักย์ตกคร่อมคู่ขนาน $V_p = I_{\\text{total}} R_p = 8$ V แล้วคำนวณกระแสในแต่ละกิ่ง $I_1$ และ $I_2$', {
+  why: 'ตัวต้านทานที่ต่อขนานกันมีความต่างศักย์ตกคร่อมเท่ากัน คือ $8$ V จึงใช้กฎของโอห์มแยกคำนวณแต่ละกิ่งได้',
+  uses: [2, 4]
+});
+
+var vGuide = createSvg('line', {
+  x1: 280, y1: 295, x2: 560, y2: 295,
+  stroke: C.note, 'stroke-width': 1.5, 'stroke-dasharray': '4,4'
+});
+s6.appendChild(vGuide);
+Shell.label(s6, 420, 320, 'ความต่างศักย์ตกคร่อมคู่ขนาน $V_p = 4\\times 2 = 8$ V', { role: 'work', anchor: [420, 295], until: 'step' });
+
+Shell.arrow(s6, 490, 80, 530, 80, {
+  role: 'answer',
+  label: '$I_1 = \\frac{4}{3}$ A',
+  value: 4 / 3,
+  unit: 'A',
+  until: 'end'
+});
+
+Shell.arrow(s6, 475, 240, 555, 240, {
+  role: 'answer',
+  label: '$I_2 = \\frac{8}{3}$ A',
+  value: 8 / 3,
+  unit: 'A',
+  until: 'end'
+});
+
+Shell.answer(
+  'กระแสไฟฟ้าที่ไหลผ่านตัวต้านทานแต่ละตัว',
+  '$I_1 = \\frac{4}{3}$ A ($\\approx 1.33$ A), $I_2 = \\frac{8}{3}$ A ($\\approx 2.67$ A), $I_3 = 4$ A',
+  { sanity: 'ผลรวมกระแสในกิ่งขนาน $I_1 + I_2 = \\frac{4}{3} + \\frac{8}{3} = \\frac{12}{3} = 4$ A เท่ากับกระแสรวม $I_3$ ที่ไหลผ่านวงจรหลักพอดี เป็นไปตามกฎกระแสของเคอร์ชฮอฟฟ์' }
+);
+
+Shell.done();
+</script>
+</body></html>

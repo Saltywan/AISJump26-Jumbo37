@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>พิสูจน์เส้นทแยงมุมของสี่เหลี่ยมด้านขนาน</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+var SVGNS = 'http://www.w3.org/2000/svg';
+
+Shell.page({
+  title: 'การพิสูจน์เส้นทแยงมุมของรูปสี่เหลี่ยมด้านขนาน',
+  problem: 'ในรูปสี่เหลี่ยมด้านขนาน $ABCD$ เส้นทแยงมุม $AC$ และ $BD$ ตัดกันที่จุด $O$ จงพิสูจน์ว่า $\\triangle AOB \\cong \\triangle COD$ และใช้ผลลัพธ์นี้พิสูจน์ว่าเส้นทแยงมุมของสี่เหลี่ยมด้านขนานแบ่งครึ่งซึ่งกันและกัน'
+});
+
+var g = Shell.canvas();
+var C = Shell.C;
+
+Shell.setup('ใช้สมบัติของรูปสี่เหลี่ยมด้านขนานที่มีด้านตรงข้ามขนานกันและยาวเท่ากัน ($AB \\parallel CD$ และ $AB = CD$) เพื่อหามุมแย้งที่เท่ากัน แล้วพิสูจน์ความเท่ากันทุกประการของ $\\triangle AOB$ และ $\\triangle COD$ แบบ มุม-ด้าน-มุม (ม.ด.ม.)');
+
+// พิกัดจุดยอดทั้งสี่และจุดตัด O
+var A = [160, 440];
+var B = [720, 440];
+var C_pt = [800, 100];
+var D = [240, 100];
+var O = [480, 270];
+
+function createSvg(tag, attrs) {
+  var el = document.createElementNS(SVGNS, tag);
+  for (var k in attrs) {
+    el.setAttribute(k, attrs[k]);
+  }
+  return el;
+}
+
+function makeArc(V, P1, P2, r) {
+  var a1 = Math.atan2(P1[1] - V[1], P1[0] - V[0]);
+  var a2 = Math.atan2(P2[1] - V[1], P2[0] - V[0]);
+  var da = a2 - a1;
+  while (da > Math.PI) da -= 2 * Math.PI;
+  while (da < -Math.PI) da += 2 * Math.PI;
+  var sx = V[0] + r * Math.cos(a1);
+  var sy = V[1] + r * Math.sin(a1);
+  var ex = V[0] + r * Math.cos(a1 + da);
+  var ey = V[1] + r * Math.sin(a1 + da);
+  var sweep = da > 0 ? 1 : 0;
+  return 'M ' + sx + ' ' + sy + ' A ' + r + ' ' + r + ' 0 0 ' + sweep + ' ' + ex + ' ' + ey;
+}
+
+function drawTicks(parent, P, Q, count, color, size) {
+  var L = Math.hypot(Q[0] - P[0], Q[1] - P[1]);
+  var ux = (Q[0] - P[0]) / L, uy = (Q[1] - P[1]) / L;
+  var nx = -uy, ny = ux;
+  var s = size || 8;
+  var mx = (P[0] + Q[0]) / 2, my = (P[1] + Q[1]) / 2;
+  var offsets = (count === 1) ? [0] : (count === 2 ? [-4, 4] : [-6, 0, 6]);
+  offsets.forEach(function(off) {
+    var cx = mx + off * ux, cy = my + off * uy;
+    var line = createSvg('line', {
+      x1: cx - s * nx, y1: cy - s * ny,
+      x2: cx + s * nx, y2: cy + s * ny,
+      stroke: color, 'stroke-width': 2.5, 'stroke-linecap': 'round'
+    });
+    parent.appendChild(line);
+  });
+}
+
+// ==================== กลุ่มที่ 1: โครงสร้างรูป ====================
+Shell.group('กำหนดรูปและสมบัติพื้นฐาน');
+
+var s1 = Shell.step('กำหนดรูปสี่เหลี่ยมด้านขนาน $ABCD$ มีเส้นทแยงมุม $AC$ และ $BD$ ตัดกันที่จุด $O$ โดยมี $AB \\parallel CD$');
+
+var polyBase = createSvg('polygon', {
+  points: A.join(',') + ' ' + B.join(',') + ' ' + C_pt.join(',') + ' ' + D.join(','),
+  fill: 'none', stroke: C.given, 'stroke-width': 2.5
+});
+s1.appendChild(polyBase);
+
+var diagAC = createSvg('line', {
+  x1: A[0], y1: A[1], x2: C_pt[0], y2: C_pt[1],
+  stroke: C.note, 'stroke-width': 1.8, 'stroke-dasharray': '5,4'
+});
+var diagBD = createSvg('line', {
+  x1: B[0], y1: B[1], x2: D[0], y2: D[1],
+  stroke: C.note, 'stroke-width': 1.8, 'stroke-dasharray': '5,4'
+});
+s1.appendChild(diagAC);
+s1.appendChild(diagBD);
+
+// สัญลักษณ์ลูกศรแสดงการขนานกันบนด้าน AB และ CD
+var chevAB = createSvg('path', {
+  d: 'M 432 433 L 442 440 L 432 447',
+  fill: 'none', stroke: C.given, 'stroke-width': 2.5, 'stroke-linecap': 'round'
+});
+var chevCD = createSvg('path', {
+  d: 'M 512 93 L 522 100 L 512 107',
+  fill: 'none', stroke: C.given, 'stroke-width': 2.5, 'stroke-linecap': 'round'
+});
+s1.appendChild(chevAB);
+s1.appendChild(chevCD);
+
+var dotO = createSvg('circle', {
+  cx: O[0], cy: O[1], r: 4.5, fill: C.given
+});
+s1.appendChild(dotO);
+
+Shell.label(s1, 135, 465, 'A', {role: 'given', anchor: A, until: 'end'});
+Shell.label(s1, 745, 465, 'B', {role: 'given', anchor: B, until: 'end'});
+Shell.label(s1, 825, 80, 'C', {role: 'given', anchor: C_pt, until: 'end'});
+Shell.label(s1, 215, 80, 'D', {role: 'given', anchor: D, until: 'end'});
+Shell.label(s1, 480, 240, 'O', {role: 'given', anchor: O, until: 'end'});
+
+// ==================== กลุ่มที่ 2: พิสูจน์ความเท่ากันทุกประการ ====================
+Shell.group('พิสูจน์ความเท่ากันทุกประการ');
+
+var s2 = Shell.step('เมื่อ $AB \\parallel CD$ และมี $AC$ เป็นเส้นตัด จะได้มุมแย้งมีขนาดเท่ากัน: $\\angle OAB = \\angle OCD$', {
+  why: 'เส้นตรงคู่ขนานมีมุมแย้งภายในที่มีขนาดเท่ากันเสมอ',
+  uses: [1]
+});
+
+var lineTransAC = createSvg('line', {
+  x1: A[0], y1: A[1], x2: C_pt[0], y2: C_pt[1],
+  stroke: C.work, 'stroke-width': 2.5
+});
+s2.appendChild(lineTransAC);
+
+var arcOAB = createSvg('path', {
+  d: makeArc(A, B, O, 46),
+  fill: 'none', stroke: C.work, 'stroke-width': 2.5
+});
+var arcOCD = createSvg('path', {
+  d: makeArc(C_pt, D, O, 46),
+  fill: 'none', stroke: C.work, 'stroke-width': 2.5
+});
+s2.appendChild(arcOAB);
+s2.appendChild(arcOCD);
+
+var s3 = Shell.step('เมื่อ $AB \\parallel CD$ และมี $BD$ เป็นเส้นตัด จะได้มุมแย้งมีขนาดเท่ากัน: $\\angle OBA = \\angle ODC$', {
+  why: 'เส้นตรงคู่ขนานมีมุมแย้งภายในที่มีขนาดเท่ากันเสมอ',
+  uses: [1]
+});
+
+var lineTransBD = createSvg('line', {
+  x1: B[0], y1: B[1], x2: D[0], y2: D[1],
+  stroke: C.work, 'stroke-width': 2.5
+});
+s3.appendChild(lineTransBD);
+
+var arcOBA_1 = createSvg('path', {
+  d: makeArc(B, O, A, 44),
+  fill: 'none', stroke: C.work, 'stroke-width': 2.2
+});
+var arcOBA_2 = createSvg('path', {
+  d: makeArc(B, O, A, 52),
+  fill: 'none', stroke: C.work, 'stroke-width': 2.2
+});
+var arcODC_1 = createSvg('path', {
+  d: makeArc(D, O, C_pt, 44),
+  fill: 'none', stroke: C.work, 'stroke-width': 2.2
+});
+var arcODC_2 = createSvg('path', {
+  d: makeArc(D, O, C_pt, 52),
+  fill: 'none', stroke: C.work, 'stroke-width': 2.2
+});
+s3.appendChild(arcOBA_1);
+s3.appendChild(arcOBA_2);
+s3.appendChild(arcODC_1);
+s3.appendChild(arcODC_2);
+
+var s4 = Shell.step('ด้านตรงข้ามของรูปสี่เหลี่ยมด้านขนานยาวเท่ากัน: $AB = CD$', {
+  why: 'สมบัติของรูปสี่เหลี่ยมด้านขนานคือด้านตรงข้ามมีความยาวเท่ากันเสมอ',
+  uses: [1]
+});
+
+var lineAB = createSvg('line', {
+  x1: A[0], y1: A[1], x2: B[0], y2: B[1],
+  stroke: C.work, 'stroke-width': 3.5
+});
+var lineCD = createSvg('line', {
+  x1: D[0], y1: D[1], x2: C_pt[0], y2: C_pt[1],
+  stroke: C.work, 'stroke-width': 3.5
+});
+s4.appendChild(lineAB);
+s4.appendChild(lineCD);
+drawTicks(s4, A, B, 3, C.work, 9);
+drawTicks(s4, D, C_pt, 3, C.work, 9);
+
+var s5 = Shell.step('ดังนั้น $\\triangle AOB \\cong \\triangle COD$ มีความเท่ากันทุกประการแบบ <b>มุม-ด้าน-มุม (ม.ด.ม.)</b>', {
+  why: 'มีมุมที่มีขนาดเท่ากันสองคู่และมีด้านที่อยู่ระหว่างมุมทั้งสองยาวเท่ากัน',
+  uses: [2, 3, 4]
+});
+
+var fillAOB = createSvg('polygon', {
+  points: A.join(',') + ' ' + O.join(',') + ' ' + B.join(','),
+  fill: C.work, 'fill-opacity': 0.18, stroke: C.work, 'stroke-width': 2
+});
+var fillCOD = createSvg('polygon', {
+  points: C_pt.join(',') + ' ' + O.join(',') + ' ' + D.join(','),
+  fill: C.work, 'fill-opacity': 0.18, stroke: C.work, 'stroke-width': 2
+});
+s5.appendChild(fillAOB);
+s5.appendChild(fillCOD);
+
+// ==================== กลุ่มที่ 3: สรุปผลการแบ่งครึ่ง ====================
+Shell.group('สรุปผลการแบ่งครึ่งของเส้นทแยงมุม');
+
+var s6 = Shell.step('ด้านที่สมนัยกันของรูปสามเหลี่ยมที่เท่ากันทุกประการย่อมยาวเท่ากัน: $OA = OC$ และ $OB = OD$', {
+  why: 'ผลจากความเท่ากันทุกประการทำให้ด้านที่สมนัยกันยาวเท่ากันทุกคู่',
+  uses: [5]
+});
+
+drawTicks(s6, O, A, 1, C.answer, 8);
+drawTicks(s6, O, C_pt, 1, C.answer, 8);
+drawTicks(s6, O, B, 2, C.answer, 8);
+drawTicks(s6, O, D, 2, C.answer, 8);
+
+var segOA = createSvg('line', {
+  x1: A[0], y1: A[1], x2: O[0], y2: O[1],
+  stroke: C.answer, 'stroke-width': 3
+});
+var segOC = createSvg('line', {
+  x1: O[0], y1: O[1], x2: C_pt[0], y2: C_pt[1],
+  stroke: C.answer, 'stroke-width': 3
+});
+var segOB = createSvg('line', {
+  x1: B[0], y1: B[1], x2: O[0], y2: O[1],
+  stroke: C.answer, 'stroke-width': 3
+});
+var segOD = createSvg('line', {
+  x1: O[0], y1: O[1], x2: D[0], y2: D[1],
+  stroke: C.answer, 'stroke-width': 3
+});
+s6.appendChild(segOA);
+s6.appendChild(segOC);
+s6.appendChild(segOB);
+s6.appendChild(segOD);
+
+var s7 = Shell.step('เนื่องจาก $OA = OC$ แสดงว่า $O$ แบ่งครึ่ง $AC$ และเนื่องจาก $OB = OD$ แสดงว่า $O$ แบ่งครึ่ง $BD$ สรุปได้ว่า <b>เส้นทแยงมุมของรูปสี่เหลี่ยมด้านขนานแบ่งครึ่งซึ่งกันและกัน</b>', {
+  uses: [6]
+});
+
+var ringO = createSvg('circle', {
+  cx: O[0], cy: O[1], r: 9,
+  fill: 'none', stroke: C.answer, 'stroke-width': 2.5
+});
+s7.appendChild(ringO);
+
+Shell.answer(
+  'สรุปผลการพิสูจน์',
+  '$\\triangle AOB \\cong \\triangle COD$ และเส้นทแยงมุมแบ่งครึ่งซึ่งกันและกัน ($OA = OC$ และ $OB = OD$)',
+  {sanity: 'กรณีขีดจำกัด: ในรูปสี่เหลี่ยมจัตุรัสและรูปสี่เหลี่ยมผืนผ้าซึ่งเป็นสี่เหลี่ยมด้านขนาน เส้นทแยงมุมยังคงแบ่งครึ่งซึ่งกันและกันเสมอ'}
+);
+
+Shell.done();
+</script>
+</body></html>

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>การสร้างวงกลมแนบในสามเหลี่ยม</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/jsxgraph.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/jsxgraphcore.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+Shell.page({
+  title: 'การสร้างวงกลมแนบในสามเหลี่ยม',
+  problem: 'กำหนดสามเหลี่ยม $ABC$ จงสร้างวงกลมแนบใน (สัมผัสด้านทั้งสามของสามเหลี่ยม) พร้อมอธิบายเหตุผลของแต่ละขั้นตอนการสร้าง'
+});
+
+var b = Shell.board({box: [-6, 7, 7, -2], axis: false, grid: false, keepaspect: true});
+var C = Shell.C;
+
+Shell.setup('วงกลมแนบในต้องสัมผัสด้านทั้งสาม ด้านทั้งสามจึงทำหน้าที่เป็นเส้นสัมผัสวงกลม จุดศูนย์กลางแนบใน (Incenter) จึงต้องมีระยะห่างตั้งฉากไปยังด้านทั้งสามเท่ากัน โดยจุดที่อยู่ห่างจากแขนของมุมเท่ากันคือจุดบนเส้นแบ่งครึ่งมุม เราจึงหาจุดศูนย์กลางได้จากจุดตัดของเส้นแบ่งครึ่งมุม');
+
+var A = b.create('point', [-1, 5], {strokeColor: C.given, fillColor: C.given, size: 4, fixed: true, withLabel: false});
+var B = b.create('point', [-4, 0], {strokeColor: C.given, fillColor: C.given, size: 4, fixed: true, withLabel: false});
+var Cpt = b.create('point', [5, 0], {strokeColor: C.given, fillColor: C.given, size: 4, fixed: true, withLabel: false});
+var tri = b.create('polygon', [A, B, Cpt], {
+  fillColor: C.given,
+  fillOpacity: 0.05,
+  borders: {strokeColor: C.given, strokeWidth: 2, withLabel: false},
+  withLabel: false
+});
+
+Shell.group('หาจุดศูนย์กลางวงกลมแนบใน (Incenter)');
+
+var s1 = Shell.step('กำหนดสามเหลี่ยม $ABC$ ที่ต้องการสร้างวงกลมแนบใน', {
+  why: 'ต้องมีรูปสามเหลี่ยมต้นแบบเพื่อกำหนดตำแหน่งของมุมและด้าน'
+});
+Shell.on(s1, A, B, Cpt, tri);
+Shell.tag(s1, A, '$A$', {role: 'given'});
+Shell.tag(s1, B, '$B$', {role: 'given'});
+Shell.tag(s1, Cpt, '$C$', {role: 'given'});
+
+var bisA = b.create('bisector', [B, A, Cpt], {strokeColor: C.work, strokeWidth: 1.5, dash: 2, withLabel: false});
+var s2 = Shell.step('สร้างเส้นแบ่งครึ่งมุม $\\angle A$', {
+  why: 'ทุกจุดบนเส้นแบ่งครึ่งมุมมีระยะห่างในแนวตั้งฉากไปยังด้าน $AB$ และ $AC$ เท่ากันเสมอ',
+  uses: [1]
+});
+Shell.on(s2, bisA);
+
+var bisB = b.create('bisector', [A, B, Cpt], {strokeColor: C.work, strokeWidth: 1.5, dash: 2, withLabel: false});
+var s3 = Shell.step('สร้างเส้นแบ่งครึ่งมุม $\\angle B$', {
+  why: 'ทุกจุดบนเส้นแบ่งครึ่งมุมมีระยะห่างในแนวตั้งฉากไปยังด้าน $BA$ และ $BC$ เท่ากันเสมอ',
+  uses: [1]
+});
+Shell.on(s3, bisB);
+
+var I = b.create('intersection', [bisA, bisB, 0], {strokeColor: C.work, fillColor: C.work, size: 4, withLabel: false});
+var s4 = Shell.step('จุดตัดของเส้นแบ่งครึ่งมุมทั้งสองคือจุดศูนย์กลางแนบใน $I$', {
+  why: 'จุด $I$ อยู่บนเส้นแบ่งครึ่งมุมทั้งสองพร้อมกัน จึงมีระยะห่างตั้งฉากไปยังด้านทั้งสามเท่ากัน',
+  uses: [2, 3]
+});
+Shell.on(s4, I);
+Shell.tag(s4, I, '$I$', {role: 'work'});
+
+Shell.group('หารัศมีและวาดวงกลมแนบใน');
+
+var lineBC = b.create('line', [B, Cpt], {visible: false});
+var perpBC = b.create('perpendicular', [lineBC, I], {strokeColor: C.work, strokeWidth: 1.5, dash: 2, withLabel: false});
+var D = b.create('intersection', [perpBC, lineBC, 0], {strokeColor: C.work, fillColor: C.work, size: 4, withLabel: false});
+var segRadius = b.create('segment', [I, D], {strokeColor: C.work, strokeWidth: 2, dash: 2, withLabel: false});
+
+var s5 = Shell.step('สร้างเส้นตั้งฉากจากจุด $I$ ไปยังด้าน $BC$ ตัดที่จุด $D$ จะได้รัศมี $r = ID$', {
+  why: 'ด้านของสามเหลี่ยมเป็นเส้นสัมผัสวงกลม รัศมีที่ลากมายังจุดสัมผัสจึงต้องตั้งฉากกับด้านเสมอ',
+  uses: [4]
+});
+Shell.on(s5, perpBC, {until: 'step'});
+Shell.on(s5, D, segRadius);
+Shell.tag(s5, D, '$D$', {role: 'work'});
+
+var incircle = b.create('circle', [I, D], {
+  strokeColor: C.answer,
+  strokeWidth: 2.5,
+  fillColor: C.answer,
+  fillOpacity: 0.08,
+  withLabel: false
+});
+
+var s6 = Shell.step('วาดวงกลมที่มีจุดศูนย์กลางที่ $I$ รัศมี $r = ID$ จะได้วงกลมแนบใน', {
+  why: 'ระยะห่างจากจุด $I$ ไปยังด้านทั้งสามมีค่าเท่ากับ $r$ วงกลมจึงสัมผัสด้านทั้งสามพอดี',
+  uses: [4, 5]
+});
+Shell.on(s6, incircle);
+Shell.tag(s6, [-0.49, 3.98], 'วงกลมแนบใน', {role: 'answer'});
+
+Shell.answer('วงกลมแนบในสามเหลี่ยม $ABC$', 'จุดศูนย์กลาง $I$ และรัศมี $r = ID$', {
+  sanity: 'วงกลมอยู่ภายในสามเหลี่ยมทั้งหมด และสัมผัสด้านทั้งสามพอดีโดยไม่ล้นออกนอกรูป'
+});
+
+Shell.done();
+</script>
+</body></html>

@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>โดเมนและฟังก์ชันผกผันของ f(x)</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/jsxgraph.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/jsxgraphcore.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+Shell.page({
+    title: 'โดเมนและฟังก์ชันผกผันของฟังก์ชันตรรกยะ',
+    problem: 'กำหนด $f(x) = \\frac{3x+1}{x-2}$ จงหาโดเมนของ $f$ และหาฟังก์ชันผกผัน $f^{-1}(x)$ พร้อมตรวจสอบคำตอบ'
+});
+
+var b = Shell.board({
+    box: [-8, 9, 10, -7],
+    axis: true,
+    grid: true,
+    keepaspect: true
+});
+var C = Shell.C;
+
+Shell.setup('ฟังก์ชันตรรกยะมีข้อจำกัดทางคณิตศาสตร์คือตัวส่วนต้องไม่เท่ากับศูนย์ จึงสามารถหาโดเมนได้จากการตัดค่าที่ทำให้ส่วนเป็นศูนย์ ส่วนฟังก์ชันผกผันหาได้จากการแก้สมการเพื่อสลับตัวแปรต้นกับตัวแปรตาม ซึ่งในเชิงเรขาคณิตคือกราฟที่สะท้อนข้ามเส้นตรง $y = x$');
+
+Shell.group('พิจารณาเงื่อนไขตัวส่วนเพื่อหาโดเมน');
+
+var p_asymX1 = b.create('point', [2, 0], {visible: false});
+var p_asymX2 = b.create('point', [2, 1], {visible: false});
+var asymX2 = b.create('line', [p_asymX1, p_asymX2], {
+    strokeColor: C.warn,
+    dash: 2,
+    strokeWidth: 1.5,
+    highlight: false
+});
+
+var s1 = Shell.step('พิจารณาฟังก์ชันตรรกยะ $f(x) = \\frac{3x+1}{x-2}$ ค่าของฟังก์ชันจะหาได้ในระบบจำนวนจริงเมื่อตัวส่วนไม่เท่ากับศูนย์ นั่นคือ $x - 2 \\neq 0$', {
+    why: 'เศษส่วนในระบบจำนวนจริงไม่นิยามเมื่อตัวหารเป็นศูนย์ จึงต้องพิจารณาเงื่อนไขที่ตัวส่วนไม่เท่ากับศูนย์ก่อนเสมอ'
+});
+Shell.on(s1, asymX2);
+Shell.tag(s1, [2, 6.5], '$x = 2$', {role: 'warn'});
+
+var p_asymY1 = b.create('point', [0, 3], {visible: false});
+var p_asymY2 = b.create('point', [1, 3], {visible: false});
+var asymY3 = b.create('line', [p_asymY1, p_asymY2], {
+    strokeColor: C.note,
+    dash: 2,
+    strokeWidth: 1.5,
+    highlight: false
+});
+
+var f_left = b.create('functiongraph', [function(x){ return (3*x + 1)/(x - 2); }, -25, 1.95], {
+    strokeColor: C.given,
+    strokeWidth: 2.5,
+    highlight: false
+});
+var f_right = b.create('functiongraph', [function(x){ return (3*x + 1)/(x - 2); }, 2.05, 25], {
+    strokeColor: C.given,
+    strokeWidth: 2.5,
+    highlight: false
+});
+
+var s2 = Shell.step('แก้สมการ $x - 2 = 0$ ได้ $x = 2$ ดังนั้น โดเมนของ $f$ คือเซตของจำนวนจริงทุกจำนวนยกเว้น $2$ เขียนแทนด้วย $D_f = \\mathbb{R} \\setminus \\{2\\}$ กราฟจึงมีเส้นกำกับแนวดิ่ง $x = 2$ และเส้นกำกับแนวนอน $y = 3$', {
+    why: 'จุดที่ตัวส่วนเป็นศูนย์คือตำแหน่งของเส้นกำกับแนวดิ่งที่ค่าของฟังก์ชันพุ่งเข้าสู่อนันต์และกราฟไม่สามารถผ่านได้',
+    uses: [1]
+});
+Shell.on(s2, asymY3, f_left, f_right);
+Shell.tag(s2, [-5, 3], '$y = 3$', {role: 'note'});
+Shell.tag(s2, [-4, 1.83], '$f(x)$', {role: 'given'});
+
+Shell.group('จัดรูปสมการเพื่อหาฟังก์ชันผกผัน');
+
+var s3 = Shell.step('เริ่มหาฟังก์ชันผกผันโดยกำหนดให้ $y = f(x) = \\frac{3x+1}{x-2}$ จากนั้นนำ $(x - 2)$ คูณทั้งสองข้างของสมการเพื่อกำจัดตัวส่วน จะได้ $y(x - 2) = 3x + 1$', {
+    why: 'การหาฟังก์ชันผกผันต้องจัดรูปสมการเพื่อหาความสัมพันธ์ย้อนกลับจากค่าผลลัพธ์ $y$ กลับไปยังค่าตั้งต้น $x$'
+});
+
+var s4 = Shell.step('กระจายและย้ายพจน์ที่มีตัวแปร $x$ มาไว้ข้างเดียวกัน: $yx - 2y = 3x + 1 \\implies yx - 3x = 2y + 1$ จากนั้นดึงตัวประกอบร่วม $x$ ออกมาได้ $x(y - 3) = 2y + 1$', {
+    why: 'จัดกลุ่มพจน์ของตัวแปร $x$ ให้อยู่รวมกันเพื่อให้สามารถแยกตัวแปร $x$ ออกมาเดี่ยว ๆ ได้',
+    uses: [3]
+});
+
+var pdiag1 = b.create('point', [0, 0], {visible: false});
+var pdiag2 = b.create('point', [1, 1], {visible: false});
+var lineYX = b.create('line', [pdiag1, pdiag2], {
+    strokeColor: C.note,
+    dash: 3,
+    strokeWidth: 1.5,
+    highlight: false
+});
+
+var pinvX1 = b.create('point', [3, 0], {visible: false});
+var pinvX2 = b.create('point', [3, 1], {visible: false});
+var asymInvX3 = b.create('line', [pinvX1, pinvX2], {
+    strokeColor: C.note,
+    dash: 2,
+    strokeWidth: 1.2,
+    highlight: false
+});
+
+var pinvY1 = b.create('point', [0, 2], {visible: false});
+var pinvY2 = b.create('point', [1, 2], {visible: false});
+var asymInvY2 = b.create('line', [pinvY1, pinvY2], {
+    strokeColor: C.note,
+    dash: 2,
+    strokeWidth: 1.2,
+    highlight: false
+});
+
+var finv_left = b.create('functiongraph', [function(x){ return (2*x + 1)/(x - 3); }, -25, 2.95], {
+    strokeColor: C.answer,
+    strokeWidth: 2.5,
+    highlight: false
+});
+var finv_right = b.create('functiongraph', [function(x){ return (2*x + 1)/(x - 3); }, 3.05, 25], {
+    strokeColor: C.answer,
+    strokeWidth: 2.5,
+    highlight: false
+});
+
+var s5 = Shell.step('หารด้วย $(y - 3)$ จะได้ $x = \\frac{2y+1}{y-3}$ จากนั้นสลับตัวแปร $x$ และ $y$ จะได้ฟังก์ชันผกผัน $f^{-1}(x) = \\frac{2x+1}{x-3}$ โดยมีโดเมน $D_{f^{-1}} = \\mathbb{R} \\setminus \\{3\\}$', {
+    why: 'สลับบทบาทตัวแปรตามนิยามฟังก์ชันผกผันเพื่อให้ $x$ กลับมาทำหน้าที่เป็นตัวแปรอิสระของฟังก์ชันใหม่',
+    uses: [4]
+});
+Shell.on(s5, lineYX, asymInvX3, asymInvY2, finv_left, finv_right);
+Shell.tag(s5, [-5, -5], '$y = x$', {role: 'note'});
+Shell.tag(s5, [3, -5.5], '$x = 3$', {role: 'note'});
+Shell.tag(s5, [7, 2], '$y = 2$', {role: 'note'});
+Shell.tag(s5, [6, 4.33], '$f^{-1}(x)$', {role: 'answer'});
+
+Shell.group('ตรวจสอบความถูกต้องของฟังก์ชันผกผัน');
+
+var s6 = Shell.step('ตรวจสอบคำตอบทางพีชคณิต โดยแทน $f^{-1}(x)$ ลงใน $f(x)$:<br>$f(f^{-1}(x)) = \\frac{3\\left(\\frac{2x+1}{x-3}\\right) + 1}{\\left(\\frac{2x+1}{x-3}\\right) - 2} = \\frac{3(2x+1) + (x-3)}{(2x+1) - 2(x-3)} = \\frac{6x+3+x-3}{2x+1-2x+6} = \\frac{7x}{7} = x$', {
+    why: 'ฟังก์ชันและฟังก์ชันผกผันต้องดำเนินการหักล้างกันได้ผลลัพธ์เป็นฟังก์ชันเอกลักษณ์เสมอ',
+    uses: [5]
+});
+
+var ptA = b.create('point', [1, -4], {
+    strokeColor: C.given,
+    fillColor: C.given,
+    size: 4,
+    fixed: true,
+    highlight: false
+});
+var ptA_refl = b.create('reflection', [ptA, lineYX], {
+    strokeColor: C.answer,
+    fillColor: C.answer,
+    size: 4,
+    highlight: false
+});
+var segAA = b.create('segment', [ptA, ptA_refl], {
+    strokeColor: C.work,
+    dash: 2,
+    strokeWidth: 1.5,
+    highlight: false
+});
+
+var s7 = Shell.step('ตรวจสอบคำตอบทางเรขาคณิต พบว่ากราฟของ $f^{-1}(x)$ สมมาตรกับ $f(x)$ ข้ามเส้นตรง $y = x$ โดยจุด $(1, -4)$ บน $f$ สะท้อนไปเป็น $(-4, 1)$ บน $f^{-1}$ และเส้นกำกับสลับแกนกันจาก $(x=2, y=3)$ เป็น $(x=3, y=2)$', {
+    why: 'การสลับพิกัด $(x, y)$ เป็น $(y, x)$ มีความหมายทางเรขาคณิตเป็นการสะท้อนข้ามแกนสมมาตร $y = x$',
+    uses: [2, 5]
+});
+Shell.on(s7, ptA, ptA_refl, segAA);
+Shell.tag(s7, ptA, '$(1, -4)$', {role: 'given'});
+Shell.tag(s7, ptA_refl, '$(-4, 1)$', {role: 'answer'});
+
+Shell.answer(
+    'โดเมนและฟังก์ชันผกผัน',
+    '$D_f = \\mathbb{R} \\setminus \\{2\\}, \\quad f^{-1}(x) = \\frac{2x+1}{x-3}$',
+    {sanity: 'โดเมนของ $f^{-1}$ คือ $\\mathbb{R} \\setminus \\{3\\}$ สอดคล้องกับเรนจ์ของ $f$ พอดี และเส้นกำกับสลับบทบาทกันระหว่างแนวดิ่งกับแนวนอนอย่างสมบูรณ์'}
+);
+
+Shell.done();
+</script>
+</body></html>

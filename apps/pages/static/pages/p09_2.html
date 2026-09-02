@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>การชนแบบยืดหยุ่นสมบูรณ์ในหนึ่งมิติ</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+var SVGNS = 'http://www.w3.org/2000/svg';
+
+Shell.page({
+  title: 'การชนแบบยืดหยุ่นสมบูรณ์ในแนวเส้นตรง',
+  problem: 'ลูกบอล A มวล $2$ kg เคลื่อนที่ด้วยความเร็ว $6$ m/s ชนกับลูกบอล B มวล $3$ kg ที่อยู่นิ่ง เป็นการชนแบบยืดหยุ่นสมบูรณ์ในแนวเส้นตรง จงหาความเร็วของลูกบอลทั้งสองหลังการชน พร้อมวาดภาพก่อน-หลังการชนประกอบการวิเคราะห์'
+});
+
+var g = Shell.canvas();
+var C = Shell.C;
+
+// กำหนดมาตราส่วนความเร็ว: 1 m/s = 40 พิกเซล
+var PX_PER_VEL = 40;
+
+// พิกัดพื้นและรัศมีของลูกบอล
+var Y_GROUND_1 = 200;
+var Y_GROUND_2 = 440;
+var R_A = 32;
+var R_B = 40;
+
+var X_A1 = 220;
+var Y_A1 = Y_GROUND_1 - R_A; // 168 (สัมผัสพื้นพอดี)
+var X_B1 = 540;
+var Y_B1 = Y_GROUND_1 - R_B; // 160 (สัมผัสพื้นพอดี)
+
+var X_A2 = 330;
+var Y_A2 = Y_GROUND_2 - R_A; // 408 (สัมผัสพื้นพอดี)
+var X_B2 = 570;
+var Y_B2 = Y_GROUND_2 - R_B; // 400 (สัมผัสพื้นพอดี)
+
+// ฟังก์ชันวาดพื้นผิวพร้อมเส้นลายเฉียง
+function drawGround(parent, y) {
+  var line = document.createElementNS(SVGNS, 'line');
+  line.setAttribute('x1', '50');
+  line.setAttribute('y1', y);
+  line.setAttribute('x2', '910');
+  line.setAttribute('y2', y);
+  line.setAttribute('stroke', C.note);
+  line.setAttribute('stroke-width', '2');
+  parent.appendChild(line);
+
+  for (var x = 60; x <= 900; x += 25) {
+    var hatch = document.createElementNS(SVGNS, 'line');
+    hatch.setAttribute('x1', x);
+    hatch.setAttribute('y1', y);
+    hatch.setAttribute('x2', x - 12);
+    hatch.setAttribute('y2', y + 14);
+    hatch.setAttribute('stroke', C.note);
+    hatch.setAttribute('stroke-width', '1.5');
+    hatch.setAttribute('stroke-opacity', '0.5');
+    parent.appendChild(hatch);
+  }
+}
+
+// ฟังก์ชันวาดลูกบอล
+function drawBall(parent, cx, cy, r, color) {
+  var circle = document.createElementNS(SVGNS, 'circle');
+  circle.setAttribute('cx', cx);
+  circle.setAttribute('cy', cy);
+  circle.setAttribute('r', r);
+  circle.setAttribute('fill', color);
+  circle.setAttribute('fill-opacity', '0.2');
+  circle.setAttribute('stroke', color);
+  circle.setAttribute('stroke-width', '2.5');
+  parent.appendChild(circle);
+  return circle;
+}
+
+Shell.setup('กำหนดทิศทางไปทางขวาเป็นบวก ($+x$) การชนแบบยืดหยุ่นสมบูรณ์ (Elastic Collision) ไม่มีการสูญเสียพลังงานจลน์ของระบบ จึงเป็นไปตามทั้ง <b>กฎการอนุรักษ์โมเมนตัม</b> และ <b>กฎการอนุรักษ์พลังงานจลน์</b> ซึ่งสามารถลดรูปเป็นความสัมพันธ์ของความเร็วสัมพัทธ์ $u_1 + v_1 = u_2 + v_2$ ได้');
+
+Shell.group('วิเคราะห์สถานะก่อนการชน');
+
+var s1 = Shell.step('พิจารณาสถานะก่อนชน: ลูกบอล A เคลื่อนที่ด้วยความเร็ว $u_A = 6$ m/s เข้าหาลูกบอล B ซึ่งอยู่นิ่ง ($u_B = 0$ m/s)<br>โมเมนตัมรวมของระบบก่อนการชนคือ:<br>$\\sum p_i = m_A u_A + m_B u_B = (2)(6) + (3)(0) = 12$ kg·m/s', {
+  why: 'ต้องหาผลรวมโมเมนตัมเริ่มต้นเพื่อใช้เทียบกับผลรวมโมเมนตัมหลังชนตามกฎการอนุรักษ์'
+});
+
+drawGround(s1, Y_GROUND_1);
+drawBall(s1, X_A1, Y_A1, R_A, C.given);
+drawBall(s1, X_B1, Y_B1, R_B, C.given);
+
+Shell.label(s1, 110, 50, 'สภาวะก่อนการชน', {role:'note', anchor:[110, 50], until:'end'});
+Shell.label(s1, X_A1, Y_A1, '$m_A = 2$ kg', {role:'given', anchor:[X_A1, Y_A1], pin:true, until:'end'});
+Shell.label(s1, X_B1, Y_B1, '$m_B = 3$ kg', {role:'given', anchor:[X_B1, Y_B1], pin:true, until:'end'});
+Shell.label(s1, X_B1, 105, '$u_B = 0$ m/s', {role:'given', anchor:[X_B1, 105], until:'end'});
+
+Shell.arrow(s1, X_A1, 105, X_A1 + 6 * PX_PER_VEL, 105, {
+  role: 'given',
+  label: '$u_A = 6$ m/s',
+  value: 6,
+  unit: 'm/s',
+  until: 'end'
+});
+
+Shell.group('สร้างระบบสมการจากการอนุรักษ์');
+
+var s2 = Shell.step('<b>สมการที่ 1: กฎการอนุรักษ์โมเมนตัม</b><br>ผลรวมโมเมนตัมก่อนชนเท่ากับผลรวมโมเมนตัมหลังชน ($\\sum p_i = \\sum p_f$):<br>$12 = m_A v_A + m_B v_B$<br>$12 = 2v_A + 3v_B$ &nbsp;&nbsp;&nbsp;...(1)', {
+  uses: [1],
+  why: 'ไม่มีแรงภายนอกในแนวราบมากระทำต่อระบบ ผลรวมโมเมนตัมของระบบจึงคงที่เสมอ'
+});
+
+drawGround(s2, Y_GROUND_2);
+drawBall(s2, X_A2, Y_A2, R_A, C.work);
+drawBall(s2, X_B2, Y_B2, R_B, C.work);
+
+Shell.label(s2, 110, 280, 'สภาวะหลังการชน', {role:'note', anchor:[110, 280], until:'end'});
+Shell.label(s2, X_A2, Y_A2, '$m_A = 2$ kg', {role:'work', anchor:[X_A2, Y_A2], pin:true, until:'end'});
+Shell.label(s2, X_B2, Y_B2, '$m_B = 3$ kg', {role:'work', anchor:[X_B2, Y_B2], pin:true, until:'end'});
+
+var s3 = Shell.step('<b>สมการที่ 2: ความเร็วสัมพัทธ์ของการชนแบบยืดหยุ่น</b><br>จากการอนุรักษ์พลังงานจลน์ จะได้ว่าความเร็วสัมพัทธ์ก่อนชนเท่ากับหลังชน ($u_A + v_A = u_B + v_B$):<br>$6 + v_A = 0 + v_B$<br>$v_B = v_A + 6$ &nbsp;&nbsp;&nbsp;...(2)', {
+  uses: [1],
+  why: 'การชนแบบยืดหยุ่นสมบูรณ์ ความเร็วสัมพัทธ์ของการเข้าใกล้จะเท่ากับความเร็วสัมพัทธ์ของการแยกจากกัน ($u_A - u_B = v_B - v_A$)'
+});
+
+var colLine = document.createElementNS(SVGNS, 'line');
+colLine.setAttribute('x1', '500');
+colLine.setAttribute('y1', '190');
+colLine.setAttribute('x2', '500');
+colLine.setAttribute('y2', '350');
+colLine.setAttribute('stroke', C.note);
+colLine.setAttribute('stroke-width', '1.5');
+colLine.setAttribute('stroke-dasharray', '4,4');
+s3.appendChild(colLine);
+Shell.label(s3, 500, 270, 'แนวระนาบการชน', {role:'note', anchor:[500, 270], until:'step'});
+
+Shell.group('แก้ระบบสมการหาความเร็วหลังชน');
+
+var s4 = Shell.step('<b>หาความเร็ว $v_A$ หลังการชน:</b><br>แทนสมการ (2) ลงในสมการ (1):<br>$12 = 2v_A + 3(v_A + 6)$<br>$12 = 5v_A + 18 \\implies 5v_A = -6$<br>$v_A = -1.2$ m/s<br>(เครื่องหมายลบ หมายถึงกระดอนกลับไปทางซ้าย)', {
+  uses: [2, 3],
+  why: 'แทนค่าตัวแปร $v_B$ เพื่อให้เหลือสมการตัวแปรเดียวในการหาค่า $v_A$'
+});
+
+Shell.arrow(s4, X_A2, 340, X_A2 - 1.2 * PX_PER_VEL, 340, {
+  role: 'answer',
+  label: '$v_A = -1.2$ m/s',
+  value: 1.2,
+  unit: 'm/s',
+  until: 'end'
+});
+
+var s5 = Shell.step('<b>หาความเร็ว $v_B$ หลังการชน:</b><br>แทนค่า $v_A = -1.2$ m/s กลับลงในสมการ (2):<br>$v_B = -1.2 + 6 = 4.8$ m/s<br>(เครื่องหมายบวก หมายถึงเคลื่อนที่ต่อไปทางขวา)', {
+  uses: [3, 4],
+  why: 'แทนค่า $v_A$ ที่คำนวณได้ลงในสมการความเร็วสัมพัทธ์เพื่อหาขนาดและทิศทางของ $v_B$'
+});
+
+Shell.arrow(s5, X_B2, 340, X_B2 + 4.8 * PX_PER_VEL, 340, {
+  role: 'answer',
+  label: '$v_B = 4.8$ m/s',
+  value: 4.8,
+  unit: 'm/s',
+  until: 'end'
+});
+
+Shell.answer(
+  'ความเร็วของลูกบอลทั้งสองหลังการชน',
+  '$v_A = -1.2$ m/s (ไปทางซ้าย) และ $v_B = 4.8$ m/s (ไปทางขวา)',
+  {
+    sanity: 'ลูกบอล A ชนมวล B ที่มากกว่า ($m_A < m_B$) ลูกบอล A จึงต้องกระดอนกลับ ($v_A < 0$) และตรวจสอบโมเมนตัมรวม: $2(-1.2) + 3(4.8) = -2.4 + 14.4 = 12$ kg·m/s เท่ากับโมเมนตัมก่อนชนพอดี'
+  }
+);
+
+Shell.done();
+</script>
+</body></html>

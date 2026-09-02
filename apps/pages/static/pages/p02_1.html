@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>การเคลื่อนที่แบบโพรเจกไทล์</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+var SVGNS = 'http://www.w3.org/2000/svg';
+
+function createSVG(tag, attrs) {
+  var el = document.createElementNS(SVGNS, tag);
+  for (var k in attrs) {
+    el.setAttribute(k, attrs[k]);
+  }
+  return el;
+}
+
+Shell.page({
+  title: 'การเคลื่อนที่แบบโพรเจกไทล์',
+  problem: 'วัตถุถูกขว้างขึ้นทำมุม $45^\\circ$ กับแนวราบด้วยความเร็วต้น $20$ m/s จงหาระยะไกลสุดในแนวราบ (พิสัย) และความสูงสูงสุดที่วัตถุขึ้นไปได้ (กำหนดให้ $g = 10$ m/s²)'
+});
+
+var g = Shell.canvas();
+var C = Shell.C;
+
+// กำหนดมาตราส่วนพิกัดบนจอภาพ 960 x 540
+var PX_PER_M = 17.0;
+var PX_PER_MS = 6.0;
+
+var X0 = 140;
+var Y0 = 440;
+var BALL_R = 8;
+var GROUND_Y = Y0 + BALL_R; // พื้นผิวอยู่ที่ y = 448 เพื่อให้วัตถุรัศมี 8 สัมผัสพื้นพอดี
+
+Shell.setup('การเคลื่อนที่แบบโพรเจกไทล์เป็นการเคลื่อนที่ 2 มิติที่แยกแกนพิจารณาเป็นอิสระต่อกัน: แนวราบไม่มีแรงกระทำ ($a_x = 0$) ความเร็วคงตัว ส่วนแนวดิ่งมีความเร่งโน้มถ่วงคงตัว ($a_y = -g$)');
+
+// วาดพื้นผิวและรอยบากใต้ดิน
+g.appendChild(createSVG('line', {
+  x1: 60, y1: GROUND_Y,
+  x2: 900, y2: GROUND_Y,
+  stroke: C.note, 'stroke-width': 2
+}));
+
+for (var hx = 80; hx <= 880; hx += 25) {
+  g.appendChild(createSVG('line', {
+    x1: hx, y1: GROUND_Y,
+    x2: hx - 10, y2: GROUND_Y + 12,
+    stroke: C.note, 'stroke-width': 1.2
+  }));
+}
+
+// ลูกบอลตั้งต้นที่จุดขว้าง
+var startBall = createSVG('circle', {
+  cx: X0, cy: Y0, r: BALL_R,
+  fill: C.given, stroke: C.note, 'stroke-width': 1.5, 'opacity': 0.6
+});
+g.appendChild(startBall);
+
+Shell.group('แตกความเร็วต้นเข้าสู่แกนแนวราบและแนวดิ่ง');
+
+// ขั้นที่ 1: เวกเตอร์ความเร็วต้น u = 20 m/s มุม 45 องศา
+var s1 = Shell.step('โจทย์กำหนดความเร็วต้น $u = 20$ m/s ทำมุม $\\theta = 45^\\circ$ กับแนวราบ');
+
+var arcR = 40;
+var arcRad = 45 * Math.PI / 180;
+var arcX = X0 + arcR * Math.cos(arcRad);
+var arcY = Y0 - arcR * Math.sin(arcRad);
+
+s1.appendChild(createSVG('path', {
+  d: 'M ' + (X0 + arcR) + ' ' + Y0 + ' A ' + arcR + ' ' + arcR + ' 0 0 0 ' + arcX.toFixed(2) + ' ' + arcY.toFixed(2),
+  fill: 'none', stroke: C.note, 'stroke-width': 1.5
+}));
+Shell.label(s1, 196, 424, '$45^\\circ$', {role: 'given', anchor: [X0 + arcR * 0.7, Y0 - arcR * 0.3], pin: true, until: 'end'});
+
+var uLen = 20 * PX_PER_MS;
+var uDx = uLen * Math.cos(arcRad);
+var uDy = uLen * Math.sin(arcRad);
+
+Shell.arrow(s1, X0, Y0, X0 + uDx, Y0 - uDy, {
+  role: 'given',
+  label: '$u = 20$ m/s',
+  value: 20,
+  unit: 'm/s',
+  until: 'end'
+});
+Shell.label(s1, X0, GROUND_Y + 20, 'จุดขว้าง', {role: 'note', anchor: [X0, GROUND_Y], until: 'step'});
+
+// ขั้นที่ 2: แตกความเร็วเข้าแกน
+var s2 = Shell.step('แตกความเร็วต้นเข้าสู่แกนราบและแนวดิ่ง:<br>$u_x = u\\cos 45^\\circ = 20\\left(\\frac{\\sqrt{2}}{2}\\right) = 10\\sqrt{2} \\approx 14.14$ m/s<br>$u_y = u\\sin 45^\\circ = 20\\left(\\frac{\\sqrt{2}}{2}\\right) = 10\\sqrt{2} \\approx 14.14$ m/s', {
+  why: 'การเคลื่อนที่สองมิติของโพรเจกไทล์แยกคิดอิสระต่อกัน จึงต้องแยกเวกเตอร์ความเร็วเป็นแนวราบและแนวดิ่ง',
+  uses: [1]
+});
+
+var compVal = 14.14;
+var compLen = compVal * PX_PER_MS;
+
+Shell.arrow(s2, X0, Y0, X0 + compLen, Y0, {
+  role: 'work',
+  label: '$u_x = 14.14$ m/s',
+  value: 14.14,
+  unit: 'm/s',
+  until: 'step'
+});
+Shell.arrow(s2, X0, Y0, X0, Y0 - compLen, {
+  role: 'work',
+  label: '$u_y = 14.14$ m/s',
+  value: 14.14,
+  unit: 'm/s',
+  until: 'step'
+});
+
+s2.appendChild(createSVG('line', {
+  x1: X0 + compLen, y1: Y0,
+  x2: X0 + compLen, y2: Y0 - compLen,
+  stroke: C.note, 'stroke-width': 1.2, 'stroke-dasharray': '3 3'
+}));
+s2.appendChild(createSVG('line', {
+  x1: X0, y1: Y0 - compLen,
+  x2: X0 + compLen, y2: Y0 - compLen,
+  stroke: C.note, 'stroke-width': 1.2, 'stroke-dasharray': '3 3'
+}));
+
+Shell.group('หาความสูงสูงสุด (H)');
+
+// ขั้นที่ 3: ความสูงสูงสุด
+var s3 = Shell.step('พิจารณาแนวดิ่งเพื่อหาความสูงสูงสุด ($H$):<br>ที่จุดสูงสุด ความเร็วแนวดิ่งหยุดชั่วขณะ ($v_y = 0$)<br>จากสมการ $v_y^2 = u_y^2 - 2gH$<br>$0^2 = (10\\sqrt{2})^2 - 2(10)H \\implies 20H = 200 \\implies H = 10$ m', {
+  why: 'ที่จุดสูงสุดของวิถีโค้ง วัตถุจะหยุดเคลื่อนที่ขึ้นในแนวดิ่งชั่วขณะ จึงใช้ $v_y = 0$ หาตำแหน่งสูงสุดได้',
+  uses: [2]
+});
+
+// เส้นทางพาราโบลา
+s3.appendChild(createSVG('path', {
+  d: 'M ' + X0 + ' ' + Y0 + ' Q 480 100 820 ' + Y0,
+  fill: 'none', stroke: C.note, 'stroke-width': 2, 'stroke-dasharray': '6 4'
+}));
+
+var hPeakX = 480;
+var hPeakY = Y0 - 10 * PX_PER_M;
+
+s3.appendChild(createSVG('circle', {
+  cx: hPeakX, cy: hPeakY, r: 4, fill: C.work
+}));
+
+Shell.arrow(s3, hPeakX, Y0, hPeakX, hPeakY, {
+  role: 'answer',
+  label: '$H = 10$ m',
+  value: 10,
+  unit: 'm',
+  until: 'end'
+});
+Shell.label(s3, hPeakX, hPeakY - 22, 'จุดสูงสุด ($v_y = 0$)', {role: 'work', anchor: [hPeakX, hPeakY], until: 'step'});
+
+Shell.group('หาระยะไกลสุดในแนวราบ (พิสัย R)');
+
+// ขั้นที่ 4: เวลาในการเคลื่อนที่ทั้งหมด
+var s4 = Shell.step('หาเวลาบินทั้งหมด ($T$):<br>เวลาขึ้นถึงจุดสูงสุด: $v_y = u_y - gt_1 \\implies 0 = 10\\sqrt{2} - 10t_1 \\implies t_1 = \\sqrt{2} \\approx 1.41$ s<br>วิถีโค้งมีความสมมาตร เวลาขึ้นเท่ากับเวลาตก:<br>$T = 2t_1 = 2\\sqrt{2} \\approx 2.83$ s', {
+  why: 'ความเร่งแนวดิ่งจากแรงโน้มถ่วงมีค่าคงตัว เส้นทางขึ้นและลงจึงสมมาตรกัน เวลาบินรวมจึงเป็นสองเท่าของเวลาขึ้น',
+  uses: [2]
+});
+
+Shell.label(s4, hPeakX, hPeakY + 35, 'เวลาถึงจุดสูงสุด $t_1 = 1.41$ s', {role: 'note', anchor: [hPeakX, hPeakY], until: 'step'});
+Shell.label(s4, 820, Y0 - 25, 'เวลาตกถึงพื้น $T = 2.83$ s', {role: 'note', anchor: [820, Y0], until: 'step'});
+
+// ขั้นที่ 5: พิสัยแนวราบ R
+var s5 = Shell.step('หาระยะตกไกลสุดในแนวราบ (พิสัย $R$):<br>แนวราบไม่มีความเร่ง ($a_x = 0$) ความเร็วคงตัวตลอดการเคลื่อนที่:<br>$R = u_x \\cdot T = (10\\sqrt{2})(2\\sqrt{2}) = 40$ m<br>(หรือคำนวณจากสูตรตรง $R = \\frac{u^2\\sin 2\\theta}{g} = \\frac{20^2 \\sin 90^\\circ}{10} = 40$ m)', {
+  why: 'ไม่มีแรงกระทำในแนวราบ ความเร็วในแนวราบจึงคงตัวตลอดเวลาบิน ทำให้ $s_x = u_x t$',
+  uses: [2, 4]
+});
+
+var rDimY = GROUND_Y + 36;
+s5.appendChild(createSVG('line', {
+  x1: X0, y1: GROUND_Y,
+  x2: X0, y2: rDimY + 10,
+  stroke: C.note, 'stroke-width': 1.2, 'stroke-dasharray': '3 3'
+}));
+s5.appendChild(createSVG('line', {
+  x1: 820, y1: GROUND_Y,
+  x2: 820, y2: rDimY + 10,
+  stroke: C.note, 'stroke-width': 1.2, 'stroke-dasharray': '3 3'
+}));
+
+Shell.arrow(s5, X0, rDimY, 820, rDimY, {
+  role: 'answer',
+  label: '$R = 40$ m',
+  value: 40,
+  unit: 'm',
+  until: 'end'
+});
+
+s5.appendChild(createSVG('circle', {
+  cx: 820, cy: Y0, r: 4, fill: C.answer
+}));
+Shell.label(s5, 820, Y0 - 20, 'จุดตกกระทบ', {role: 'work', anchor: [820, Y0], until: 'step'});
+
+Shell.group('จำลองการเคลื่อนที่');
+
+// ขั้นที่ 6: แสดงการเคลื่อนที่จริง
+var s6 = Shell.step('จำลองการเคลื่อนที่ของวัตถุตามวิถีโค้งพาราโบลาจากจุดเริ่มต้นจนกระทบพื้น', {
+  why: 'การเคลื่อนที่สองแนวพร้อมกันก่อให้เกิดแนววิถีเป็นเส้นโค้งพาราโบลาที่สมบูรณ์',
+  uses: [3, 5]
+});
+
+var mover = Shell.motion(s6, null, function(t) {
+  var x = X0 + 680 * t;
+  var y = Y0 - 680 * t * (1 - t);
+  return [x, y];
+}, { dur: 2200, loop: true });
+
+var ballCircle = createSVG('circle', {
+  cx: 0, cy: 0, r: BALL_R,
+  fill: C.answer, stroke: C.work, 'stroke-width': 2
+});
+mover.appendChild(ballCircle);
+
+Shell.label(s6, hPeakX, hPeakY - 25, 'วิถีพาราโบลา', {role: 'note', anchor: [hPeakX, hPeakY], until: 'step'});
+
+Shell.answer('พิสัยและความสูงสูงสุด', '$R = 40$ m และ $H = 10$ m', {
+  sanity: 'มุม $45^\\circ$ ให้ระยะพิสัยไกลที่สุดเสมอที่อัตราเร็วต้นเท่ากัน และสอดคล้องกับเอกลักษณ์ $R = 4H\\cot 45^\\circ = 4(10) = 40$ m'
+});
+
+Shell.done();
+</script>
+</body></html>

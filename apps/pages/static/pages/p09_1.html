@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>การชนแบบไม่ยืดหยุ่นสมบูรณ์</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+var SVGNS = 'http://www.w3.org/2000/svg';
+
+Shell.page({
+  title: 'การชนแบบไม่ยืดหยุ่นสมบูรณ์',
+  problem: 'รถมวล 1000 กก. เคลื่อนที่ด้วยความเร็ว 10 m/s ชนกับรถอีกคันมวล 1500 กก. ที่จอดนิ่งอยู่ แล้วเกาะติดกันเคลื่อนที่ไปด้วยกัน จงหาความเร็วหลังชน (การชนแบบไม่ยืดหยุ่นสมบูรณ์)'
+});
+
+var g = Shell.canvas(), C = Shell.C;
+var PX_PER_MS = 14;
+
+Shell.setup('ระบบการชนของรถทั้งสองคันไม่มีแรงภายนอกกระทำในแนวราบ จึงเป็นระบบโดดเดี่ยว และโมเมนตัมรวมของระบบมีค่าคงที่ตามกฎการอนุรักษ์โมเมนตัม');
+
+// Track setup
+var Y_GROUND = 275;
+var X1_INIT = 110;
+var X2_INIT = 430;
+var W1 = 130;
+var W2 = 155;
+
+// Collision point: Car 1's front hits Car 2's rear
+var X1_HIT = X2_INIT - W1; // 300
+var DX_POST = 170;
+var X1_END = X1_HIT + DX_POST; // 470
+var X2_END = X2_INIT + DX_POST; // 600
+
+// Draw static track
+var track = document.createElementNS(SVGNS, 'line');
+track.setAttribute('x1', '50');
+track.setAttribute('y1', Y_GROUND);
+track.setAttribute('x2', '910');
+track.setAttribute('y2', Y_GROUND);
+track.setAttribute('stroke', C.note);
+track.setAttribute('stroke-width', '3');
+g.appendChild(track);
+
+var trackDash = document.createElementNS(SVGNS, 'line');
+trackDash.setAttribute('x1', '50');
+trackDash.setAttribute('y1', Y_GROUND + 5);
+trackDash.setAttribute('x2', '910');
+trackDash.setAttribute('y2', Y_GROUND + 5);
+trackDash.setAttribute('stroke', C.note);
+trackDash.setAttribute('stroke-width', '2');
+trackDash.setAttribute('stroke-dasharray', '8,8');
+g.appendChild(trackDash);
+
+// Functions to create cars at local origin (0, 0)
+function createCar1() {
+  var cg = document.createElementNS(SVGNS, 'g');
+
+  var body = document.createElementNS(SVGNS, 'rect');
+  body.setAttribute('x', '0');
+  body.setAttribute('y', '-36');
+  body.setAttribute('width', '130');
+  body.setAttribute('height', '24');
+  body.setAttribute('rx', '4');
+  body.setAttribute('fill', C.given);
+  body.setAttribute('fill-opacity', '0.15');
+  body.setAttribute('stroke', C.given);
+  body.setAttribute('stroke-width', '2.5');
+
+  var roof = document.createElementNS(SVGNS, 'path');
+  roof.setAttribute('d', 'M 22 -36 L 40 -55 L 85 -55 L 110 -36 Z');
+  roof.setAttribute('fill', C.given);
+  roof.setAttribute('fill-opacity', '0.22');
+  roof.setAttribute('stroke', C.given);
+  roof.setAttribute('stroke-width', '2.5');
+
+  var win = document.createElementNS(SVGNS, 'path');
+  win.setAttribute('d', 'M 42 -52 L 62 -52 L 62 -38 L 27 -38 Z M 66 -52 L 83 -52 L 104 -38 L 66 -38 Z');
+  win.setAttribute('fill', C.note);
+  win.setAttribute('fill-opacity', '0.35');
+
+  var light = document.createElementNS(SVGNS, 'circle');
+  light.setAttribute('cx', '126');
+  light.setAttribute('cy', '-26');
+  light.setAttribute('r', '3');
+  light.setAttribute('fill', C.given);
+
+  // Wheels touching y = 0
+  var w1 = document.createElementNS(SVGNS, 'circle');
+  w1.setAttribute('cx', '28');
+  w1.setAttribute('cy', '-11');
+  w1.setAttribute('r', '11');
+  w1.setAttribute('fill', C.note);
+  w1.setAttribute('fill-opacity', '0.25');
+  w1.setAttribute('stroke', C.note);
+  w1.setAttribute('stroke-width', '2.5');
+
+  var w1Inner = document.createElementNS(SVGNS, 'circle');
+  w1Inner.setAttribute('cx', '28');
+  w1Inner.setAttribute('cy', '-11');
+  w1Inner.setAttribute('r', '4');
+  w1Inner.setAttribute('fill', C.note);
+
+  var w2 = document.createElementNS(SVGNS, 'circle');
+  w2.setAttribute('cx', '102');
+  w2.setAttribute('cy', '-11');
+  w2.setAttribute('r', '11');
+  w2.setAttribute('fill', C.note);
+  w2.setAttribute('fill-opacity', '0.25');
+  w2.setAttribute('stroke', C.note);
+  w2.setAttribute('stroke-width', '2.5');
+
+  var w2Inner = document.createElementNS(SVGNS, 'circle');
+  w2Inner.setAttribute('cx', '102');
+  w2Inner.setAttribute('cy', '-11');
+  w2Inner.setAttribute('r', '4');
+  w2Inner.setAttribute('fill', C.note);
+
+  cg.appendChild(body);
+  cg.appendChild(roof);
+  cg.appendChild(win);
+  cg.appendChild(light);
+  cg.appendChild(w1);
+  cg.appendChild(w1Inner);
+  cg.appendChild(w2);
+  cg.appendChild(w2Inner);
+
+  return cg;
+}
+
+function createCar2() {
+  var cg = document.createElementNS(SVGNS, 'g');
+
+  var cargo = document.createElementNS(SVGNS, 'rect');
+  cargo.setAttribute('x', '0');
+  cargo.setAttribute('y', '-70');
+  cargo.setAttribute('width', '95');
+  cargo.setAttribute('height', '54');
+  cargo.setAttribute('rx', '3');
+  cargo.setAttribute('fill', C.given);
+  cargo.setAttribute('fill-opacity', '0.12');
+  cargo.setAttribute('stroke', C.given);
+  cargo.setAttribute('stroke-width', '2.5');
+  cg.appendChild(cargo);
+
+  var ribX = [25, 50, 75];
+  for (var i = 0; i < ribX.length; i++) {
+    var rib = document.createElementNS(SVGNS, 'line');
+    rib.setAttribute('x1', ribX[i]);
+    rib.setAttribute('y1', '-66');
+    rib.setAttribute('x2', ribX[i]);
+    rib.setAttribute('y2', '-20');
+    rib.setAttribute('stroke', C.given);
+    rib.setAttribute('stroke-width', '1.5');
+    rib.setAttribute('stroke-opacity', '0.4');
+    cg.appendChild(rib);
+  }
+
+  var cab = document.createElementNS(SVGNS, 'path');
+  cab.setAttribute('d', 'M 95 -18 L 155 -18 L 155 -42 L 138 -65 L 95 -65 Z');
+  cab.setAttribute('fill', C.given);
+  cab.setAttribute('fill-opacity', '0.18');
+  cab.setAttribute('stroke', C.given);
+  cab.setAttribute('stroke-width', '2.5');
+
+  var ws = document.createElementNS(SVGNS, 'path');
+  ws.setAttribute('d', 'M 102 -61 L 134 -61 L 148 -42 L 102 -42 Z');
+  ws.setAttribute('fill', C.note);
+  ws.setAttribute('fill-opacity', '0.35');
+
+  var light = document.createElementNS(SVGNS, 'circle');
+  light.setAttribute('cx', '151');
+  light.setAttribute('cy', '-26');
+  light.setAttribute('r', '3.5');
+  light.setAttribute('fill', C.given);
+
+  // Wheels touching y = 0
+  var w1 = document.createElementNS(SVGNS, 'circle');
+  w1.setAttribute('cx', '32');
+  w1.setAttribute('cy', '-13');
+  w1.setAttribute('r', '13');
+  w1.setAttribute('fill', C.note);
+  w1.setAttribute('fill-opacity', '0.25');
+  w1.setAttribute('stroke', C.note);
+  w1.setAttribute('stroke-width', '3');
+
+  var w1Inner = document.createElementNS(SVGNS, 'circle');
+  w1Inner.setAttribute('cx', '32');
+  w1Inner.setAttribute('cy', '-13');
+  w1Inner.setAttribute('r', '5');
+  w1Inner.setAttribute('fill', C.note);
+
+  var w2 = document.createElementNS(SVGNS, 'circle');
+  w2.setAttribute('cx', '125');
+  w2.setAttribute('cy', '-13');
+  w2.setAttribute('r', '13');
+  w2.setAttribute('fill', C.note);
+  w2.setAttribute('fill-opacity', '0.25');
+  w2.setAttribute('stroke', C.note);
+  w2.setAttribute('stroke-width', '3');
+
+  var w2Inner = document.createElementNS(SVGNS, 'circle');
+  w2Inner.setAttribute('cx', '125');
+  w2Inner.setAttribute('cy', '-13');
+  w2Inner.setAttribute('r', '5');
+  w2Inner.setAttribute('fill', C.note);
+
+  cg.appendChild(cab);
+  cg.appendChild(ws);
+  cg.appendChild(light);
+  cg.appendChild(w1);
+  cg.appendChild(w1Inner);
+  cg.appendChild(w2);
+  cg.appendChild(w2Inner);
+
+  return cg;
+}
+
+// Initial placement of movers (Rule M4: place mover at initial position before motion)
+var car1 = createCar1();
+car1.setAttribute('transform', 'translate(' + X1_INIT + ',' + Y_GROUND + ')');
+g.appendChild(car1);
+
+var car2 = createCar2();
+car2.setAttribute('transform', 'translate(' + X2_INIT + ',' + Y_GROUND + ')');
+g.appendChild(car2);
+
+// Group 1: Before collision
+Shell.group('1. วิเคราะห์สถานะและโมเมนตัมก่อนชน');
+
+var s1 = Shell.step('ระบุสถานะก่อนชน: รถมวล $m_1 = 1000$ kg วิ่งด้วยความเร็ว $u_1 = 10$ m/s มุ่งหน้าชนรถมวล $m_2 = 1500$ kg ซึ่งจอดนิ่งอยู่ ($u_2 = 0$ m/s)');
+
+Shell.arrow(s1, X1_INIT + 65, 205, X1_INIT + 65 + 10 * PX_PER_MS, 205, {
+  role: 'given',
+  label: '$u_1 = 10$ m/s',
+  value: 10,
+  unit: 'm/s',
+  until: 2
+});
+
+Shell.label(s1, X1_INIT + 65, 235, '$m_1 = 1000$ kg', {
+  role: 'given',
+  anchor: [X1_INIT + 65, 255],
+  until: 2
+});
+
+Shell.label(s1, X2_INIT + 77, 185, '$m_2 = 1500$ kg', {
+  role: 'given',
+  anchor: [X2_INIT + 77, 220],
+  until: 2
+});
+
+Shell.label(s1, X2_INIT + 77, 155, '$u_2 = 0$ m/s (จอดนิ่ง)', {
+  role: 'note',
+  anchor: [X2_INIT + 77, 185],
+  until: 2
+});
+
+var s2 = Shell.step('คำนวณโมเมนตัมรวมก่อนชนของระบบ:<br>$\\sum p = m_1 u_1 + m_2 u_2 = (1000)(10) + (1500)(0) = 10{,}000$ kg·m/s', {
+  why: 'โมเมนตัมเป็นปริมาณเวกเตอร์ จึงต้องคิดผลรวมโมเมนตัมของวัตถุทุกชิ้นในระบบตามทิศทางการเคลื่อนที่',
+  uses: [1]
+});
+
+Shell.table(s2, 140, 340, [
+  ['วัตถุ', 'มวล (kg)', 'ความเร็ว (m/s)', 'โมเมนตัม (kg·m/s)'],
+  ['รถคันที่ 1', '1000', '10', '10,000'],
+  ['รถคันที่ 2', '1500', '0', '0'],
+  ['รวมก่อนชน', '2500', '-', '10,000']
+], {
+  roles: ['given', 'given', 'given', 'work'],
+  colW: 170,
+  rowH: 32,
+  until: 'step'
+});
+
+// Group 2: Collision and Conservation of Momentum
+Shell.group('2. การชนแบบไม่ยืดหยุ่นและการอนุรักษ์โมเมนตัม');
+
+var s3 = Shell.step('เกิดการชนแบบไม่ยืดหยุ่นสมบูรณ์: รถทั้งสองคันเกาะติดกันเป็นมวลก้อนเดียว $M = m_1 + m_2 = 1000 + 1500 = 2500$ kg', {
+  why: 'การชนแบบไม่ยืดหยุ่นสมบูรณ์ วัตถุจะสูญเสียพลังงานจลน์สูงสุดและเคลื่อนที่ติดไปด้วยกันด้วยความเร็วเดียวกัน',
+  uses: [1]
+});
+
+// Car 1 moves to hit Car 2
+Shell.motion(s3, car1, [[X1_INIT, Y_GROUND], [X1_HIT, Y_GROUND]], {dur: 900});
+
+Shell.label(s3, X2_INIT, 155, 'เกาะติดกัน ($M = 2500$ kg)', {
+  role: 'work',
+  anchor: [X2_INIT, 215],
+  until: 'step'
+});
+
+var s4 = Shell.step('ใช้กฎการอนุรักษ์โมเมนตัมหาความเร็วหลังชน $v$:<br>$\\sum p_{\\text{final}} = \\sum p_{\\text{initial}} \\implies (m_1 + m_2) v = 10{,}000$<br>$2500 v = 10{,}000 \\implies v = 4$ m/s (ทิศไปทางขวา)', {
+  why: 'ระบบไม่มีแรงภายนอกในแนวราบมากระทำ โมเมนตัมรวมก่อนชนจึงเท่ากับโมเมนตัมรวมหลังชน',
+  uses: [2, 3]
+});
+
+// Both cars move together from their collision points
+Shell.motion(s4, car1, [[X1_HIT, Y_GROUND], [X1_END, Y_GROUND]], {dur: 1100});
+Shell.motion(s4, car2, [[X2_INIT, Y_GROUND], [X2_END, Y_GROUND]], {dur: 1100});
+
+var finalCenter = (X1_END + X2_END + W2) / 2; // around 562
+
+Shell.arrow(s4, finalCenter - 28, 180, finalCenter - 28 + 4 * PX_PER_MS, 180, {
+  role: 'answer',
+  label: '$v = 4$ m/s',
+  value: 4,
+  unit: 'm/s',
+  until: 'end'
+});
+
+Shell.label(s4, finalCenter, 140, 'เคลื่อนที่ติดกันไปด้วยความเร็ว $v = 4$ m/s', {
+  role: 'answer',
+  anchor: [finalCenter, 175],
+  until: 'end'
+});
+
+Shell.table(s4, 140, 345, [
+  ['สภาวะ', 'มวลรวม (kg)', 'ความเร็ว (m/s)', 'โมเมนตัมรวม (kg·m/s)'],
+  ['ก่อนชน', '2500', '-', '10,000'],
+  ['หลังชน', '2500', 'v = 4', '10,000']
+], {
+  roles: ['given', 'work', 'answer'],
+  colW: 170,
+  rowH: 34,
+  until: 'end'
+});
+
+Shell.answer('ความเร็วหลังชน', '$v = 4$ m/s (ทิศไปทางขวา)', {
+  sanity: 'ความเร็วหลังชน $4$ m/s มีค่าน้อยกว่าความเร็วก่อนชน $10$ m/s สอดคล้องกับมวลรวมที่เพิ่มขึ้นเป็น $2.5$ เท่า'
+});
+
+Shell.done();
+</script>
+</body></html>

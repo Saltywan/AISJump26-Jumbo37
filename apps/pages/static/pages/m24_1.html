@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>ขนาดของเวกเตอร์</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/jsxgraph.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/jsxgraphcore.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+Shell.page({
+  title: 'ขนาดของเวกเตอร์ $\\vec{a} = (3, 4)$',
+  problem: 'กำหนดเวกเตอร์ $\\vec{a} = (3, 4)$ จงหาขนาดของเวกเตอร์ $\\vec{a}$'
+});
+
+var b = Shell.board({box: [-1.5, 5.5, 5.5, -1.5], grid: true, keepaspect: true});
+var C = Shell.C;
+
+Shell.setup('เวกเตอร์ในระบบพิกัดฉาก $\\vec{a} = (x, y)$ มีขนาดเท่ากับระยะทางจากจุดเริ่มต้น $(0, 0)$ ไปยังจุดสิ้นสุด $(x, y)$ ซึ่งสามารถหาได้โดยใช้ทฤษฎีบทพีทาโกรัสจากรูปสามเหลี่ยมมุมฉากที่เกิดจากส่วนประกอบแนวนอนและแนวดิ่ง');
+
+var O = b.create('point', [0, 0], {strokeColor: C.note, fillColor: C.note, size: 3, fixed: true, withLabel: false});
+var P = b.create('point', [3, 4], {strokeColor: C.given, fillColor: C.given, size: 4, fixed: true, withLabel: false});
+
+var xAxis = b.create('line', [O, [1, 0]], {visible: false});
+var perp = b.create('perpendicular', [xAxis, P], {visible: false});
+var Q = b.create('intersection', [xAxis, perp, 0], {strokeColor: C.work, fillColor: C.work, size: 3, withLabel: false});
+var rightAngle = b.create('angle', [P, Q, O], {radius: 0.4, strokeColor: C.note, withLabel: false});
+
+Shell.group('เขียนเวกเตอร์และส่วนประกอบบนระนาบ');
+
+var s1 = Shell.step('กำหนดให้เวกเตอร์ $\\vec{a} = (3, 4)$ มีจุดเริ่มต้นที่จุดกำเนิด $(0, 0)$ และจุดปลายที่ $(3, 4)$', {
+  why: 'ในระบบพิกัดฉาก เวกเตอร์บอกตำแหน่งเริ่มต้นจากจุดกำเนิดไปยังพิกัดที่กำหนด'
+});
+Shell.on(s1, O, P);
+Shell.tag(s1, O, '(0, 0)', {role: 'note'});
+Shell.tag(s1, P, '(3, 4)', {role: 'given'});
+Shell.arrow(s1, 0, 0, 3, 4, {board: true, role: 'given', label: '$\\vec{a}$', value: 5, unit: '', until: 'end'});
+
+var s2 = Shell.step('แยกเวกเตอร์ออกเป็นส่วนประกอบในแนวราบ $a_x = 3$ และแนวดิ่ง $a_y = 4$ ซึ่งตั้งฉากกัน', {
+  why: 'แกน $x$ และแกน $y$ ตั้งฉากกัน ทำให้ส่วนประกอบทั้งสองประกอบกันเป็นรูปสามเหลี่ยมมุมฉาก',
+  uses: [1]
+});
+Shell.on(s2, Q, rightAngle);
+Shell.arrow(s2, 0, 0, 3, 0, {board: true, role: 'work', label: '$a_x = 3$', value: 3, unit: '', until: 'end'});
+Shell.arrow(s2, 3, 0, 3, 4, {board: true, role: 'work', label: '$a_y = 4$', value: 4, unit: '', until: 'end'});
+
+Shell.group('คำนวณขนาดของเวกเตอร์');
+
+var s3 = Shell.step('ใช้ความสัมพันธ์ของทฤษฎีบทพีทาโกรัสเพื่อหาขนาด $|\\vec{a}| = \\sqrt{a_x^2 + a_y^2}$', {
+  why: 'ขนาดของเวกเตอร์คือความยาวของด้านตรงข้ามมุมฉากในรูปสามเหลี่ยมมุมฉาก',
+  uses: [2]
+});
+
+var s4 = Shell.step('แทนค่าส่วนประกอบ $a_x = 3$ และ $a_y = 4$ ลงในสมการ:<br>$|\\vec{a}| = \\sqrt{3^2 + 4^2} = \\sqrt{9 + 16} = \\sqrt{25} = 5$', {
+  uses: [3]
+});
+
+Shell.answer('ขนาดของเวกเตอร์ $\\vec{a}$', '$|\\vec{a}| = 5$', {
+  sanity: 'ขนาดของเวกเตอร์ซึ่งเป็นด้านตรงข้ามมุมฉาก ต้องมากกว่าส่วนประกอบแต่ละแกนเสมอ ($5 > 4$ และ $5 > 3$) และตรงกับอัตราส่วนสามเหลี่ยมมุมฉาก $3:4:5$'
+});
+
+Shell.done();
+</script>
+</body></html>

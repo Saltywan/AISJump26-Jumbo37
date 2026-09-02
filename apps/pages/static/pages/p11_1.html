@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>การเกิดภาพจากระบบเลนส์สองอัน</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+var SVGNS = 'http://www.w3.org/2000/svg';
+function svgEl(tag, attrs) {
+  var el = document.createElementNS(SVGNS, tag);
+  for (var k in attrs) { el.setAttribute(k, attrs[k]); }
+  return el;
+}
+
+Shell.page({
+  title: 'ตำแหน่งภาพสุดท้ายจากระบบเลนส์สองอัน',
+  problem: 'ระบบเลนส์สองอันวางห่างกัน $30$ ซม. เลนส์แรก (นูน โฟกัส $10$ ซม.) และเลนส์ที่สอง (เว้า โฟกัส $-15$ ซม.) วัตถุวางหน้าเลนส์แรก $15$ ซม. จงหาตำแหน่งภาพสุดท้ายที่เกิดจากระบบเลนส์นี้ พร้อมวาดทางเดินแสงตลอดระบบ'
+});
+
+var canvas = Shell.canvas();
+var C = Shell.C;
+
+var PX_PER_CM_X = 13;
+var PX_PER_CM_Y = 20;
+
+var Y_AXIS = 260;
+var X_L1 = 335;
+var X_OBJ = X_L1 - 15 * PX_PER_CM_X; // 140
+var X_L2 = X_L1 + 30 * PX_PER_CM_X;  // 725
+var OBJ_H = 2.5 * PX_PER_CM_Y;       // 50 px
+var Y_TIP = Y_AXIS - OBJ_H;          // 210
+var X_F1 = X_L1 - 10 * PX_PER_CM_X;  // 205
+var X_F1P = X_L1 + 10 * PX_PER_CM_X; // 465
+var X_F2 = X_L2 - 15 * PX_PER_CM_X;  // 530
+var Y_IMG1 = Y_AXIS + 2 * OBJ_H;     // 360
+
+Shell.setup('ในการวิเคราะห์ระบบเลนส์หลายอัน เราจะพิจารณาการเกิดภาพทีละเลนส์ตามลำดับ โดยใช้ "ภาพที่เกิดจากเลนส์แรก" ทำหน้าที่เป็น "วัตถุของเลนส์ถัดไป"');
+
+// องค์ประกอบคงที่: แกนมุขสำคัญ และสัญลักษณ์เลนส์ทั้งสอง
+var axisLine = svgEl('line', {
+  x1: 60, y1: Y_AXIS, x2: 900, y2: Y_AXIS,
+  stroke: C.note, 'stroke-width': 1.5, 'stroke-dasharray': '6,4'
+});
+canvas.appendChild(axisLine);
+Shell.label(canvas, 95, Y_AXIS - 14, 'แกนมุขสำคัญ', {role:'note', anchor:[95, Y_AXIS], until:'end'});
+
+// เลนส์นูน (L1)
+var lens1Body = svgEl('path', {
+  d: 'M ' + X_L1 + ' 110 Q ' + (X_L1 + 18) + ' ' + Y_AXIS + ' ' + X_L1 + ' 410 Q ' + (X_L1 - 18) + ' ' + Y_AXIS + ' ' + X_L1 + ' 110 Z',
+  fill: 'rgba(37, 99, 235, 0.12)', stroke: C.given, 'stroke-width': 2
+});
+var lens1Axis = svgEl('line', {
+  x1: X_L1, y1: 100, x2: X_L1, y2: 420,
+  stroke: C.given, 'stroke-width': 1.2, 'stroke-dasharray': '4,3'
+});
+canvas.appendChild(lens1Body);
+canvas.appendChild(lens1Axis);
+Shell.label(canvas, X_L1, 80, 'เลนส์นูน ($L_1$)', {role:'given', anchor:[X_L1, 105], until:'end'});
+
+// เลนส์เว้า (L2)
+var lens2Body = svgEl('path', {
+  d: 'M ' + (X_L2 - 10) + ' 110 Q ' + (X_L2 - 2) + ' ' + Y_AXIS + ' ' + (X_L2 - 10) + ' 410 L ' + (X_L2 + 10) + ' 410 Q ' + (X_L2 + 2) + ' ' + Y_AXIS + ' ' + (X_L2 + 10) + ' 110 Z',
+  fill: 'rgba(124, 58, 237, 0.12)', stroke: C.work, 'stroke-width': 2
+});
+var lens2Axis = svgEl('line', {
+  x1: X_L2, y1: 100, x2: X_L2, y2: 420,
+  stroke: C.work, 'stroke-width': 1.2, 'stroke-dasharray': '4,3'
+});
+canvas.appendChild(lens2Body);
+canvas.appendChild(lens2Axis);
+Shell.label(canvas, X_L2, 80, 'เลนส์เว้า ($L_2$)', {role:'work', anchor:[X_L2, 105], until:'end'});
+
+// จุดโฟกัสบนแกน
+var dotF1 = svgEl('circle', {cx: X_F1, cy: Y_AXIS, r: 3.5, fill: C.note});
+var dotF1P = svgEl('circle', {cx: X_F1P, cy: Y_AXIS, r: 3.5, fill: C.note});
+var dotF2 = svgEl('circle', {cx: X_F2, cy: Y_AXIS, r: 3.5, fill: C.note});
+canvas.appendChild(dotF1);
+canvas.appendChild(dotF1P);
+canvas.appendChild(dotF2);
+Shell.label(canvas, X_F1, Y_AXIS + 18, '$F_1$', {role:'note', anchor:[X_F1, Y_AXIS], until:'end'});
+Shell.label(canvas, X_F1P, Y_AXIS + 18, '$F\'_1$', {role:'note', anchor:[X_F1P, Y_AXIS], until:'end'});
+Shell.label(canvas, X_F2, Y_AXIS + 18, '$F_2$', {role:'note', anchor:[X_F2, Y_AXIS], until:'end'});
+
+Shell.group('วิเคราะห์เลนส์ที่ 1 (เลนส์นูน)');
+
+// ขั้นที่ 1: วางวัตถุและระยะที่โจทย์กำหนด
+var s1 = Shell.step('วางวัตถุ $O$ หน้าเลนส์นูนที่ระยะ $s_1 = 15$ cm โดยมีความยาวโฟกัส $f_1 = +10$ cm และเลนส์เว้าวางห่างออกไป $d = 30$ cm');
+Shell.arrow(s1, X_OBJ, Y_AXIS, X_OBJ, Y_TIP, {
+  role: 'given', label: 'วัตถุ ($O$)', value: 2.5, unit: 'cm', until: 'end'
+});
+Shell.arrow(s1, X_OBJ, 435, X_L1, 435, {
+  role: 'given', label: '$s_1 = 15$ cm', value: 15, unit: 'cm', until: 'end'
+});
+Shell.arrow(s1, X_L1, 435, X_L2, 435, {
+  role: 'given', label: '$d = 30$ cm', value: 30, unit: 'cm', until: 'end'
+});
+
+// ขั้นที่ 2: คำนวณหาตำแหน่งภาพจากเลนส์ที่ 1
+var s2 = Shell.step('คำนวณตำแหน่งภาพแรก ($s\'_1$) จากสมการเลนส์บาง $\\frac{1}{f_1} = \\frac{1}{s_1} + \\frac{1}{s\'_1}$ ได้ $\\frac{1}{s\'_1} = \\frac{1}{10} - \\frac{1}{15} = \\frac{1}{30}$ จะได้ $s\'_1 = +30$ cm', {
+  why: 'รังสีแสงหักเหผ่านผิวเลนส์ตามกฎการหักเห รวมตัวกันเกิดภาพจริงหลังเลนส์',
+  uses: [1]
+});
+Shell.arrow(s2, X_L1, 480, X_L2, 480, {
+  role: 'work', label: '$s\'_1 = 30$ cm', value: 30, unit: 'cm', until: 'step'
+});
+
+// ขั้นที่ 3: ทางเดินแสงผ่านเลนส์นูนและภาพแรก
+var s3 = Shell.step('เขียนรังสีแสงหลักผ่านเลนส์นูน: รังสีขนานแกนหักเหผ่านจุดโฟกัส $F\'_1$ และรังสีผ่านกึ่งกลางเลนส์ ตัดกันเกิดภาพจริง $I_1$ (หัวกลับ ขนาด 2 เท่า) ที่ตำแหน่งเลนส์เว้าพอดี', {
+  why: 'รังสีอย่างน้อยสองเส้นที่ตัดกันเป็นตัวกำหนดตำแหน่งและขนาดของภาพจริง',
+  uses: [2]
+});
+
+// รังสีที่ 1 ผ่านเลนส์นูน
+var ray1_L1 = svgEl('polyline', {
+  points: X_OBJ + ',' + Y_TIP + ' ' + X_L1 + ',' + Y_TIP + ' ' + X_L2 + ',' + Y_IMG1,
+  fill: 'none', stroke: C.given, 'stroke-width': 2
+});
+s3.appendChild(ray1_L1);
+
+// รังสีที่ 2 ผ่านเลนส์นูน
+var ray2_L1 = svgEl('line', {
+  x1: X_OBJ, y1: Y_TIP, x2: X_L2, y2: Y_IMG1,
+  stroke: C.given, 'stroke-width': 2
+});
+s3.appendChild(ray2_L1);
+
+// แอนิเมชันกลุ่มก้อนแสงวิ่งตามทางเดินแสงเลนส์แรก
+var photon1 = Shell.motion(s3, null, [[X_OBJ, Y_TIP], [X_L1, Y_TIP], [X_L2, Y_IMG1]], {dur: 1100});
+var pCircle1 = svgEl('circle', {cx: 0, cy: 0, r: 4, fill: C.given});
+photon1.appendChild(pCircle1);
+
+var photon2 = Shell.motion(s3, null, [[X_OBJ, Y_TIP], [X_L1, Y_AXIS], [X_L2, Y_IMG1]], {dur: 1100});
+var pCircle2 = svgEl('circle', {cx: 0, cy: 0, r: 4, fill: C.given});
+photon2.appendChild(pCircle2);
+
+// ภาพแรก I1
+Shell.arrow(s3, X_L2, Y_AXIS, X_L2, Y_IMG1, {
+  role: 'work', label: 'ภาพแรก ($I_1$)', value: 5, unit: 'cm', until: 'step'
+});
+
+Shell.group('วิเคราะห์เลนส์ที่ 2 (เลนส์เว้า)');
+
+// ขั้นที่ 4: พิจารณาวัตถุของเลนส์ที่ 2
+var s4 = Shell.step('ภาพ $I_1$ ทำหน้าที่เป็นวัตถุสำหรับเลนส์เว้า ($L_2$) เนื่องจากระยะห่างเลนส์คือ $d = 30$ cm ระยะวัตถุของเลนส์ที่สองคือ $s_2 = d - s\'_1 = 30 - 30 = 0$ cm', {
+  why: 'แสงเดินทางต่อเนื่องจากเลนส์แรกไปยังเลนส์ที่สอง ทำให้ภาพจากเลนส์แรกกลายเป็นวัตถุของเลนส์ถัดไป',
+  uses: [2, 3]
+});
+Shell.label(s4, X_L2, Y_IMG1 + 22, 'วัตถุ $s_2 = 0$', {role:'warn', anchor:[X_L2, Y_IMG1], until:'step'});
+
+// ขั้นที่ 5: คำนวณตำแหน่งภาพสุดท้าย
+var s5 = Shell.step('คำนวณตำแหน่งภาพสุดท้าย ($s\'_2$) จากสมการเลนส์บาง $\\frac{1}{f_2} = \\frac{1}{s_2} + \\frac{1}{s\'_2}$ เมื่อ $s_2 = 0$ จะได้ $\\frac{1}{s\'_2} = \\frac{1}{-15} - \\frac{1}{0} \\implies s\'_2 = 0$ cm', {
+  why: 'เมื่อวัตถุอยู่ที่ระนาบเลนส์บางพอดี แสงตกกระทบที่จุดใดก็จะกระจายออกจากจุดนั้นทันทีโดยไม่เลื่อนตำแหน่ง',
+  uses: [4]
+});
+
+// ขั้นที่ 6: ทางเดินแสงหักเหออกจากเลนส์เว้าและภาพสุดท้าย
+var s6 = Shell.step('รังสีแสงที่รวมกันที่ระนาบเลนส์เว้าจะหักเหกระจายตัวออกจากจุดยอดของ $I_1$ ภาพสุดท้าย $I$ จึงปรากฏอยู่ที่ตำแหน่งของเลนส์เว้าพอดี เป็นภาพหัวกลับขนาด 2 เท่า', {
+  why: 'เลนส์เว้าทำให้ลำแสงถ่างออก โดยมีจุดเริ่มต้นการถ่างออกจากจุดตัดบนระนาบเลนส์',
+  uses: [5]
+});
+
+// รังสีหักเหออกจากเลนส์เว้า (ถ่างออกทางขวา)
+var X_RAY_END = 860;
+var Y_RAY1_END = 480;
+var Y_RAY2_END = 464;
+
+var ray1_out = svgEl('line', {
+  x1: X_L2, y1: Y_IMG1, x2: X_RAY_END, y2: Y_RAY1_END,
+  stroke: C.answer, 'stroke-width': 2.2
+});
+var ray2_out = svgEl('line', {
+  x1: X_L2, y1: Y_IMG1, x2: X_RAY_END, y2: Y_RAY2_END,
+  stroke: C.answer, 'stroke-width': 2.2
+});
+s6.appendChild(ray1_out);
+s6.appendChild(ray2_out);
+
+// แอนิเมชันแสดงแสงหักเหกระจายตัวออกทางขวา
+var photonOut1 = Shell.motion(s6, null, [[X_L2, Y_IMG1], [X_RAY_END, Y_RAY1_END]], {dur: 900});
+var pCircleOut1 = svgEl('circle', {cx: 0, cy: 0, r: 4, fill: C.answer});
+photonOut1.appendChild(pCircleOut1);
+
+var photonOut2 = Shell.motion(s6, null, [[X_L2, Y_IMG1], [X_RAY_END, Y_RAY2_END]], {dur: 900});
+var pCircleOut2 = svgEl('circle', {cx: 0, cy: 0, r: 4, fill: C.answer});
+photonOut2.appendChild(pCircleOut2);
+
+// ภาพสุดท้าย (สีเขียว answer)
+Shell.arrow(s6, X_L2, Y_AXIS, X_L2, Y_IMG1, {
+  role: 'answer', label: 'ภาพสุดท้าย ($I$)', value: 5, unit: 'cm', until: 'end'
+});
+
+Shell.answer(
+  'ตำแหน่งภาพสุดท้าย',
+  'อยู่ที่ตำแหน่งเลนส์ที่สองพอดี ($s\'_2 = 0$ cm หรืออยู่หลังเลนส์แรก $30$ cm)',
+  {sanity: 'รังสีแสงทั้งหมดมาตัดกันที่ระนาบเลนส์ที่สองพอดีก่อนกระจายตัวออกไปทางขวา ภาพจึงอยู่ที่ระนาบเลนส์ที่สอง'}
+);
+
+Shell.done();
+</script>
+</body></html>

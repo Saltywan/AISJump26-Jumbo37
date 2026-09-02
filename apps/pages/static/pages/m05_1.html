@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>การพิสูจน์มุมตรงข้ามของรูปสี่เหลี่ยมด้านขนาน</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+var SVGNS = 'http://www.w3.org/2000/svg';
+
+Shell.page({
+  title: 'การพิสูจน์มุมตรงข้ามของรูปสี่เหลี่ยมด้านขนาน',
+  problem: 'กำหนดรูปสี่เหลี่ยม $ABCD$ ที่มี $AB \\parallel CD$ และ $AD \\parallel BC$ จงพิสูจน์ว่ามุมตรงข้ามของรูปสี่เหลี่ยมด้านขนานมีขนาดเท่ากัน'
+});
+
+var g = Shell.canvas();
+var C = Shell.C;
+
+Shell.setup('รูปสี่เหลี่ยมด้านขนานมีด้านตรงข้ามขนานกันสองคู่ เราสามารถใช้สมบัติของเส้นขนานที่ว่า "ขนาดของมุมภายในที่อยู่บนข้างเดียวกันของเส้นตัดรวมกันได้ $180^\\circ$" มาสร้างสมการเพื่อเปรียบเทียบขนาดของมุมตรงข้าม');
+
+// พิกัดจุดยอดของสี่เหลี่ยมด้านขนาน ABCD
+var Ax = 220, Ay = 390;
+var Bx = 680, By = 390;
+var Cx = 820, Cy = 150;
+var Dx = 360, Dy = 150;
+
+// เวกเตอร์หนึ่งหน่วยตามแนวเฉียง AD และ BC
+var ux = 0.50387;
+var uy = -0.86378;
+
+// ฟังก์ชันช่วยสร้างเส้นตรง
+function createLine(x1, y1, x2, y2, color, width, dash) {
+  var l = document.createElementNS(SVGNS, 'line');
+  l.setAttribute('x1', x1);
+  l.setAttribute('y1', y1);
+  l.setAttribute('x2', x2);
+  l.setAttribute('y2', y2);
+  l.setAttribute('stroke', color);
+  l.setAttribute('stroke-width', width || '3');
+  if (dash) l.setAttribute('stroke-dasharray', dash);
+  return l;
+}
+
+// ฟังก์ชันช่วยสร้างส่วนโค้งมุม
+function createAngleSector(vertex, r, color) {
+  var p = document.createElementNS(SVGNS, 'path');
+  var d = '';
+  var rx = r * ux;
+  var ry = r * uy;
+
+  if (vertex === 'A') {
+    d = 'M ' + Ax + ' ' + Ay + ' L ' + (Ax + rx) + ' ' + (Ay + ry) + ' A ' + r + ' ' + r + ' 0 0 1 ' + (Ax + r) + ' ' + Ay + ' Z';
+  } else if (vertex === 'B') {
+    d = 'M ' + Bx + ' ' + By + ' L ' + (Bx - r) + ' ' + By + ' A ' + r + ' ' + r + ' 0 0 1 ' + (Bx + rx) + ' ' + (By + ry) + ' Z';
+  } else if (vertex === 'C') {
+    d = 'M ' + Cx + ' ' + Cy + ' L ' + (Cx - rx) + ' ' + (Cy - ry) + ' A ' + r + ' ' + r + ' 0 0 1 ' + (Cx - r) + ' ' + Cy + ' Z';
+  } else if (vertex === 'D') {
+    d = 'M ' + Dx + ' ' + Dy + ' L ' + (Dx + r) + ' ' + Dy + ' A ' + r + ' ' + r + ' 0 0 1 ' + (Dx - rx) + ' ' + (Dy - ry) + ' Z';
+  }
+
+  p.setAttribute('d', d);
+  p.setAttribute('fill', color);
+  p.setAttribute('fill-opacity', '0.22');
+  p.setAttribute('stroke', color);
+  p.setAttribute('stroke-width', '2.5');
+  return p;
+}
+
+// โครงร่างฐานของรูปสี่เหลี่ยมด้านขนาน (คงอยู่ตลอด)
+var basePoly = document.createElementNS(SVGNS, 'polygon');
+basePoly.setAttribute('points', Ax + ',' + Ay + ' ' + Bx + ',' + By + ' ' + Cx + ',' + Cy + ' ' + Dx + ',' + Dy);
+basePoly.setAttribute('fill', C.note);
+basePoly.setAttribute('fill-opacity', '0.06');
+basePoly.setAttribute('stroke', C.note);
+basePoly.setAttribute('stroke-width', '2');
+g.appendChild(basePoly);
+
+// จุดยอดทั้งสี่
+var pts = [[Ax, Ay], [Bx, By], [Cx, Cy], [Dx, Dy]];
+for (var i = 0; i < pts.length; i++) {
+  var dot = document.createElementNS(SVGNS, 'circle');
+  dot.setAttribute('cx', pts[i][0]);
+  dot.setAttribute('cy', pts[i][1]);
+  dot.setAttribute('r', '4');
+  dot.setAttribute('fill', C.given);
+  g.appendChild(dot);
+}
+
+// ขั้นที่ 1: กำหนดรูปสี่เหลี่ยมด้านขนาน ABCD
+var s1 = Shell.step('กำหนดรูปสี่เหลี่ยมด้านขนาน $ABCD$ โดยมีด้านตรงข้ามขนานกันคือ $AB \\parallel CD$ และ $AD \\parallel BC$');
+
+var poly1 = document.createElementNS(SVGNS, 'polygon');
+poly1.setAttribute('points', Ax + ',' + Ay + ' ' + Bx + ',' + By + ' ' + Cx + ',' + Cy + ' ' + Dx + ',' + Dy);
+poly1.setAttribute('fill', C.given);
+poly1.setAttribute('fill-opacity', '0.12');
+poly1.setAttribute('stroke', C.given);
+poly1.setAttribute('stroke-width', '3.5');
+s1.appendChild(poly1);
+
+Shell.label(s1, 185, 415, '$A$', {role:'given', anchor:[Ax, Ay], until:'end'});
+Shell.label(s1, 715, 415, '$B$', {role:'given', anchor:[Bx, By], until:'end'});
+Shell.label(s1, 855, 130, '$C$', {role:'given', anchor:[Cx, Cy], until:'end'});
+Shell.label(s1, 325, 130, '$D$', {role:'given', anchor:[Dx, Dy], until:'end'});
+
+// กลุ่มที่ 1: พิสูจน์มุมคู่แรก
+Shell.group('พิสูจน์คู่ที่ 1: $\\hat{A} = \\hat{C}$');
+
+// ขั้นที่ 2: มุมภายในบนข้างเดียวกันของเส้นตัด AD
+var s2 = Shell.step('พิจารณาเส้นขนานคู่ $AB \\parallel CD$ โดยมี $AD$ เป็นเส้นตัด<br>มุมภายในบนข้างเดียวกันของเส้นตัดรวมกันได้ $180^\\circ$ จึงได้<br>$\\hat{A} + \\hat{D} = 180^\\circ$  ...(สมการที่ 1)', {
+  why: 'เมื่อเส้นตรงสองเส้นขนานกัน ขนาดของมุมภายในบนข้างเดียวกันของเส้นตัดรวมกันเท่ากับ $180^\\circ$'
+});
+
+// เน้นเส้นขนาน AB, CD และเส้นตัด AD พร้อมเส้นประต่อขยาย
+s2.appendChild(createLine(120, Ay, 780, Ay, C.work, '3', '6,6'));
+s2.appendChild(createLine(Ax, Ay, Bx, By, C.work, '4.5'));
+s2.appendChild(createLine(260, Dy, 920, Dy, C.work, '3', '6,6'));
+s2.appendChild(createLine(Dx, Dy, Cx, Cy, C.work, '4.5'));
+s2.appendChild(createLine(Ax - 42, Ay + 72, Dx + 42, Dy - 72, C.work, '3', '6,6'));
+s2.appendChild(createLine(Ax, Ay, Dx, Dy, C.work, '4.5'));
+
+s2.appendChild(createAngleSector('A', 46, C.work));
+s2.appendChild(createAngleSector('D', 46, C.work));
+
+Shell.label(s2, 265, 365, '$\\hat{A}$', {role:'work', anchor:[245, 375], until:'step'});
+Shell.label(s2, 395, 175, '$\\hat{D}$', {role:'work', anchor:[375, 165], until:'step'});
+Shell.label(s2, 145, 270, '$\\hat{A} + \\hat{D} = 180^\\circ$', {role:'work', anchor:[290, 270], until:'step'});
+
+// ขั้นที่ 3: มุมภายในบนข้างเดียวกันของเส้นตัด CD
+var s3 = Shell.step('พิจารณาเส้นขนานอีกคู่ $AD \\parallel BC$ โดยมี $CD$ เป็นเส้นตัด<br>ในทำนองเดียวกันจะได้<br>$\\hat{D} + \\hat{C} = 180^\\circ$  ...(สมการที่ 2)', {
+  why: 'เมื่อเส้นตรงสองเส้นขนานกัน ขนาดของมุมภายในบนข้างเดียวกันของเส้นตัดรวมกันเท่ากับ $180^\\circ$'
+});
+
+// เน้นเส้นขนาน AD, BC และเส้นตัด CD พร้อมเส้นประต่อขยาย
+s3.appendChild(createLine(Ax - 42, Ay + 72, Dx + 42, Dy - 72, C.work, '3', '6,6'));
+s3.appendChild(createLine(Ax, Ay, Dx, Dy, C.work, '4.5'));
+s3.appendChild(createLine(Bx - 42, By + 72, Cx + 42, Cy - 72, C.work, '3', '6,6'));
+s3.appendChild(createLine(Bx, By, Cx, Cy, C.work, '4.5'));
+s3.appendChild(createLine(260, Dy, 920, Dy, C.work, '3', '6,6'));
+s3.appendChild(createLine(Dx, Dy, Cx, Cy, C.work, '4.5'));
+
+s3.appendChild(createAngleSector('D', 46, C.work));
+s3.appendChild(createAngleSector('C', 46, C.work));
+
+Shell.label(s3, 395, 175, '$\\hat{D}$', {role:'work', anchor:[375, 165], until:'step'});
+Shell.label(s3, 775, 175, '$\\hat{C}$', {role:'work', anchor:[795, 165], until:'step'});
+Shell.label(s3, 590, 110, '$\\hat{D} + \\hat{C} = 180^\\circ$', {role:'work', anchor:[590, 150], until:'step'});
+
+// ขั้นที่ 4: สรุป A = C
+var s4 = Shell.step('เปรียบเทียบสมการ (1) และ (2) ซึ่งต่างเท่ากับ $180^\\circ$<br>$\\hat{A} + \\hat{D} = \\hat{D} + \\hat{C}$<br>นำ $\\hat{D}$ ลบออกทั้งสองข้าง จะได้ข้อสรุปว่า <b>$\\hat{A} = \\hat{C}$</b>', {
+  uses: [2, 3]
+});
+
+s4.appendChild(createAngleSector('A', 46, C.answer));
+s4.appendChild(createAngleSector('C', 46, C.answer));
+
+Shell.label(s4, 265, 365, '$\\hat{A}$', {role:'answer', anchor:[245, 375], until:'end'});
+Shell.label(s4, 775, 175, '$\\hat{C}$', {role:'answer', anchor:[795, 165], until:'end'});
+Shell.label(s4, 520, 240, '$\\hat{A} = \\hat{C}$', {role:'answer', anchor:[520, 240], until:'step'});
+
+// กลุ่มที่ 2: พิสูจน์มุมคู่ที่สอง
+Shell.group('พิสูจน์คู่ที่ 2: $\\hat{B} = \\hat{D}$');
+
+// ขั้นที่ 5: มุมภายในบนข้างเดียวกันของเส้นตัด BC
+var s5 = Shell.step('พิจารณาเส้นขนาน $AB \\parallel CD$ อีกครั้ง โดยคราวนี้ใช้ $BC$ เป็นเส้นตัด<br>จะได้ว่า $\\hat{B} + \\hat{C} = 180^\\circ$  ...(สมการที่ 3)', {
+  why: 'เส้นขนาน $AB \\parallel CD$ มีเส้นตัด $BC$ ทำให้มุมภายในบนข้างเดียวกันรวมกันได้ $180^\\circ$'
+});
+
+s5.appendChild(createLine(120, Ay, 780, Ay, C.work, '3', '6,6'));
+s5.appendChild(createLine(Ax, Ay, Bx, By, C.work, '4.5'));
+s5.appendChild(createLine(260, Dy, 920, Dy, C.work, '3', '6,6'));
+s5.appendChild(createLine(Dx, Dy, Cx, Cy, C.work, '4.5'));
+s5.appendChild(createLine(Bx - 42, By + 72, Cx + 42, Cy - 72, C.work, '3', '6,6'));
+s5.appendChild(createLine(Bx, By, Cx, Cy, C.work, '4.5'));
+
+s5.appendChild(createAngleSector('B', 56, C.work));
+s5.appendChild(createAngleSector('C', 46, C.work));
+
+Shell.label(s5, 635, 365, '$\\hat{B}$', {role:'work', anchor:[655, 375], until:'step'});
+Shell.label(s5, 875, 270, '$\\hat{B} + \\hat{C} = 180^\\circ$', {role:'work', anchor:[750, 270], until:'step'});
+
+// ขั้นที่ 6: สรุป B = D
+var s6 = Shell.step('จากสมการ (2) $\\hat{D} + \\hat{C} = 180^\\circ$ และสมการ (3) $\\hat{B} + \\hat{C} = 180^\\circ$<br>จะได้ $\\hat{B} + \\hat{C} = \\hat{D} + \\hat{C}$<br>นำ $\\hat{C}$ ลบออกทั้งสองข้าง จะได้ข้อสรุปว่า <b>$\\hat{B} = \\hat{D}$</b>', {
+  uses: [3, 5]
+});
+
+s6.appendChild(createAngleSector('B', 56, C.answer));
+s6.appendChild(createAngleSector('D', 56, C.answer));
+
+Shell.label(s6, 635, 365, '$\\hat{B}$', {role:'answer', anchor:[655, 375], until:'end'});
+Shell.label(s6, 395, 175, '$\\hat{D}$', {role:'answer', anchor:[375, 165], until:'end'});
+Shell.label(s6, 520, 290, '$\\hat{B} = \\hat{D}$', {role:'answer', anchor:[520, 290], until:'end'});
+
+// กล่องคำตอบสรุปผล
+Shell.answer(
+  'สรุปผลการพิสูจน์',
+  'มุมตรงข้ามของรูปสี่เหลี่ยมด้านขนานมีขนาดเท่ากัน นั่นคือ $\\hat{A} = \\hat{C}$ และ $\\hat{B} = \\hat{D}$',
+  {sanity: 'ในกรณีขีดจำกัด หากมุมทุกมุมกาง $90^\\circ$ รูปนี้จะกลายเป็นรูปสี่เหลี่ยมผืนผ้า ซึ่งมุมตรงข้ามทุกคู่มีขนาดเท่ากัน สอดคล้องกับผลการพิสูจน์นี้'}
+);
+
+Shell.done();
+</script>
+</body></html>

@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>งานของแรงเสียดทานและกราฟ F-s</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+var SVGNS = 'http://www.w3.org/2000/svg';
+
+Shell.page({
+  title: 'งานของแรงเสียดทานและกราฟ F-s บนพื้นเอียง',
+  problem: 'วัตถุมวล $1$ kg เลื่อนลงจากพื้นเอียงสูง $5$ m ซึ่งมีแรงเสียดทานกระทำ โดยความเร็วที่ปลายพื้นเอียงยาว $10$ m วัดได้ $8$ m/s จงหางานที่สูญเสียไปเนื่องจากแรงเสียดทาน โดยแสดงกราฟ $F-s$ ของแรงเสียดทานที่คงที่ตลอดพื้นเอียง (กำหนดให้ $g = 10$ m/s²)'
+});
+
+var canvas = Shell.canvas();
+var C = Shell.C;
+
+// กำหนดมาตราส่วนสำหรับเวกเตอร์แต่ละชนิด
+var PX_PER_M = 32;      // 5 m = 160 px
+var PX_PER_MPS = 8;     // 8 m/s = 64 px
+var PX_PER_N = 35;      // 1.8 N = 63 px
+
+Shell.setup('เลือกใช้วิธีงานและพลังงาน เพราะโจทย์ระบุความสูง $h = 5$ m ระยะตามพื้นเอียง $s = 10$ m และความเร็วปลาย $v = 8$ m/s จึงเชื่อมโยงกับพลังงานกลได้โดยตรงโดยไม่ต้องคำนวณเวลา และแรงเสียดทานมีค่าคงที่ทำให้แสดงด้วยพื้นที่ใต้กราฟ $F-s$ ได้อย่างชัดเจน');
+
+// วาดฉากพื้นฐาน (พื้นระดับและลิ่มพื้นเอียง)
+var ground = document.createElementNS(SVGNS, 'line');
+ground.setAttribute('x1', '60');
+ground.setAttribute('y1', '420');
+ground.setAttribute('x2', '450');
+ground.setAttribute('y2', '420');
+ground.setAttribute('stroke', C.note);
+ground.setAttribute('stroke-width', '2');
+canvas.appendChild(ground);
+
+// ลายขีดใต้พื้น
+for (var hx = 70; hx <= 440; hx += 18) {
+  var hatch = document.createElementNS(SVGNS, 'line');
+  hatch.setAttribute('x1', hx);
+  hatch.setAttribute('y1', '420');
+  hatch.setAttribute('x2', hx - 10);
+  hatch.setAttribute('y2', '430');
+  hatch.setAttribute('stroke', C.note);
+  hatch.setAttribute('stroke-width', '1.5');
+  hatch.setAttribute('opacity', '0.4');
+  canvas.appendChild(hatch);
+}
+
+// รูปสามเหลี่ยมพื้นเอียง: จุดยอด (100, 260), มุมฉาก (100, 420), ปลายพื้นเอียง (377.13, 420)
+var incline = document.createElementNS(SVGNS, 'polygon');
+incline.setAttribute('points', '100,420 100,260 377.13,420');
+incline.setAttribute('fill', C.note);
+incline.setAttribute('fill-opacity', '0.08');
+incline.setAttribute('stroke', C.note);
+incline.setAttribute('stroke-width', '2');
+canvas.appendChild(incline);
+
+// สัญลักษณ์มุมฉากที่โคนพื้นเอียง
+var rightAngle = document.createElementNS(SVGNS, 'polyline');
+rightAngle.setAttribute('points', '100,405 115,405 115,420');
+rightAngle.setAttribute('fill', 'none');
+rightAngle.setAttribute('stroke', C.note);
+rightAngle.setAttribute('stroke-width', '1.5');
+canvas.appendChild(rightAngle);
+
+// ส่วนโค้งมุมเอียง theta = 30 องศา ที่ปลายพื้นเอียง
+var angleArc = document.createElementNS(SVGNS, 'path');
+angleArc.setAttribute('d', 'M 337.13 420 A 40 40 0 0 1 342.49 400');
+angleArc.setAttribute('fill', 'none');
+angleArc.setAttribute('stroke', C.note);
+angleArc.setAttribute('stroke-width', '1.5');
+canvas.appendChild(angleArc);
+
+// --- กลุ่มที่ 1: วิเคราะห์พลังงานกลและหางานที่สูญเสีย ---
+Shell.group('วิเคราะห์พลังงานกลและหางานที่สูญเสีย');
+
+// ขั้นที่ 1: พลังงานกลที่ยอดพื้นเอียง
+var s1 = Shell.step('หาพลังงานกลเริ่มต้นที่ยอดพื้นเอียง ($s = 0$): วัตถุเริ่มเคลื่อนที่จากหยุดนิ่ง ($u = 0$) อยู่ที่ความสูง $h = 5$ m<br>$E_1 = E_{p1} + E_{k1} = mgh + 0 = (1)(10)(5) = 50$ J', {
+  why: 'ที่จุดเริ่มต้น วัตถุมีความสูงแต่ยังไม่มีความเร็ว พลังงานกลจึงมีเพียงพลังงานศักย์โน้มถ่วง'
+});
+
+// เส้นประบอกระดับความสูง
+var guideTop = document.createElementNS(SVGNS, 'line');
+guideTop.setAttribute('x1', '75');
+guideTop.setAttribute('y1', '260');
+guideTop.setAttribute('x2', '100');
+guideTop.setAttribute('y2', '260');
+guideTop.setAttribute('stroke', C.note);
+guideTop.setAttribute('stroke-dasharray', '3,3');
+s1.appendChild(guideTop);
+
+var guideBot = document.createElementNS(SVGNS, 'line');
+guideBot.setAttribute('x1', '75');
+guideBot.setAttribute('y1', '420');
+guideBot.setAttribute('x2', '100');
+guideBot.setAttribute('y2', '420');
+guideBot.setAttribute('stroke', C.note);
+guideBot.setAttribute('stroke-dasharray', '3,3');
+s1.appendChild(guideBot);
+
+// ลูกศรบอกความสูง h = 5 m (160 px = 5 * 32)
+Shell.arrow(s1, 75, 420, 75, 260, {
+  role: 'given',
+  label: '$h = 5$ m',
+  value: 5,
+  unit: 'm',
+  until: 'end'
+});
+
+// กล่องจำลองตำแหน่งเริ่มต้นที่ยอดพื้นเอียง
+var startBlock = document.createElementNS(SVGNS, 'rect');
+startBlock.setAttribute('x', '-20');
+startBlock.setAttribute('y', '-26');
+startBlock.setAttribute('width', '40');
+startBlock.setAttribute('height', '26');
+startBlock.setAttribute('rx', '3');
+startBlock.setAttribute('fill', C.given);
+startBlock.setAttribute('fill-opacity', '0.2');
+startBlock.setAttribute('stroke', C.given);
+startBlock.setAttribute('stroke-width', '1.5');
+startBlock.setAttribute('stroke-dasharray', '3,3');
+startBlock.setAttribute('transform', 'translate(117.32, 270) rotate(30)');
+s1.appendChild(startBlock);
+
+Shell.label(s1, 115, 235, '$u = 0$', {role:'given', anchor:[117, 255], until:'step'});
+Shell.label(s1, 150, 255, '$m = 1$ kg', {role:'given', anchor:[130, 260], until:'end'});
+Shell.label(s1, 230, 310, '$L = 10$ m', {role:'given', anchor:[238, 340], until:'end'});
+Shell.label(s1, 315, 410, '$\\theta = 30^\\circ$', {role:'note', anchor:[340, 410], until:'end'});
+
+// ขั้นที่ 2: วัตถุเลื่อนลงมาถึงปลายพื้นเอียง
+var s2 = Shell.step('วัตถุเลื่อนลงตามพื้นเอียงจนถึงปลายพื้นเอียง ($s = 10$ m) มีความเร็ว $v = 8$ m/s<br>พลังงานกลที่ปลายพื้นเอียง $E_2 = E_{p2} + E_{k2} = 0 + \\frac{1}{2}mv^2 = \\frac{1}{2}(1)(8^2) = 32$ J', {
+  why: 'ที่ปลายพื้นเอียง วัตถุอยู่ที่ระดับอ้างอิง ($h = 0$) พลังงานศักย์จึงเปลี่ยนไปเป็นพลังงานจลน์'
+});
+
+// การเคลื่อนที่ของกล่องจากยอดลงมายังปลายพื้นเอียง
+var startX = 117.32, startY = 270;
+var endX = 359.81, endY = 410;
+
+var mover = Shell.motion(s2, null, function(t) {
+  var p = t * t; // การเคลื่อนที่ด้วยความเร่งคงที่จากหยุดนิ่ง (ระยะทางแปรผันตาม t²)
+  return [startX + p * (endX - startX), startY + p * (endY - startY)];
+}, {dur: 1500});
+
+var slidingBlock = document.createElementNS(SVGNS, 'rect');
+slidingBlock.setAttribute('x', '-20');
+slidingBlock.setAttribute('y', '-26');
+slidingBlock.setAttribute('width', '40');
+slidingBlock.setAttribute('height', '26');
+slidingBlock.setAttribute('rx', '3');
+slidingBlock.setAttribute('fill', C.work);
+slidingBlock.setAttribute('fill-opacity', '0.45');
+slidingBlock.setAttribute('stroke', C.work);
+slidingBlock.setAttribute('stroke-width', '2');
+slidingBlock.setAttribute('transform', 'rotate(30)');
+mover.appendChild(slidingBlock);
+
+// ลูกศรความเร็วที่ปลายพื้นเอียง v = 8 m/s (ยาว 64 px = 8 * 8)
+Shell.arrow(s2, 384, 409, 439.43, 441, {
+  role: 'given',
+  label: '$v = 8$ m/s',
+  value: 8,
+  unit: 'm/s',
+  until: 'end'
+});
+
+// ขั้นที่ 3: คำนวณงานที่สูญเสียไปเนื่องจากแรงเสียดทาน
+var s3 = Shell.step('หางานที่สูญเสียไปเนื่องจากแรงเสียดทาน ($W_{\\text{loss}}$)<br>จากทฤษฎีบทงาน-พลังงาน: $E_1 + W_f = E_2 \\implies W_f = E_2 - E_1 = 32 - 50 = -18$ J<br>งานของแรงเสียดทานมีค่าเป็นลบ หมายถึงระบบสูญเสียพลังงานกลไปเท่ากับ $18$ J', {
+  why: 'แรงเสียดทานเป็นแรงภายนอกที่ต้านการเคลื่อนที่ จึงทำงานเป็นลบและลดทอนพลังงานกลรวมของวัตถุ',
+  uses: [1, 2]
+});
+
+Shell.label(s3, 240, 460, '$W_{\\text{loss}} = 50 - 32 = 18$ J', {role:'answer', anchor:[240, 420], until:'end'});
+
+// --- กลุ่มที่ 2: แสดงกราฟ F-s ของแรงเสียดทาน ---
+Shell.group('แสดงกราฟแรงเสียดทานกับระยะทาง (F-s)');
+
+// ขั้นที่ 4: คำนวณขนาดแรงเสียดทานคงที่และสร้างแกนกราฟ
+var s4 = Shell.step('หาขนาดของแรงเสียดทานที่คงที่ตลอดพื้นเอียง<br>จาก $W = f \\cdot s \\implies f = \\frac{18\\text{ J}}{10\\text{ m}} = 1.8$ N (มีทิศชี้ต้านการเคลื่อนที่ขึ้นตามพื้นเอียง)<br>พร้อมสร้างแกนกราฟระหว่างแรงเสียดทาน $f$ (N) กับระยะทางตามพื้นเอียง $s$ (m)', {
+  why: 'เมื่อแรงเสียดทานมีขนาดคงที่ตลอดการกระจัด งานจะเท่ากับผลคูณของแรงและระยะทางตรง ๆ',
+  uses: [3]
+});
+
+// ลูกศรแรงเสียดทาน f = 1.8 N ชี้ขึ้นตามพื้นเอียง (ยาว 63 px = 1.8 * 35)
+Shell.arrow(s4, 359.81, 410, 305.25, 378.5, {
+  role: 'work',
+  label: '$f = 1.8$ N',
+  value: 1.8,
+  unit: 'N',
+  until: 'end'
+});
+
+// แกนนอนของกราฟ s (m) จาก x = 550 ถึง 880
+var sAxis = document.createElementNS(SVGNS, 'line');
+sAxis.setAttribute('x1', '550');
+sAxis.setAttribute('y1', '420');
+sAxis.setAttribute('x2', '880');
+sAxis.setAttribute('y2', '420');
+sAxis.setAttribute('stroke', C.note);
+sAxis.setAttribute('stroke-width', '2');
+s4.appendChild(sAxis);
+
+// แกนตั้งของกราฟ f (N) จาก y = 430 ขึ้นไปถึง 230
+var fAxis = document.createElementNS(SVGNS, 'line');
+fAxis.setAttribute('x1', '570');
+fAxis.setAttribute('y1', '430');
+fAxis.setAttribute('x2', '570');
+fAxis.setAttribute('y2', '230');
+fAxis.setAttribute('stroke', C.note);
+fAxis.setAttribute('stroke-width', '2');
+s4.appendChild(fAxis);
+
+// ขีดบอกระยะบนแกน s: 0, 5, 10 m
+var tickS5 = document.createElementNS(SVGNS, 'line');
+tickS5.setAttribute('x1', '700'); tickS5.setAttribute('y1', '420');
+tickS5.setAttribute('x2', '700'); tickS5.setAttribute('y2', '425');
+tickS5.setAttribute('stroke', C.note); tickS5.setAttribute('stroke-width', '1.5');
+s4.appendChild(tickS5);
+
+var tickS10 = document.createElementNS(SVGNS, 'line');
+tickS10.setAttribute('x1', '830'); tickS10.setAttribute('y1', '420');
+tickS10.setAttribute('x2', '830'); tickS10.setAttribute('y2', '425');
+tickS10.setAttribute('stroke', C.note); tickS10.setAttribute('stroke-width', '1.5');
+s4.appendChild(tickS10);
+
+// ขีดบอกแรงบนแกน f: 1.8 N (y = 420 - 1.8 * 70 = 294)
+var tickF = document.createElementNS(SVGNS, 'line');
+tickF.setAttribute('x1', '565'); tickF.setAttribute('y1', '294');
+tickF.setAttribute('x2', '570'); tickF.setAttribute('y2', '294');
+tickF.setAttribute('stroke', C.note); tickF.setAttribute('stroke-width', '1.5');
+s4.appendChild(tickF);
+
+// ป้ายกำกับบนแกนกราฟ (ตรึงตำแหน่งไว้ด้วย pin:true)
+Shell.label(s4, 885, 420, '$s$ (m)', {role:'note', anchor:[880, 420], until:'end', pin:true});
+Shell.label(s4, 570, 215, '$f$ (N)', {role:'note', anchor:[570, 230], until:'end', pin:true});
+Shell.label(s4, 570, 440, '$0$', {role:'note', anchor:[570, 420], until:'end', pin:true});
+Shell.label(s4, 700, 440, '$5$', {role:'note', anchor:[700, 420], until:'end', pin:true});
+Shell.label(s4, 830, 440, '$10$', {role:'note', anchor:[830, 420], until:'end', pin:true});
+Shell.label(s4, 542, 294, '$1.8$', {role:'work', anchor:[570, 294], until:'end', pin:true});
+
+// เส้นกราฟแสดงแรงเสียดทานคงที่ f = 1.8 N
+var fGraphLine = document.createElementNS(SVGNS, 'line');
+fGraphLine.setAttribute('x1', '570');
+fGraphLine.setAttribute('y1', '294');
+fGraphLine.setAttribute('x2', '830');
+fGraphLine.setAttribute('y2', '294');
+fGraphLine.setAttribute('stroke', C.work);
+fGraphLine.setAttribute('stroke-width', '3');
+s4.appendChild(fGraphLine);
+
+// ขั้นที่ 5: พื้นที่ใต้กราฟ F-s เท่ากับงานที่สูญเสียไป
+var s5 = Shell.step('แสดงพื้นที่ใต้กราฟ $F-s$<br>เนื่องจาก $f = 1.8$ N มีค่าคงที่ กราฟจึงเป็นเส้นขนานกับแกนนอน<br>พื้นที่ใต้กราฟรูปสี่เหลี่ยมผืนผ้า $= f \\times s = (1.8\\text{ N})(10\\text{ m}) = 18$ J<br>ซึ่งมีค่าตรงกับงานที่สูญเสียไปเนื่องจากแรงเสียดทาน', {
+  why: 'ในกราฟแรงกับการกระจัด พื้นที่ใต้กราฟแทนค่างานที่แรงนั้นกระทำต่อวัตถุเสมอ',
+  uses: [4]
+});
+
+// เส้นประปิดขอบขวาของพื้นที่ใต้กราฟที่ s = 10 m
+var rightBoundary = document.createElementNS(SVGNS, 'line');
+rightBoundary.setAttribute('x1', '830');
+rightBoundary.setAttribute('y1', '420');
+rightBoundary.setAttribute('x2', '830');
+rightBoundary.setAttribute('y2', '294');
+rightBoundary.setAttribute('stroke', C.work);
+rightBoundary.setAttribute('stroke-width', '1.5');
+rightBoundary.setAttribute('stroke-dasharray', '4,4');
+s5.appendChild(rightBoundary);
+
+// แรเงาพื้นที่ใต้กราฟ (กว้าง 260 px, สูง 126 px)
+var areaBox = document.createElementNS(SVGNS, 'rect');
+areaBox.setAttribute('x', '570');
+areaBox.setAttribute('y', '294');
+areaBox.setAttribute('width', '260');
+areaBox.setAttribute('height', '126');
+areaBox.setAttribute('fill', C.answer);
+areaBox.setAttribute('fill-opacity', '0.22');
+s5.appendChild(areaBox);
+
+// จุดปลายเส้นกราฟที่ s = 10 m
+var endPoint = document.createElementNS(SVGNS, 'circle');
+endPoint.setAttribute('cx', '830');
+endPoint.setAttribute('cy', '294');
+endPoint.setAttribute('r', '4');
+endPoint.setAttribute('fill', C.work);
+s5.appendChild(endPoint);
+
+// ข้อความระบุค่างานในพื้นที่ใต้กราฟ
+Shell.label(s5, 700, 345, 'พื้นที่ใต้กราฟ $= 18$ J', {role:'answer', anchor:[700, 345], until:'end', pin:true});
+Shell.label(s5, 700, 375, '$W_f = f \\times s = (1.8)(10)$', {role:'work', anchor:[700, 375], until:'end', pin:true});
+
+// สรุปคำตอบสุดท้าย
+Shell.answer(
+  'งานที่สูญเสียไปเนื่องจากแรงเสียดทาน',
+  '$18$ J',
+  {sanity: 'สมเหตุสมผล เพราะงานที่สูญเสียน้อยกว่าพลังงานศักย์เริ่มต้น ($50$ J) พลังงานกลจึงเหลือในรูปพลังงานจลน์ที่ปลายพื้นเอียง $32$ J'}
+);
+
+Shell.done();
+</script>
+</body></html>

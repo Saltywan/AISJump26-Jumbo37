@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>การส่งสัญญาณดาวเทียมและสเปกตรัมคลื่นแม่เหล็กไฟฟ้า</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+var SVGNS = 'http://www.w3.org/2000/svg';
+
+function createSVG(tag, attrs) {
+  var el = document.createElementNS(SVGNS, tag);
+  for (var k in attrs) {
+    el.setAttribute(k, attrs[k]);
+  }
+  return el;
+}
+
+Shell.page({
+  title: 'การส่งสัญญาณดาวเทียมและสเปกตรัมคลื่นแม่เหล็กไฟฟ้า',
+  problem: 'ดาวเทียมสื่อสารส่งสัญญาณคลื่นวิทยุความถี่ 4 GHz มายังโลกที่ระยะทาง 36,000 กม. จงหาเวลาที่สัญญาณใช้เดินทางถึงโลก และหาความยาวคลื่นของสัญญาณนี้ พร้อมอธิบายตำแหน่งของคลื่นไมโครเวฟในสเปกตรัมคลื่นแม่เหล็กไฟฟ้าเทียบกับคลื่นชนิดอื่น'
+});
+
+var g = Shell.canvas();
+var C = Shell.C;
+
+Shell.setup('คลื่นแม่เหล็กไฟฟ้าทุกชนิดเคลื่อนที่ในสุญญากาศและอวกาศด้วยอัตราเร็วแสง $c = 3 \\times 10^8$ m/s จึงใช้ความสัมพันธ์การเคลื่อนที่ด้วยอัตราเร็วคงที่ $s = ct$ และสมการคลื่น $c = f\\lambda$ ในการวิเคราะห์');
+
+Shell.group('1. จำลองการส่งสัญญาณและคำนวณเวลาเดินทาง');
+
+var s1 = Shell.step('ระบุสิ่งที่โจทย์กำหนดและแปลงหน่วยเป็นระบบ SI: ระยะทาง $s = 36,000$ km $= 3.6 \\times 10^7$ m และความถี่ $f = 4$ GHz $= 4 \\times 10^9$ Hz', {
+  why: 'ต้องแปลงหน่วยกิโลเมตรและกิกะเฮิรตซ์ให้เป็นหน่วยฐานเมตรและเฮิรตซ์ก่อนคำนวณตามหลักฟิสิกส์'
+});
+
+var earthArc = createSVG('path', {
+  d: 'M 50 495 Q 235 445 420 495',
+  stroke: C.note,
+  'stroke-width': '2.5',
+  fill: 'none'
+});
+s1.appendChild(earthArc);
+
+var groundDishBase = createSVG('line', {
+  x1: '235', y1: '455', x2: '235', y2: '440',
+  stroke: C.given, 'stroke-width': '2'
+});
+var groundDish = createSVG('path', {
+  d: 'M 218 430 Q 235 446 252 430',
+  stroke: C.given, 'stroke-width': '2.5', fill: 'none'
+});
+var groundHorn = createSVG('line', {
+  x1: '235', y1: '438', x2: '235', y2: '426',
+  stroke: C.given, 'stroke-width': '2'
+});
+s1.appendChild(groundDishBase);
+s1.appendChild(groundDish);
+s1.appendChild(groundHorn);
+
+var satBody = createSVG('rect', {
+  x: '223', y: '72', width: '24', height: '16', rx: '2',
+  stroke: C.given, 'stroke-width': '2', fill: 'none'
+});
+var satDish = createSVG('path', {
+  d: 'M 223 93 Q 235 102 247 93',
+  stroke: C.given, 'stroke-width': '2', fill: 'none'
+});
+var satHorn = createSVG('line', {
+  x1: '235', y1: '97', x2: '235', y2: '106',
+  stroke: C.given, 'stroke-width': '1.5'
+});
+var satPanelL = createSVG('rect', {
+  x: '175', y: '75', width: '40', height: '10',
+  stroke: C.note, 'stroke-width': '1.5', fill: 'none'
+});
+var satPanelR = createSVG('rect', {
+  x: '255', y: '75', width: '40', height: '10',
+  stroke: C.note, 'stroke-width': '1.5', fill: 'none'
+});
+var satLineL = createSVG('line', {
+  x1: '195', y1: '75', x2: '195', y2: '85',
+  stroke: C.note, 'stroke-width': '1'
+});
+var satLineR = createSVG('line', {
+  x1: '275', y1: '75', x2: '275', y2: '85',
+  stroke: C.note, 'stroke-width': '1'
+});
+s1.appendChild(satPanelL);
+s1.appendChild(satPanelR);
+s1.appendChild(satLineL);
+s1.appendChild(satLineR);
+s1.appendChild(satBody);
+s1.appendChild(satDish);
+s1.appendChild(satHorn);
+
+var pathGuide = createSVG('line', {
+  x1: '235', y1: '106', x2: '235', y2: '426',
+  stroke: C.note, 'stroke-width': '1.5', 'stroke-dasharray': '4 4'
+});
+s1.appendChild(pathGuide);
+
+var PX_PER_KM = 320 / 36000;
+Shell.arrow(s1, 130, 106, 130, 106 + 36000 * PX_PER_KM, {
+  role: 'given',
+  label: '$s = 36,000$ km',
+  value: 36000,
+  unit: 'km',
+  until: 'end'
+});
+
+var gTop = createSVG('line', {
+  x1: '130', y1: '106', x2: '235', y2: '106',
+  stroke: C.note, 'stroke-width': '1', 'stroke-dasharray': '3 3'
+});
+var gBtm = createSVG('line', {
+  x1: '130', y1: '426', x2: '235', y2: '426',
+  stroke: C.note, 'stroke-width': '1', 'stroke-dasharray': '3 3'
+});
+s1.appendChild(gTop);
+s1.appendChild(gBtm);
+
+Shell.label(s1, 235, 50, 'ดาวเทียมสื่อสาร ($f = 4$ GHz)', {
+  role: 'given',
+  anchor: [235, 72],
+  until: 'end'
+});
+Shell.label(s1, 235, 478, 'สถานีรับสัญญาณภาคพื้นดิน', {
+  role: 'given',
+  anchor: [235, 440],
+  until: 'end'
+});
+
+var s2 = Shell.step('คำนวณเวลาที่สัญญาณใช้เดินทาง: $t = \\frac{s}{c} = \\frac{3.6 \\times 10^7}{3 \\times 10^8} = 0.12$ s', {
+  why: 'คลื่นแม่เหล็กไฟฟ้าเคลื่อนที่ในสุญญากาศด้วยอัตราเร็วคงที่ $c = 3 \\times 10^8$ m/s จึงคำนวณเวลาจาก $t = \\frac{s}{c}$',
+  uses: [1]
+});
+
+var waveMover = Shell.motion(s2, null, [[235, 110], [235, 420]], {dur: 1600, loop: true});
+var waveArc1 = createSVG('path', {
+  d: 'M -18 -6 Q 0 8 18 -6',
+  stroke: C.work, 'stroke-width': '2.5', fill: 'none'
+});
+var waveArc2 = createSVG('path', {
+  d: 'M -28 -16 Q 0 -2 28 -16',
+  stroke: C.work, 'stroke-width': '2', fill: 'none', opacity: '0.6'
+});
+var waveArc3 = createSVG('path', {
+  d: 'M -38 -26 Q 0 -12 38 -26',
+  stroke: C.work, 'stroke-width': '1.5', fill: 'none', opacity: '0.3'
+});
+waveMover.appendChild(waveArc3);
+waveMover.appendChild(waveArc2);
+waveMover.appendChild(waveArc1);
+
+Shell.label(s2, 290, 260, '$t = 0.12$ s ($c = 3 \\times 10^8$ m/s)', {
+  role: 'work',
+  anchor: [235, 260],
+  until: 'step'
+});
+
+Shell.group('2. คำนวณความยาวคลื่นและวิเคราะห์สเปกตรัมแม่เหล็กไฟฟ้า');
+
+var s3 = Shell.step('หาความยาวคลื่นจากสมการคลื่น: $\\lambda = \\frac{c}{f} = \\frac{3 \\times 10^8}{4 \\times 10^9} = 0.075$ m $= 7.5$ cm', {
+  why: 'ความยาวคลื่นและความถี่ของคลื่นต่อเนื่องมีความสัมพันธ์ผ่านอัตราเร็วคลื่นตามสมการ $c = f\\lambda$',
+  uses: [1]
+});
+
+var sinePts = [];
+for (var px = 0; px <= 360; px += 4) {
+  var py = -26 * Math.sin((px / 120) * 2 * Math.PI);
+  sinePts.push((px === 0 ? 'M ' : 'L ') + (510 + px) + ' ' + (170 + py));
+}
+var sinePath = createSVG('path', {
+  d: sinePts.join(' '),
+  stroke: C.work,
+  'stroke-width': '2.5',
+  fill: 'none'
+});
+var sineAxis = createSVG('line', {
+  x1: '500', y1: '170', x2: '880', y2: '170',
+  stroke: C.note, 'stroke-width': '1', 'stroke-dasharray': '3 3'
+});
+s3.appendChild(sineAxis);
+s3.appendChild(sinePath);
+
+var PX_PER_CM = 120 / 7.5;
+Shell.arrow(s3, 510, 215, 510 + 7.5 * PX_PER_CM, 215, {
+  role: 'answer',
+  label: '$\\lambda = 7.5$ cm',
+  value: 7.5,
+  unit: 'cm',
+  until: 'end'
+});
+
+var wGuide1 = createSVG('line', {
+  x1: '510', y1: '170', x2: '510', y2: '225',
+  stroke: C.note, 'stroke-width': '1', 'stroke-dasharray': '2 2'
+});
+var wGuide2 = createSVG('line', {
+  x1: '630', y1: '170', x2: '630', y2: '225',
+  stroke: C.note, 'stroke-width': '1', 'stroke-dasharray': '2 2'
+});
+s3.appendChild(wGuide1);
+s3.appendChild(wGuide2);
+
+Shell.label(s3, 690, 115, 'คลื่นความถี่ $f = 4$ GHz', {
+  role: 'work',
+  anchor: [690, 144],
+  until: 'step'
+});
+
+var s4 = Shell.step('ตำแหน่งในสเปกตรัม: คลื่นความถี่ $4$ GHz (ความยาวคลื่น $7.5$ cm) จัดอยู่ในย่าน<b>ไมโครเวฟ</b> ซึ่งอยู่ระหว่างคลื่นวิทยุและรังสีอินฟราเรด โดยมีความถี่สูงกว่าคลื่นวิทยุทั่วไปแต่ต่ำกว่าอินฟราเรด (ความยาวคลื่นสั้นกว่าคลื่นวิทยุแต่ยาวกว่าอินฟราเรด)', {
+  why: 'สเปกตรัมคลื่นแม่เหล็กไฟฟ้าเรียงตามความถี่จากน้อยไปมาก: วิทยุ $\\rightarrow$ ไมโครเวฟ $\\rightarrow$ อินฟราเรด $\\rightarrow$ แสง $\\rightarrow$ อัลตราไวโอเลต $\\rightarrow$ รังสีเอกซ์ $\\rightarrow$ รังสีแกมมา',
+  uses: [3]
+});
+
+Shell.label(s4, 690, 285, 'สเปกตรัมคลื่นแม่เหล็กไฟฟ้า', {
+  role: 'note',
+  anchor: [690, 285],
+  pin: true,
+  until: 'end'
+});
+Shell.label(s4, 690, 314, 'ความถี่ $f$ เพิ่มขึ้น $\\longrightarrow$', {
+  role: 'note',
+  anchor: [690, 314],
+  pin: true,
+  until: 'end'
+});
+Shell.label(s4, 690, 420, '$\\longleftarrow$ ความยาวคลื่น $\\lambda$ ยาวขึ้น', {
+  role: 'note',
+  anchor: [690, 420],
+  pin: true,
+  until: 'end'
+});
+
+var bands = [
+  { x: 470, w: 70, name: 'วิทยุ', role: 'note', color: C.note, hl: false },
+  { x: 540, w: 85, name: 'ไมโครเวฟ', role: 'answer', color: C.answer, hl: true },
+  { x: 625, w: 75, name: 'อินฟราเรด', role: 'note', color: C.note, hl: false },
+  { x: 700, w: 50, name: 'แสง', role: 'note', color: C.note, hl: false },
+  { x: 750, w: 55, name: 'ยูวี', role: 'note', color: C.note, hl: false },
+  { x: 805, w: 60, name: 'เอกซ์', role: 'note', color: C.note, hl: false },
+  { x: 865, w: 65, name: 'แกมมา', role: 'note', color: C.note, hl: false }
+];
+
+for (var i = 0; i < bands.length; i++) {
+  var b = bands[i];
+  var rect = createSVG('rect', {
+    x: b.x,
+    y: b.hl ? '336' : '340',
+    width: b.w,
+    height: b.hl ? '56' : '48',
+    rx: b.hl ? '6' : '4',
+    stroke: b.color,
+    'stroke-width': b.hl ? '3' : '1.5',
+    fill: 'none'
+  });
+  s4.appendChild(rect);
+  Shell.label(s4, b.x + b.w / 2, 364, b.name, {
+    role: b.role,
+    anchor: [b.x + b.w / 2, 364],
+    pin: true,
+    until: 'end'
+  });
+}
+
+Shell.label(s4, 582, 455, '$4$ GHz (ย่านไมโครเวฟ)', {
+  role: 'answer',
+  anchor: [582, 392],
+  until: 'end'
+});
+
+Shell.answer(
+  'เวลาที่สัญญาณเดินทาง $t = 0.12$ s, ความยาวคลื่น $\\lambda = 7.5$ cm (ไมโครเวฟอยู่ระหว่างคลื่นวิทยุและอินฟราเรด)',
+  '$t = 0.12$ s, $\\lambda = 7.5$ cm',
+  { sanity: 'เวลา $0.12$ s สมเหตุสมผลเพราะแสงเคลื่อนที่เร็ว $300,000$ km/s สัญญาณจึงใช้เวลาเพียงเศษเสี้ยววินาที และความถี่ $4$ GHz ให้ความยาวคลื่นระดับเซนติเมตร จึงจัดอยู่ในย่านไมโครเวฟ' }
+);
+
+Shell.done();
+</script>
+</body></html>

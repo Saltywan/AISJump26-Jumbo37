@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>การหาความสูงของหอคอยจากเงา</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+var SVGNS = 'http://www.w3.org/2000/svg';
+
+Shell.page({
+  title: 'การหาความสูงของหอคอยจากเงา',
+  problem: 'หอคอยแห่งหนึ่งทอดเงายาว $24$ เมตร ในเวลาเดียวกันเสาสูง $3$ เมตรทอดเงายาว $2$ เมตร แต่ที่ฐานหอคอยมีบ่อน้ำทำให้วัดเงาตรงไม่ได้ ต้องวัดจากจุดที่เยื้องออกไป $5$ เมตรจากฐานหอคอย จงหาความสูงของหอคอย'
+});
+
+var g = Shell.canvas();
+var C = Shell.C;
+
+// กำหนดมาตราส่วนคงที่สำหรับระยะจริงในแนวราบและแนวดิ่ง (9 พิกเซล ต่อ 1 เมตร)
+var PX_PER_M = 9;
+
+var Y_GROUND = 460;
+var X_TOWER = 220;
+var H_TOWER_PX = 43.5 * PX_PER_M; // 391.5 px
+var Y_TOWER_TOP = Y_GROUND - H_TOWER_PX; // 68.5 px
+
+var W_POND_PX = 5 * PX_PER_M; // 45 px
+var X_POND_EDGE = X_TOWER + W_POND_PX; // 265 px
+
+var W_MEASURED_PX = 24 * PX_PER_M; // 216 px
+var X_TOWER_TIP = X_POND_EDGE + W_MEASURED_PX; // 481 px
+
+var X_POLE = 720;
+var H_POLE_PX = 3 * PX_PER_M; // 27 px
+var Y_POLE_TOP = Y_GROUND - H_POLE_PX; // 433 px
+var W_POLE_SHADOW_PX = 2 * PX_PER_M; // 18 px
+var X_POLE_TIP = X_POLE + W_POLE_SHADOW_PX; // 738 px
+
+function svgEl(tag, attrs) {
+  var el = document.createElementNS(SVGNS, tag);
+  for (var k in attrs) {
+    el.setAttribute(k, attrs[k]);
+  }
+  return el;
+}
+
+// -------------------------------------------------------------
+// วาดฉากหลังและวัตถุตั้งต้น (พื้นดิน ดวงอาทิตย์ หอคอย บ่อน้ำ เสาอ้างอิง)
+// -------------------------------------------------------------
+
+// พื้นดิน
+var groundLine = svgEl('line', {
+  x1: 40, y1: Y_GROUND, x2: 920, y2: Y_GROUND,
+  stroke: C.note, 'stroke-width': 2
+});
+g.appendChild(groundLine);
+
+var groundFill = svgEl('rect', {
+  x1: 40, y: Y_GROUND, width: 880, height: 70,
+  fill: C.note, 'fill-opacity': 0.05
+});
+g.appendChild(groundFill);
+
+// ดวงอาทิตย์
+var sunGroup = svgEl('g', {});
+var sunCircle = svgEl('circle', {
+  cx: 100, cy: 45, r: 16,
+  stroke: C.note, 'stroke-width': 2, fill: C.note, 'fill-opacity': 0.2
+});
+sunGroup.appendChild(sunCircle);
+for (var a = 0; a < 360; a += 45) {
+  var rad = a * Math.PI / 180;
+  var rayTick = svgEl('line', {
+    x1: 100 + 20 * Math.cos(rad), y1: 45 + 20 * Math.sin(rad),
+    x2: 100 + 28 * Math.cos(rad), y2: 45 + 28 * Math.sin(rad),
+    stroke: C.note, 'stroke-width': 1.5
+  });
+  sunGroup.appendChild(rayTick);
+}
+g.appendChild(sunGroup);
+Shell.label(g, 100, 18, 'ดวงอาทิตย์', {role: 'note', anchor: [100, 45], until: 1});
+
+// บ่อน้ำที่ฐานหอคอย (กว้าง 5 เมตร = 45 พิกเซล จากฐานหอคอย)
+var pondWater = svgEl('ellipse', {
+  cx: X_TOWER + W_POND_PX / 2, cy: Y_GROUND,
+  rx: W_POND_PX / 2 + 6, ry: 9,
+  fill: C.note, 'fill-opacity': 0.25, stroke: C.note, 'stroke-width': 1.5
+});
+g.appendChild(pondWater);
+Shell.label(g, X_TOWER + W_POND_PX / 2, Y_GROUND - 18, 'บ่อน้ำ', {
+  role: 'note', anchor: [X_TOWER + W_POND_PX / 2, Y_GROUND], until: 'end'
+});
+
+// หอคอย
+var towerGroup = svgEl('g', {});
+var towerBody = svgEl('polygon', {
+  points: [
+    (X_TOWER - 16) + ',' + Y_GROUND,
+    (X_TOWER - 6) + ',' + (Y_TOWER_TOP + 35),
+    (X_TOWER + 6) + ',' + (Y_TOWER_TOP + 35),
+    (X_TOWER + 16) + ',' + Y_GROUND
+  ].join(' '),
+  fill: C.note, 'fill-opacity': 0.15, stroke: C.note, 'stroke-width': 1.5
+});
+towerGroup.appendChild(towerBody);
+
+// โครงค้ำและยอดหอคอย
+for (var yCross = Y_GROUND - 60; yCross > Y_TOWER_TOP + 40; yCross -= 70) {
+  var brace = svgEl('line', {
+    x1: X_TOWER - 12, y1: yCross, x2: X_TOWER + 12, y2: yCross,
+    stroke: C.note, 'stroke-width': 1, 'stroke-dasharray': '2,2'
+  });
+  towerGroup.appendChild(brace);
+}
+var spire = svgEl('line', {
+  x1: X_TOWER, y1: Y_TOWER_TOP + 35, x2: X_TOWER, y2: Y_TOWER_TOP,
+  stroke: C.note, 'stroke-width': 2.5
+});
+towerGroup.appendChild(spire);
+
+var towerTipDot = svgEl('circle', {
+  cx: X_TOWER, cy: Y_TOWER_TOP, r: 3,
+  fill: C.note
+});
+towerGroup.appendChild(towerTipDot);
+g.appendChild(towerGroup);
+Shell.label(g, X_TOWER, Y_TOWER_TOP - 16, 'ยอดหอคอย', {
+  role: 'note', anchor: [X_TOWER, Y_TOWER_TOP], until: 'end'
+});
+
+// เสาอ้างอิง
+var poleLine = svgEl('line', {
+  x1: X_POLE, y1: Y_GROUND, x2: X_POLE, y2: Y_POLE_TOP,
+  stroke: C.given, 'stroke-width': 4, 'stroke-linecap': 'round'
+});
+g.appendChild(poleLine);
+Shell.label(g, X_POLE, Y_POLE_TOP - 16, 'เสาอ้างอิง', {
+  role: 'given', anchor: [X_POLE, Y_POLE_TOP], until: 'end'
+});
+
+// สัญลักษณ์มุมฉากที่ฐานเสาและหอคอย
+var rightAnglePole = svgEl('path', {
+  d: 'M ' + (X_POLE + 8) + ' ' + Y_GROUND + ' L ' + (X_POLE + 8) + ' ' + (Y_GROUND - 8) + ' L ' + X_POLE + ' ' + (Y_GROUND - 8),
+  stroke: C.note, 'stroke-width': 1.2, fill: 'none'
+});
+g.appendChild(rightAnglePole);
+
+var rightAngleTower = svgEl('path', {
+  d: 'M ' + (X_TOWER + 12) + ' ' + Y_GROUND + ' L ' + (X_TOWER + 12) + ' ' + (Y_GROUND - 12) + ' L ' + X_TOWER + ' ' + (Y_GROUND - 12),
+  stroke: C.note, 'stroke-width': 1.2, fill: 'none'
+});
+g.appendChild(rightAngleTower);
+
+// -------------------------------------------------------------
+// กล่องแนวคิดหลัก (Setup)
+// -------------------------------------------------------------
+Shell.setup('ดวงอาทิตย์อยู่ไกลมากจนลำแสงที่ส่องมายังพื้นโลกขนานกัน ส่งผลให้มุมตกกระทบ $\\theta$ ของวัตถุทุกชิ้นในบริเวณเดียวกันมีค่าเท่ากัน จึงใช้อัตราส่วนสามเหลี่ยมคล้ายหาความสูงได้');
+
+// -------------------------------------------------------------
+// ขั้นตอนที่ 1: วิเคราะห์อัตราส่วนจากเสาอ้างอิง
+// -------------------------------------------------------------
+Shell.group('หาอัตราส่วนความสูงต่อเงาจากเสาอ้างอิง');
+
+var s1 = Shell.step(
+  'เสาสูง $3$ m ทอดเงายาว $2$ m ทำมุมเงยกับแสงอาทิตย์เป็นมุม $\\theta$<br>' +
+  'อัตราส่วนความสูงต่อความยาวเงา $= \\frac{3}{2} = 1.5$',
+  {
+    why: 'ลำแสงอาทิตย์ขนานกัน ทำให้มุมตกกระทบ $\\theta$ เท่ากัน อัตราส่วนความสูงต่อเงาจึงคงที่สำหรับทุกวัตถุ ณ เวลานั้น'
+  }
+);
+
+// ลำแสงอาทิตย์พาดผ่านยอดเสาลงมาถึงปลายเงา
+var poleRay = svgEl('line', {
+  x1: X_POLE - 40, y1: Y_POLE_TOP - 60,
+  x2: X_POLE_TIP, y2: Y_GROUND,
+  stroke: C.given, 'stroke-width': 1.5, 'stroke-dasharray': '4,4'
+});
+s1.appendChild(poleRay);
+
+// เงาของเสาบนพื้นดิน
+var poleShadow = svgEl('line', {
+  x1: X_POLE, y1: Y_GROUND, x2: X_POLE_TIP, y2: Y_GROUND,
+  stroke: C.given, 'stroke-width': 5, 'stroke-linecap': 'round', opacity: 0.8
+});
+s1.appendChild(poleShadow);
+
+// ลูกศรบอกความสูงและเงาของเสา (ความยาวคำนวณจาก PX_PER_M)
+Shell.arrow(s1, X_POLE - 16, Y_GROUND, X_POLE - 16, Y_POLE_TOP, {
+  role: 'given', label: '$3$ m', value: 3, unit: 'm', until: 'end'
+});
+Shell.arrow(s1, X_POLE, Y_GROUND + 18, X_POLE_TIP, Y_GROUND + 18, {
+  role: 'given', label: '$2$ m', value: 2, unit: 'm', until: 'end'
+});
+
+// ส่วนโค้งมุมเงย theta ที่ปลายเงาเสา
+var poleAngleArc = svgEl('path', {
+  d: 'M ' + (X_POLE_TIP - 12) + ' ' + Y_GROUND + ' A 12 12 0 0 1 ' + (X_POLE_TIP - 6.6) + ' ' + (Y_GROUND - 10),
+  stroke: C.note, 'stroke-width': 1.5, fill: 'none'
+});
+s1.appendChild(poleAngleArc);
+Shell.label(s1, X_POLE_TIP + 12, Y_GROUND - 14, '$\\theta$', {
+  role: 'note', anchor: [X_POLE_TIP - 8, Y_GROUND - 6], until: 'end'
+});
+
+// การเคลื่อนที่ของลำแสงจำลอง
+var pulse1 = Shell.motion(s1, null, [[X_POLE - 40, Y_POLE_TOP - 60], [X_POLE, Y_POLE_TOP], [X_POLE_TIP, Y_GROUND]], {dur: 900});
+var dot1 = svgEl('circle', {r: 4, fill: C.given});
+pulse1.appendChild(dot1);
+
+// -------------------------------------------------------------
+// ขั้นตอนที่ 2: รวมระยะเพื่อหาความยาวเงาจริงของหอคอย
+// -------------------------------------------------------------
+Shell.group('หาความยาวเงารวมของหอคอย');
+
+var s2 = Shell.step(
+  'ที่ฐานหอคอยมีบ่อน้ำกว้าง $5$ m จึงเริ่มวัดเงาบนพื้นแห้งจากขอบบ่อน้ำไปถึงปลายเงาได้ $24$ m<br>' +
+  'ความยาวเงาทั้งหมดจากฐานหอคอย $= 5 + 24 = 29$ m',
+  {
+    why: 'เงาของหอคอยเริ่มต้นจากฐานหอคอยจริง จึงต้องรวมระยะบ่อน้ำเข้ากับระยะที่วัดได้บนพื้นดิน'
+  }
+);
+
+// ลำแสงอาทิตย์พาดผ่านยอดหอคอยไปยังปลายเงา
+var towerRay = svgEl('line', {
+  x1: X_TOWER - 45, y1: Y_TOWER_TOP - 67.5,
+  x2: X_TOWER_TIP, y2: Y_GROUND,
+  stroke: C.work, 'stroke-width': 2, 'stroke-dasharray': '6,4'
+});
+s2.appendChild(towerRay);
+
+// เงาของหอคอยบนพื้น
+var towerShadow = svgEl('line', {
+  x1: X_TOWER, y1: Y_GROUND, x2: X_TOWER_TIP, y2: Y_GROUND,
+  stroke: C.work, 'stroke-width': 5, 'stroke-linecap': 'round', opacity: 0.7
+});
+s2.appendChild(towerShadow);
+
+// ส่วนโค้งมุมเงย theta ที่ปลายเงาหอคอย
+var towerAngleArc = svgEl('path', {
+  d: 'M ' + (X_TOWER_TIP - 26) + ' ' + Y_GROUND + ' A 26 26 0 0 1 ' + (X_TOWER_TIP - 14.4) + ' ' + (Y_GROUND - 21.6),
+  stroke: C.note, 'stroke-width': 1.5, fill: 'none'
+});
+s2.appendChild(towerAngleArc);
+Shell.label(s2, X_TOWER_TIP - 38, Y_GROUND - 16, '$\\theta$', {
+  role: 'note', anchor: [X_TOWER_TIP - 20, Y_GROUND - 12], until: 'end'
+});
+
+// ลูกศรบอกระยะบ่อน้ำและระยะที่วัดได้
+Shell.arrow(s2, X_TOWER, Y_GROUND + 24, X_POND_EDGE, Y_GROUND + 24, {
+  role: 'given', label: '$5$ m (บ่อน้ำ)', value: 5, unit: 'm', until: 'end'
+});
+Shell.arrow(s2, X_POND_EDGE, Y_GROUND + 24, X_TOWER_TIP, Y_GROUND + 24, {
+  role: 'given', label: '$24$ m (วัดบนพื้น)', value: 24, unit: 'm', until: 'end'
+});
+
+// ลูกศรบอกเงารวม 29 m
+Shell.arrow(s2, X_TOWER, Y_GROUND + 52, X_TOWER_TIP, Y_GROUND + 52, {
+  role: 'work', label: 'เงารวม $29$ m', value: 29, unit: 'm', until: 'end'
+});
+
+// การเคลื่อนที่ของลำแสงจำลองผ่านยอดหอคอย
+var pulse2 = Shell.motion(s2, null, [[X_TOWER - 45, Y_TOWER_TOP - 67.5], [X_TOWER, Y_TOWER_TOP], [X_TOWER_TIP, Y_GROUND]], {dur: 1100});
+var dot2 = svgEl('circle', {r: 5, fill: C.work});
+pulse2.appendChild(dot2);
+
+// -------------------------------------------------------------
+// ขั้นตอนที่ 3: คำนวณความสูงของหอคอย
+// -------------------------------------------------------------
+Shell.group('คำนวณความสูงของหอคอย');
+
+var s3 = Shell.step(
+  'จากความคล้ายกันของรูปสามเหลี่ยมมุมฉาก จะได้อัตราส่วนความสูงต่อเงาเท่ากัน:<br>' +
+  '$\\frac{h}{29} = \\frac{3}{2} \\implies h = 29 \\times 1.5 = 43.5$ m',
+  {
+    uses: [1, 2],
+    why: 'นำอัตราส่วนความสูงต่อเงาที่ได้จากเสาอ้างอิงมาคูณกับความยาวเงารวมของหอคอย'
+  }
+);
+
+// เน้นพื้นที่สามเหลี่ยมมุมฉากของหอคอย
+var towerTriFill = svgEl('polygon', {
+  points: [
+    X_TOWER + ',' + Y_TOWER_TOP,
+    X_TOWER_TIP + ',' + Y_GROUND,
+    X_TOWER + ',' + Y_GROUND
+  ].join(' '),
+  fill: C.answer, 'fill-opacity': 0.08, stroke: 'none'
+});
+s3.appendChild(towerTriFill);
+
+// เส้นโยงระดับความสูงของหอคอย
+var guideTop = svgEl('line', {
+  x1: X_TOWER - 48, y1: Y_TOWER_TOP, x2: X_TOWER, y2: Y_TOWER_TOP,
+  stroke: C.answer, 'stroke-width': 1.2, 'stroke-dasharray': '3,3'
+});
+s3.appendChild(guideTop);
+
+var guideBottom = svgEl('line', {
+  x1: X_TOWER - 48, y1: Y_GROUND, x2: X_TOWER, y2: Y_GROUND,
+  stroke: C.answer, 'stroke-width': 1.2, 'stroke-dasharray': '3,3'
+});
+s3.appendChild(guideBottom);
+
+// ลูกศรคำตอบความสูงหอคอย (391.5 px สำหรับ 43.5 m)
+Shell.arrow(s3, X_TOWER - 42, Y_GROUND, X_TOWER - 42, Y_TOWER_TOP, {
+  role: 'answer', label: '$h = 43.5$ m', value: 43.5, unit: 'm', until: 'end'
+});
+
+// -------------------------------------------------------------
+// สรุปคำตอบ
+// -------------------------------------------------------------
+Shell.answer(
+  'ความสูงของหอคอย',
+  '$h = 43.5$ m',
+  {
+    sanity: 'ความสูงต้องมากกว่าความยาวเงาเสมอเนื่องจากอัตราส่วน $\\frac{3}{2} = 1.5 > 1$ จึงสมเหตุสมผลที่หอคอยสูง $43.5$ m ซึ่งมากกว่าเงายาว $29$ m'
+  }
+);
+
+Shell.done();
+</script>
+</body></html>

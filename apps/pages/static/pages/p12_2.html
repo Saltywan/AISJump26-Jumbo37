@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>จุดสะเทินและเส้นสนามไฟฟ้าของประจุคู่เหมือน</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+var SVGNS = 'http://www.w3.org/2000/svg';
+function createEl(tag, attrs) {
+  var el = document.createElementNS(SVGNS, tag);
+  for (var k in attrs) {
+    el.setAttribute(k, attrs[k]);
+  }
+  return el;
+}
+
+Shell.page({
+  title: 'จุดสะเทินและเส้นสนามไฟฟ้าของประจุบวกคู่เหมือน',
+  problem: 'ประจุ $+5\\ \\mu\\text{C}$ และ $+5\\ \\mu\\text{C}$ วางห่างกัน $0.4$ เมตร จงหาตำแหน่งบนเส้นตรงระหว่างประจุทั้งสองที่สนามไฟฟ้ารวมมีค่าเป็นศูนย์ พร้อมวาดเส้นสนามไฟฟ้าของระบบประจุนี้'
+});
+
+var g = Shell.canvas(), C = Shell.C;
+
+Shell.setup('สนามไฟฟ้าจากประจุบวกมีทิศพุ่งออกจากประจุเสมอ บนเส้นตรงระหว่างประจุบวกคู่เหมือน สนามไฟฟ้าจากประจุทั้งสองจะชี้สวนทางกัน จึงเกิดจุดสะเทินที่สนามไฟฟ้ารวมเป็นศูนย์ได้เมื่อขนาดสนามไฟฟ้าเท่ากันพอดี');
+
+var PX_PER_MNC = 80;
+
+Shell.group('วิเคราะห์สนามไฟฟ้าบนเส้นเชื่อมระหว่างประจุ');
+
+var s1 = Shell.step('วางประจุ $q_1 = +5\\ \\mu\\text{C}$ และ $q_2 = +5\\ \\mu\\text{C}$ ห่างกัน $d = 0.4$ m บนแนวแกน');
+
+var axisLine = createEl('line', {
+  x1: 100, y1: 270, x2: 860, y2: 270,
+  stroke: C.note, 'stroke-width': 1.5, 'stroke-dasharray': '6 4', opacity: 0.6
+});
+s1.appendChild(axisLine);
+
+var c1Group = createEl('g', {});
+c1Group.appendChild(createEl('circle', {
+  cx: 260, cy: 270, r: 22,
+  stroke: C.given, 'stroke-width': 2.5, fill: 'none'
+}));
+c1Group.appendChild(createEl('line', {
+  x1: 252, y1: 270, x2: 268, y2: 270,
+  stroke: C.given, 'stroke-width': 3, 'stroke-linecap': 'round'
+}));
+c1Group.appendChild(createEl('line', {
+  x1: 260, y1: 262, x2: 260, y2: 278,
+  stroke: C.given, 'stroke-width': 3, 'stroke-linecap': 'round'
+}));
+s1.appendChild(c1Group);
+
+var c2Group = createEl('g', {});
+c2Group.appendChild(createEl('circle', {
+  cx: 700, cy: 270, r: 22,
+  stroke: C.given, 'stroke-width': 2.5, fill: 'none'
+}));
+c2Group.appendChild(createEl('line', {
+  x1: 692, y1: 270, x2: 708, y2: 270,
+  stroke: C.given, 'stroke-width': 3, 'stroke-linecap': 'round'
+}));
+c2Group.appendChild(createEl('line', {
+  x1: 700, y1: 262, x2: 700, y2: 278,
+  stroke: C.given, 'stroke-width': 3, 'stroke-linecap': 'round'
+}));
+s1.appendChild(c2Group);
+
+Shell.label(s1, 260, 215, '$q_1 = +5\\ \\mu\\text{C}$', {role:'given', anchor:[260, 270], until:'end'});
+Shell.label(s1, 700, 215, '$q_2 = +5\\ \\mu\\text{C}$', {role:'given', anchor:[700, 270], until:'end'});
+
+var dDim = createEl('g', {});
+dDim.appendChild(createEl('line', {x1: 260, y1: 380, x2: 700, y2: 380, stroke: C.note, 'stroke-width': 1.5}));
+dDim.appendChild(createEl('line', {x1: 260, y1: 372, x2: 260, y2: 388, stroke: C.note, 'stroke-width': 1.5}));
+dDim.appendChild(createEl('line', {x1: 700, y1: 372, x2: 700, y2: 388, stroke: C.note, 'stroke-width': 1.5}));
+s1.appendChild(dDim);
+
+Shell.label(s1, 480, 405, '$d = 0.4$ m', {role:'note', anchor:[480, 380], until:'end'});
+
+var s2 = Shell.step('กำหนดจุดทดสอบ $P$ ระหว่างประจุ ห่างจาก $q_1$ เป็นระยะ $x$<br>เกิดสนามไฟฟ้า $\\vec{E}_1$ พุ่งไปทางขวา และ $\\vec{E}_2$ พุ่งไปทางซ้าย', {
+  why: 'สนามไฟฟ้าจากประจุบวกมีทิศพุ่งออกจากประจุเสมอ จุดที่อยู่ระหว่างประจุบวกทั้งสองจึงมีสนามไฟฟ้าสองทิศทางตรงข้ามกัน'
+});
+
+var pDot = createEl('circle', {cx: 480, cy: 270, r: 4, fill: C.work});
+s2.appendChild(pDot);
+Shell.label(s2, 480, 220, 'จุดทดสอบ $P$', {role:'work', anchor:[480, 270], until:'step'});
+
+var s2Dim = createEl('g', {});
+s2Dim.appendChild(createEl('line', {x1: 260, y1: 320, x2: 480, y2: 320, stroke: C.work, 'stroke-width': 1.5, 'stroke-dasharray': '3 3'}));
+s2Dim.appendChild(createEl('line', {x1: 260, y1: 314, x2: 260, y2: 326, stroke: C.work, 'stroke-width': 1.5}));
+s2Dim.appendChild(createEl('line', {x1: 480, y1: 314, x2: 480, y2: 326, stroke: C.work, 'stroke-width': 1.5}));
+s2Dim.appendChild(createEl('line', {x1: 480, y1: 320, x2: 700, y2: 320, stroke: C.work, 'stroke-width': 1.5, 'stroke-dasharray': '3 3'}));
+s2Dim.appendChild(createEl('line', {x1: 700, y1: 314, x2: 700, y2: 326, stroke: C.work, 'stroke-width': 1.5}));
+s2.appendChild(s2Dim);
+
+Shell.label(s2, 370, 340, '$x$', {role:'work', anchor:[370, 320], until:'step'});
+Shell.label(s2, 590, 340, '$0.4 - x$', {role:'work', anchor:[590, 320], until:'step'});
+
+var E_VAL = 1.125;
+var E_LEN = E_VAL * PX_PER_MNC;
+Shell.arrow(s2, 480, 270, 480 + E_LEN, 270, {role:'work', label:'$E_1 = 1.125$ MN/C', value: E_VAL, unit:'MN/C', until:'step'});
+Shell.arrow(s2, 480, 270, 480 - E_LEN, 270, {role:'work', label:'$E_2 = 1.125$ MN/C', value: E_VAL, unit:'MN/C', until:'step'});
+
+Shell.group('คำนวณตำแหน่งจุดสะเทิน');
+
+var s3 = Shell.step('เงื่อนไขสนามไฟฟ้ารวมเป็นศูนย์ $\\vec{E}_{\\text{net}} = 0$ เมื่อขนาด $E_1 = E_2$<br>แทนค่า $k\\frac{q_1}{x^2} = k\\frac{q_2}{(0.4 - x)^2}$<br>เนื่องจาก $q_1 = q_2 = 5\\ \\mu\\text{C}$ จะได้ $\\frac{1}{x^2} = \\frac{1}{(0.4 - x)^2}$', {
+  why: 'เวกเตอร์สองตัวที่มีทิศทางตรงข้ามกันจะรวมกันได้ศูนย์ ขนาดของเวกเตอร์ทั้งสองต้องเท่ากันพอดี',
+  uses: [1, 2]
+});
+
+Shell.label(s3, 480, 160, '$E_1 = E_2 \\implies \\frac{1}{x^2} = \\frac{1}{(0.4-x)^2}$', {role:'work', anchor:[480, 270], until:'step'});
+
+var s4 = Shell.step('ถอดรากที่สองทั้งสองข้างได้ $x = 0.4 - x \\implies 2x = 0.4 \\implies x = 0.2$ m<br>ดังนั้นจุดที่สนามไฟฟ้ารวมเป็นศูนย์อยู่ห่างจาก $q_1$ เป็นระยะ $0.2$ m (จุดกึ่งกลางระหว่างประจุพอดี)', {
+  uses: [3]
+});
+
+var neutralGroup = createEl('g', {});
+neutralGroup.appendChild(createEl('circle', {cx: 480, cy: 270, r: 5, fill: C.answer, stroke: C.answer}));
+neutralGroup.appendChild(createEl('circle', {cx: 480, cy: 270, r: 12, fill: 'none', stroke: C.answer, 'stroke-width': 1.5, 'stroke-dasharray': '3 3'}));
+s4.appendChild(neutralGroup);
+
+Shell.label(s4, 480, 225, 'จุดสะเทิน ($E = 0$)', {role:'answer', anchor:[480, 270], until:'end'});
+
+var s4Dim = createEl('g', {});
+s4Dim.appendChild(createEl('line', {x1: 260, y1: 330, x2: 480, y2: 330, stroke: C.answer, 'stroke-width': 1.5}));
+s4Dim.appendChild(createEl('line', {x1: 260, y1: 323, x2: 260, y2: 337, stroke: C.answer, 'stroke-width': 1.5}));
+s4Dim.appendChild(createEl('line', {x1: 480, y1: 323, x2: 480, y2: 337, stroke: C.answer, 'stroke-width': 1.5}));
+s4Dim.appendChild(createEl('line', {x1: 480, y1: 330, x2: 700, y2: 330, stroke: C.answer, 'stroke-width': 1.5}));
+s4Dim.appendChild(createEl('line', {x1: 700, y1: 323, x2: 700, y2: 337, stroke: C.answer, 'stroke-width': 1.5}));
+s4.appendChild(s4Dim);
+
+Shell.label(s4, 370, 350, '$0.2$ m', {role:'answer', anchor:[370, 330], until:'end'});
+Shell.label(s4, 590, 350, '$0.2$ m', {role:'answer', anchor:[590, 330], until:'end'});
+
+Shell.group('เส้นสนามไฟฟ้าของระบบประจุคู่เหมือน');
+
+var s5 = Shell.step('ลักษณะเส้นสนามไฟฟ้า: เส้นสนามพุ่งออกจากประจุบวกทั้งสองและเบนหนีออกจากกัน โดยไม่มีเส้นสนามใดพาดผ่านจุดสะเทิน ($E = 0$)', {
+  why: 'เส้นสนามไฟฟ้าจากประจุชนิดเดียวกันจะเบนออกจากกันและไม่ตัดกัน ทำให้เกิดบริเวณว่างที่สนามรวมหักล้างกันเป็นศูนย์',
+  uses: [4]
+});
+
+function traceLine(thetaDeg) {
+  var rad = thetaDeg * Math.PI / 180;
+  var x = 260 + 24 * Math.cos(rad);
+  var y = 270 - 24 * Math.sin(rad);
+  var pts = [[x, y]];
+  var ds = 3.5;
+  for (var step = 0; step < 220; step++) {
+    var dx1 = x - 260, dy1 = y - 270;
+    var r1sq = dx1 * dx1 + dy1 * dy1;
+    var r1 = Math.sqrt(r1sq);
+    var dx2 = x - 700, dy2 = y - 270;
+    var r2sq = dx2 * dx2 + dy2 * dy2;
+    var r2 = Math.sqrt(r2sq);
+    if (r1 < 12 || r2 < 12) break;
+
+    var Ex = dx1 / (r1sq * r1) + dx2 / (r2sq * r2);
+    var Ey = dy1 / (r1sq * r1) + dy2 / (r2sq * r2);
+    var Emag = Math.sqrt(Ex * Ex + Ey * Ey);
+    if (Emag < 1e-9) break;
+
+    x += (Ex / Emag) * ds;
+    y += (Ey / Emag) * ds;
+
+    if (x < 40 || x > 476 || y < 40 || y > 500) {
+      pts.push([x, y]);
+      break;
+    }
+    pts.push([x, y]);
+  }
+  return pts;
+}
+
+function ptsToD(pts) {
+  if (pts.length === 0) return '';
+  var d = 'M ' + pts[0][0].toFixed(1) + ' ' + pts[0][1].toFixed(1);
+  for (var i = 1; i < pts.length; i++) {
+    d += ' L ' + pts[i][0].toFixed(1) + ' ' + pts[i][1].toFixed(1);
+  }
+  return d;
+}
+
+function drawArrowhead(gTarget, p1, p2) {
+  var dx = p2[0] - p1[0], dy = p2[1] - p1[1];
+  var len = Math.sqrt(dx * dx + dy * dy);
+  if (len < 0.1) return;
+  var ux = dx / len, uy = dy / len;
+  var tipX = p1[0], tipY = p1[1];
+  var w1x = tipX - 7 * ux + 3.5 * uy;
+  var w1y = tipY - 7 * uy - 3.5 * ux;
+  var w2x = tipX - 7 * ux - 3.5 * uy;
+  var w2y = tipY - 7 * uy + 3.5 * ux;
+  var poly = createEl('polygon', {
+    points: tipX.toFixed(1) + ',' + tipY.toFixed(1) + ' ' +
+            w1x.toFixed(1) + ',' + w1y.toFixed(1) + ' ' +
+            w2x.toFixed(1) + ',' + w2y.toFixed(1),
+    fill: C.work
+  });
+  gTarget.appendChild(poly);
+}
+
+var angles = [14, 32, 55, 80, 110, 140, 172];
+var flGroup = createEl('g', {});
+
+for (var a = 0; a < angles.length; a++) {
+  var basePts = traceLine(angles[a]);
+  if (basePts.length < 3) continue;
+
+  var qUpperLeft = basePts;
+  var qLowerLeft = basePts.map(function(p) { return [p[0], 540 - p[1]]; });
+  var qUpperRight = basePts.map(function(p) { return [960 - p[0], p[1]]; });
+  var qLowerRight = basePts.map(function(p) { return [960 - p[0], 540 - p[1]]; });
+
+  var allCurves = [qUpperLeft, qLowerLeft, qUpperRight, qLowerRight];
+  for (var c = 0; c < allCurves.length; c++) {
+    var cPts = allCurves[c];
+    var pathEl = createEl('path', {
+      d: ptsToD(cPts),
+      stroke: C.work,
+      'stroke-width': 1.5,
+      fill: 'none',
+      opacity: 0.75
+    });
+    flGroup.appendChild(pathEl);
+
+    if (cPts.length >= 6) {
+      var midIdx = Math.floor(cPts.length * 0.45);
+      drawArrowhead(flGroup, cPts[midIdx], cPts[midIdx + 1]);
+    }
+  }
+}
+
+var rayL = createEl('line', {x1: 236, y1: 270, x2: 40, y2: 270, stroke: C.work, 'stroke-width': 1.5, opacity: 0.75});
+var rayR = createEl('line', {x1: 724, y1: 270, x2: 920, y2: 270, stroke: C.work, 'stroke-width': 1.5, opacity: 0.75});
+var rayInL = createEl('line', {x1: 284, y1: 270, x2: 470, y2: 270, stroke: C.work, 'stroke-width': 1.5, opacity: 0.75});
+var rayInR = createEl('line', {x1: 676, y1: 270, x2: 490, y2: 270, stroke: C.work, 'stroke-width': 1.5, opacity: 0.75});
+flGroup.appendChild(rayL);
+flGroup.appendChild(rayR);
+flGroup.appendChild(rayInL);
+flGroup.appendChild(rayInR);
+
+drawArrowhead(flGroup, [130, 270], [120, 270]);
+drawArrowhead(flGroup, [830, 270], [840, 270]);
+drawArrowhead(flGroup, [380, 270], [390, 270]);
+drawArrowhead(flGroup, [580, 270], [570, 270]);
+
+s5.appendChild(flGroup);
+
+Shell.label(s5, 480, 75, 'เส้นสนามไฟฟ้าเบนออกจากกัน', {role:'note', anchor:[480, 130], until:'end'});
+
+Shell.answer(
+  'ตำแหน่งที่สนามไฟฟ้ารวมมีค่าเป็นศูนย์',
+  '$x = 0.2$ m (กึ่งกลางระหว่างประจุทั้งสอง)',
+  {sanity: 'สมเหตุสมผล เพราะประจุทั้งสองเป็นชนิดเดียวกันและมีขนาดเท่ากัน ($+5\\ \\mu\\text{C}$) จุดที่สนามหักล้างกันหมดจึงต้องอยู่ตรงกึ่งกลางพอดีตามความสมมาตร'}
+);
+
+Shell.done();
+</script>
+</body></html>

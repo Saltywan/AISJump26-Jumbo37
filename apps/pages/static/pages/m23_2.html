@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>แผนภาพเวนน์: จำนวนนักเรียนที่ไม่ชอบทั้งสองวิชา</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+var SVGNS = 'http://www.w3.org/2000/svg';
+
+function createSvg(tag, attrs) {
+  var el = document.createElementNS(SVGNS, tag);
+  for (var key in attrs) {
+    el.setAttribute(key, attrs[key]);
+  }
+  return el;
+}
+
+Shell.page({
+  title: 'แผนภาพเวนน์: จำนวนนักเรียนที่ไม่ชอบทั้งสองวิชา',
+  problem: 'จากการสำรวจนักเรียน 40 คน มี 25 คนชอบวิชาคณิตศาสตร์ 20 คนชอบวิชาวิทยาศาสตร์ และ 10 คนชอบทั้งสองวิชา จงหาจำนวนนักเรียนที่ไม่ชอบทั้งสองวิชา'
+});
+
+var g = Shell.canvas();
+var C = Shell.C;
+
+Shell.setup('การแก้โจทย์ปัญหาเกี่ยวกับเซต 2 เซต นิยมใช้แผนภาพเวนน์ โดยเริ่มใส่จำนวนสมาชิกจากบริเวณที่ซ้ำกันมากที่สุด (ช่องตรงกลาง) ก่อน แล้วจึงคำนวณจำนวนในบริเวณอื่น ๆ ตามลำดับ');
+
+Shell.group('สร้างแผนภาพเวนน์และกำหนดเซต');
+
+var s1 = Shell.step('กำหนดเอกภพสัมพัทธ์ $U$ แทนนักเรียนทั้งหมด $40$ คน, เซต $M$ แทนคนที่ชอบคณิตศาสตร์, และเซต $S$ แทนคนที่ชอบวิทยาศาสตร์');
+
+var rectU = createSvg('rect', {
+  x: '80', y: '30', width: '800', height: '480', rx: '16', ry: '16',
+  fill: 'none', stroke: C.note, 'stroke-width': '2.5'
+});
+s1.appendChild(rectU);
+
+var circleM = createSvg('circle', {
+  cx: '370', cy: '260', r: '160',
+  fill: 'none', stroke: C.given, 'stroke-width': '2.5'
+});
+s1.appendChild(circleM);
+
+var circleS = createSvg('circle', {
+  cx: '590', cy: '260', r: '160',
+  fill: 'none', stroke: C.given, 'stroke-width': '2.5'
+});
+s1.appendChild(circleS);
+
+Shell.label(s1, 140, 65, '$n(U) = 40$', {role: 'note', anchor: [80, 30], pin: true, until: 'end'});
+Shell.label(s1, 310, 75, 'คณิตศาสตร์ ($25$ คน)', {role: 'given', anchor: [370, 100], pin: true, until: 'end'});
+Shell.label(s1, 650, 75, 'วิทยาศาสตร์ ($20$ คน)', {role: 'given', anchor: [590, 100], pin: true, until: 'end'});
+
+var s2 = Shell.step('ใส่จำนวนนักเรียนที่ชอบทั้งสองวิชา $n(M \\cap S) = 10$ คน ลงในบริเวณตรงกลางที่ซ้อนทับกัน', {
+  why: 'ต้องเริ่มใส่จากบริเวณที่ซ้ำกันมากที่สุด เพื่อนำไปหักออกจากจำนวนสมาชิกทั้งหมดของแต่ละเซต'
+});
+
+var lensPath = createSvg('path', {
+  d: 'M 480 143.8 A 160 160 0 0 1 480 376.2 A 160 160 0 0 1 480 143.8 Z',
+  fill: C.given, 'fill-opacity': '0.22', stroke: C.given, 'stroke-width': '2'
+});
+s2.appendChild(lensPath);
+
+Shell.label(s2, 480, 260, '$10$', {role: 'given', anchor: [480, 260], pin: true, until: 'end'});
+
+Shell.group('คำนวณจำนวนในแต่ละส่วนของเซต');
+
+var s3 = Shell.step('หาจำนวนคนที่ชอบคณิตศาสตร์เพียงอย่างเดียว: $25 - 10 = 15$ คน', {
+  why: 'นำคนที่ชอบคณิตศาสตร์ทั้งหมด ลบด้วยคนที่ชอบทั้งสองวิชา',
+  uses: [1, 2]
+});
+
+var mathOnlyPath = createSvg('path', {
+  d: 'M 480 143.8 A 160 160 0 0 0 480 376.2 A 160 160 0 1 1 480 143.8 Z',
+  fill: C.work, 'fill-opacity': '0.16', stroke: C.work, 'stroke-width': '2'
+});
+s3.appendChild(mathOnlyPath);
+
+Shell.label(s3, 310, 260, '$15$', {role: 'work', anchor: [310, 260], pin: true, until: 'end'});
+
+var s4 = Shell.step('หาจำนวนคนที่ชอบวิทยาศาสตร์เพียงอย่างเดียว: $20 - 10 = 10$ คน', {
+  why: 'นำคนที่ชอบวิทยาศาสตร์ทั้งหมด ลบด้วยคนที่ชอบทั้งสองวิชา',
+  uses: [1, 2]
+});
+
+var sciOnlyPath = createSvg('path', {
+  d: 'M 480 143.8 A 160 160 0 1 1 480 376.2 A 160 160 0 0 0 480 143.8 Z',
+  fill: C.work, 'fill-opacity': '0.16', stroke: C.work, 'stroke-width': '2'
+});
+s4.appendChild(sciOnlyPath);
+
+Shell.label(s4, 650, 260, '$10$', {role: 'work', anchor: [650, 260], pin: true, until: 'end'});
+
+Shell.group('หาจำนวนคนที่ไม่ชอบทั้งสองวิชา');
+
+var s5 = Shell.step('หาจำนวนคนที่ชอบอย่างน้อยหนึ่งวิชา โดยรวมทั้งสามส่วน: $n(M \\cup S) = 15 + 10 + 10 = 35$ คน', {
+  why: 'นำจำนวนสมาชิกของแต่ละส่วนที่ไม่ซ้อนทับกันมารวมกัน',
+  uses: [2, 3, 4]
+});
+
+var unionOutline = createSvg('path', {
+  d: 'M 480 143.8 A 160 160 0 1 1 480 376.2 A 160 160 0 1 1 480 143.8 Z',
+  fill: 'none', stroke: C.work, 'stroke-width': '3', 'stroke-dasharray': '8 5'
+});
+s5.appendChild(unionOutline);
+
+Shell.label(s5, 480, 465, '$n(M \\cup S) = 35$', {role: 'work', anchor: [480, 420], pin: true, until: 'step'});
+
+var s6 = Shell.step('หาจำนวนคนที่ไม่ชอบทั้งสองวิชา จากนักเรียนทั้งหมดลบด้วยคนที่ชอบอย่างน้อยหนึ่งวิชา: $40 - 35 = 5$ คน', {
+  why: 'บริเวณนอกวงกลมทั้งสองในเอกภพสัมพัทธ์ คือคนที่ไม่ชอบวิชาใดเลย',
+  uses: [1, 5]
+});
+
+var outsidePath = createSvg('path', {
+  d: 'M 80 30 H 880 V 510 H 80 Z M 480 143.8 A 160 160 0 1 1 480 376.2 A 160 160 0 1 1 480 143.8 Z',
+  fill: C.answer, 'fill-opacity': '0.18', 'fill-rule': 'evenodd',
+  stroke: C.answer, 'stroke-width': '2.5'
+});
+s6.appendChild(outsidePath);
+
+Shell.label(s6, 210, 465, 'ไม่ชอบทั้งสองวิชา: $5$ คน', {role: 'answer', anchor: [210, 465], pin: true, until: 'end'});
+
+Shell.answer('จำนวนนักเรียนที่ไม่ชอบทั้งสองวิชา', '$5$ คน', {
+  sanity: 'ผลรวมของทั้งสี่ส่วนคือ $15 + 10 + 10 + 5 = 40$ คน ครบตามจำนวนนักเรียนทั้งหมดในเอกภพสัมพัทธ์'
+});
+
+Shell.done();
+</script>
+</body></html>

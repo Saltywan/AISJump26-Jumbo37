@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>การเลี้ยวเบนของแสงผ่านช่องเดี่ยว</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+var SVGNS = 'http://www.w3.org/2000/svg';
+
+Shell.page({
+  title: 'การเลี้ยวเบนของแสงผ่านช่องเดี่ยว',
+  problem: 'แสงเลี้ยวเบนผ่านช่องเดี่ยวกว้าง 0.05 mm เกิดแถบมืดที่ 1 ห่างจากแนวกลาง 2.4 cm บนฉากที่ห่างจากช่อง 1 เมตร จงหาความยาวคลื่นของแสงที่ใช้'
+});
+
+var g = Shell.canvas();
+var C = Shell.C;
+
+// กำหนดมาตราส่วนสำหรับลูกศรระบุขนาด (แยกตามหน่วยและทิศทาง)
+var PX_PER_MM = 1200; // ช่องเดี่ยว: 0.05 mm -> 60 px
+var PX_PER_M = 540;   // ระยะถึงฉาก: 1 m -> 540 px
+var PX_PER_CM = 50;   // ระยะแถบมืด: 2.4 cm -> 120 px
+
+Shell.setup('แถบมืดของการเลี้ยวเบนผ่านช่องเดี่ยวเกิดจากการแทรกสอดหักล้างกันหมดของคลื่นย่อยจากทุกตำแหน่งในช่องเดี่ยว โดยใช้เงื่อนไข $a\\sin\\theta = n\\lambda$ และประมาณ $\\sin\\theta \\approx \\frac{y}{L}$ เมื่อมุมเลี้ยวเบนมีค่าน้อย');
+
+Shell.group('จัดระเบียบข้อมูลและแผนภาพการทดลอง');
+
+// ขั้นที่ 1: วาดช่องเดี่ยว ฉากรับภาพ และระบุค่าที่โจทย์กำหนด
+var s1 = Shell.step('พิจารณาช่องเดี่ยวกว้าง $a = 0.05$ mm วางห่างจากฉากเป็นระยะ $L = 1$ m เมื่อฉายแสงความยาวคลื่น $\\lambda$ ตกกระทบตั้งฉากกับช่องเดี่ยว');
+
+// แผ่นกั้นช่องเดี่ยว (ขอบบนและล่าง เว้นช่องตรงกลาง y = 240 ถึง 300)
+var topSlit = document.createElementNS(SVGNS, 'rect');
+topSlit.setAttribute('x', '216'); topSlit.setAttribute('y', '50');
+topSlit.setAttribute('width', '8'); topSlit.setAttribute('height', '190');
+topSlit.setAttribute('rx', '2');
+topSlit.setAttribute('fill', C.note); topSlit.setAttribute('fill-opacity', '0.85');
+s1.appendChild(topSlit);
+
+var botSlit = document.createElementNS(SVGNS, 'rect');
+botSlit.setAttribute('x', '216'); botSlit.setAttribute('y', '300');
+botSlit.setAttribute('width', '8'); botSlit.setAttribute('height', '190');
+botSlit.setAttribute('rx', '2');
+botSlit.setAttribute('fill', C.note); botSlit.setAttribute('fill-opacity', '0.85');
+s1.appendChild(botSlit);
+
+// ฉากรับภาพที่ระยะ L
+var screen = document.createElementNS(SVGNS, 'rect');
+screen.setAttribute('x', '757'); screen.setAttribute('y', '50');
+screen.setAttribute('width', '6'); screen.setAttribute('height', '440');
+screen.setAttribute('rx', '2');
+screen.setAttribute('fill', C.note); screen.setAttribute('fill-opacity', '0.7');
+s1.appendChild(screen);
+
+// เส้นแนวกลาง (Central Axis)
+var axis = document.createElementNS(SVGNS, 'line');
+axis.setAttribute('x1', '220'); axis.setAttribute('y1', '270');
+axis.setAttribute('x2', '757'); axis.setAttribute('y2', '270');
+axis.setAttribute('stroke', C.note); axis.setAttribute('stroke-width', '1.5');
+axis.setAttribute('stroke-dasharray', '6,4');
+s1.appendChild(axis);
+
+// แสงตกกระทบขนานก่อนผ่านช่องเดี่ยว
+[255, 270, 285].forEach(function(y) {
+  var inRay = document.createElementNS(SVGNS, 'line');
+  inRay.setAttribute('x1', '80'); inRay.setAttribute('y1', y);
+  inRay.setAttribute('x2', '216'); inRay.setAttribute('y2', y);
+  inRay.setAttribute('stroke', C.given); inRay.setAttribute('stroke-width', '2');
+  s1.appendChild(inRay);
+});
+
+[100, 135, 170, 205].forEach(function(x) {
+  var waveFront = document.createElementNS(SVGNS, 'line');
+  waveFront.setAttribute('x1', x); waveFront.setAttribute('y1', '240');
+  waveFront.setAttribute('x2', x); waveFront.setAttribute('y2', '300');
+  waveFront.setAttribute('stroke', C.given); waveFront.setAttribute('stroke-width', '1.5');
+  waveFront.setAttribute('stroke-opacity', '0.45');
+  s1.appendChild(waveFront);
+});
+
+// เส้นประช่วยวัดขนาดความกว้างช่องเดี่ยว a
+var aGuide1 = document.createElementNS(SVGNS, 'line');
+aGuide1.setAttribute('x1', '160'); aGuide1.setAttribute('y1', '240');
+aGuide1.setAttribute('x2', '216'); aGuide1.setAttribute('y2', '240');
+aGuide1.setAttribute('stroke', C.note); aGuide1.setAttribute('stroke-width', '1');
+aGuide1.setAttribute('stroke-dasharray', '3,3');
+s1.appendChild(aGuide1);
+
+var aGuide2 = document.createElementNS(SVGNS, 'line');
+aGuide2.setAttribute('x1', '160'); aGuide2.setAttribute('y1', '300');
+aGuide2.setAttribute('x2', '216'); aGuide2.setAttribute('y2', '300');
+aGuide2.setAttribute('stroke', C.note); aGuide2.setAttribute('stroke-width', '1');
+aGuide2.setAttribute('stroke-dasharray', '3,3');
+s1.appendChild(aGuide2);
+
+// ลูกศรบอกขนาดความกว้างช่องเดี่ยว a
+Shell.arrow(s1, 160, 240, 160, 300, {
+  role: 'given',
+  label: '$a = 0.05$ mm',
+  value: 0.05,
+  unit: 'mm',
+  until: 'end'
+});
+
+// เส้นประช่วยวัดระยะห่างฉาก L
+var lGuide1 = document.createElementNS(SVGNS, 'line');
+lGuide1.setAttribute('x1', '220'); lGuide1.setAttribute('y1', '440');
+lGuide1.setAttribute('x2', '220'); lGuide1.setAttribute('y2', '475');
+lGuide1.setAttribute('stroke', C.note); lGuide1.setAttribute('stroke-width', '1');
+lGuide1.setAttribute('stroke-dasharray', '3,3');
+s1.appendChild(lGuide1);
+
+var lGuide2 = document.createElementNS(SVGNS, 'line');
+lGuide2.setAttribute('x1', '760'); lGuide2.setAttribute('y1', '440');
+lGuide2.setAttribute('x2', '760'); lGuide2.setAttribute('y2', '475');
+lGuide2.setAttribute('stroke', C.note); lGuide2.setAttribute('stroke-width', '1');
+lGuide2.setAttribute('stroke-dasharray', '3,3');
+s1.appendChild(lGuide2);
+
+// ลูกศรบอกระยะห่างถึงฉาก L
+Shell.arrow(s1, 220, 470, 760, 470, {
+  role: 'given',
+  label: '$L = 1$ m',
+  value: 1,
+  unit: 'm',
+  until: 'end'
+});
+
+// ป้ายกำกับวัตถุหลัก
+Shell.label(s1, 220, 35, 'ช่องเดี่ยว', {role: 'note', anchor: [220, 50], until: 'end'});
+Shell.label(s1, 760, 35, 'ฉากรับภาพ', {role: 'note', anchor: [760, 50], until: 'end'});
+Shell.label(s1, 490, 285, 'แนวกลาง', {role: 'note', anchor: [490, 270], until: 'end'});
+Shell.label(s1, 140, 220, 'แสงตกกระทบ', {role: 'given', anchor: [140, 255], until: 'step'});
+
+// ขั้นที่ 2: ระบุตำแหน่งแถบมืดที่ 1 และรังสีเลี้ยวเบน
+var s2 = Shell.step('แสงเกิดการเลี้ยวเบนและแทรกสอด โดยเกิดแถบมืดที่ 1 ($n = 1$) บนฉากห่างจากแนวกลาง $y = 2.4$ cm ทำมุมเลี้ยวเบน $\\theta$ กับแนวกลาง', {uses: [1]});
+
+// กราฟความเข้มแสงของการเลี้ยวเบนบนฉาก (Diffraction Pattern)
+var dIntensity = 'M 763 60 ';
+for (var py = 60; py <= 480; py += 3) {
+  var dy = py - 270;
+  var u = (Math.PI * dy) / 120;
+  var val = (Math.abs(u) < 0.001) ? 1 : Math.pow(Math.sin(u) / u, 2);
+  var px = 763 + val * 60;
+  dIntensity += 'L ' + px.toFixed(1) + ' ' + py + ' ';
+}
+dIntensity += 'L 763 480 Z';
+
+var pattern = document.createElementNS(SVGNS, 'path');
+pattern.setAttribute('d', dIntensity);
+pattern.setAttribute('fill', C.note); pattern.setAttribute('fill-opacity', '0.15');
+pattern.setAttribute('stroke', C.work); pattern.setAttribute('stroke-width', '1.5');
+s2.appendChild(pattern);
+
+// รังสีเลี้ยวเบนหลักจากจุดศูนย์กลางช่องเดี่ยวไปยังแถบมืดที่ 1 (y = 150)
+var diffRay = document.createElementNS(SVGNS, 'line');
+diffRay.setAttribute('x1', '220'); diffRay.setAttribute('y1', '270');
+diffRay.setAttribute('x2', '757'); diffRay.setAttribute('y2', '150');
+diffRay.setAttribute('stroke', C.work); diffRay.setAttribute('stroke-width', '2');
+s2.appendChild(diffRay);
+
+// รังสีจากขอบบนและขอบล่างของช่องเดี่ยวแสดงการเลี้ยวเบน
+var edgeRay1 = document.createElementNS(SVGNS, 'line');
+edgeRay1.setAttribute('x1', '220'); edgeRay1.setAttribute('y1', '240');
+edgeRay1.setAttribute('x2', '757'); edgeRay1.setAttribute('y2', '150');
+edgeRay1.setAttribute('stroke', C.work); edgeRay1.setAttribute('stroke-width', '1');
+edgeRay1.setAttribute('stroke-dasharray', '4,3'); edgeRay1.setAttribute('stroke-opacity', '0.6');
+s2.appendChild(edgeRay1);
+
+var edgeRay2 = document.createElementNS(SVGNS, 'line');
+edgeRay2.setAttribute('x1', '220'); edgeRay2.setAttribute('y1', '300');
+edgeRay2.setAttribute('x2', '757'); edgeRay2.setAttribute('y2', '150');
+edgeRay2.setAttribute('stroke', C.work); edgeRay2.setAttribute('stroke-width', '1');
+edgeRay2.setAttribute('stroke-dasharray', '4,3'); edgeRay2.setAttribute('stroke-opacity', '0.6');
+s2.appendChild(edgeRay2);
+
+// จุดตำแหน่งแถบมืดที่ 1 บนฉาก
+var darkPoint = document.createElementNS(SVGNS, 'circle');
+darkPoint.setAttribute('cx', '757'); darkPoint.setAttribute('cy', '150');
+darkPoint.setAttribute('r', '4.5'); darkPoint.setAttribute('fill', C.work);
+s2.appendChild(darkPoint);
+
+// จุดกึ่งกลางแถบสว่างกลางบนฉาก
+var centerPoint = document.createElementNS(SVGNS, 'circle');
+centerPoint.setAttribute('cx', '757'); centerPoint.setAttribute('cy', '270');
+centerPoint.setAttribute('r', '3.5'); centerPoint.setAttribute('fill', C.note);
+s2.appendChild(centerPoint);
+
+// เส้นประช่วยวัดระยะ y
+var yGuide1 = document.createElementNS(SVGNS, 'line');
+yGuide1.setAttribute('x1', '757'); yGuide1.setAttribute('y1', '150');
+yGuide1.setAttribute('x2', '840'); yGuide1.setAttribute('y2', '150');
+yGuide1.setAttribute('stroke', C.note); yGuide1.setAttribute('stroke-width', '1');
+yGuide1.setAttribute('stroke-dasharray', '3,3');
+s2.appendChild(yGuide1);
+
+var yGuide2 = document.createElementNS(SVGNS, 'line');
+yGuide2.setAttribute('x1', '757'); yGuide2.setAttribute('y1', '270');
+yGuide2.setAttribute('x2', '840'); yGuide2.setAttribute('y2', '270');
+yGuide2.setAttribute('stroke', C.note); yGuide2.setAttribute('stroke-width', '1');
+yGuide2.setAttribute('stroke-dasharray', '3,3');
+s2.appendChild(yGuide2);
+
+// ลูกศรบอกระยะ y จากแนวกลางถึงแถบมืดที่ 1
+Shell.arrow(s2, 835, 270, 835, 150, {
+  role: 'work',
+  label: '$y = 2.4$ cm',
+  value: 2.4,
+  unit: 'cm',
+  until: 'end'
+});
+
+// ส่วนโค้งแสดงมุมเลี้ยวเบน theta
+var thetaArc = document.createElementNS(SVGNS, 'path');
+thetaArc.setAttribute('d', 'M 300 270 A 80 80 0 0 0 298 252.7');
+thetaArc.setAttribute('fill', 'none');
+thetaArc.setAttribute('stroke', C.work); thetaArc.setAttribute('stroke-width', '1.5');
+s2.appendChild(thetaArc);
+
+// ป้ายกำกับมุมและตำแหน่งแถบ
+Shell.label(s2, 318, 258, '$\\theta$', {role: 'work', anchor: [299, 261], until: 'end'});
+Shell.label(s2, 757, 130, 'แถบมืดที่ 1 ($n = 1$)', {role: 'work', anchor: [757, 150], until: 'end'});
+
+// แอนิเมชันคลื่นแสงเคลื่อนที่จากช่องไปยังแถบมืด
+var pulse = Shell.motion(s2, null, [[220, 270], [757, 150]], {dur: 1600, loop: true});
+var pDot = document.createElementNS(SVGNS, 'circle');
+pDot.setAttribute('r', '4'); pDot.setAttribute('fill', C.work);
+pulse.appendChild(pDot);
+
+Shell.group('คำนวณหาความยาวคลื่น');
+
+// ขั้นที่ 3: ประมาณค่า sin theta สำหรับมุมขนาดเล็ก
+var s3 = Shell.step('เนื่องจากระยะเบี่ยงเบน $y = 2.4$ cm น้อยกว่าระยะห่างฉาก $L = 1$ m มาก ($y \\ll L$) มุม $\\theta$ จึงเล็กมาก ทำให้ $\\sin\\theta \\approx \\tan\\theta = \\frac{y}{L}$', {
+  why: 'มุม $\\theta$ มีค่าน้อยมากในหน่วยเรเดียน (ประมาณ $1.37^\\circ$) ค่า $\\sin\\theta$ จึงประมาณด้วย $\\tan\\theta = \\frac{y}{L}$ ได้อย่างแม่นยำ',
+  uses: [1, 2]
+});
+
+// เน้นรูปสามเหลี่ยมมุมฉากของการเลี้ยวเบน
+var tri = document.createElementNS(SVGNS, 'polygon');
+tri.setAttribute('points', '220,270 757,270 757,150');
+tri.setAttribute('fill', C.work); tri.setAttribute('fill-opacity', '0.07');
+tri.setAttribute('stroke', C.work); tri.setAttribute('stroke-width', '1');
+tri.setAttribute('stroke-dasharray', '4,4');
+s3.appendChild(tri);
+
+// สัญลักษณ์มุมฉากบนฉาก
+var rightAngle = document.createElementNS(SVGNS, 'path');
+rightAngle.setAttribute('d', 'M 743 270 L 743 256 L 757 256');
+rightAngle.setAttribute('fill', 'none');
+rightAngle.setAttribute('stroke', C.note); rightAngle.setAttribute('stroke-width', '1.2');
+s3.appendChild(rightAngle);
+
+Shell.label(s3, 490, 205, '$\\sin\\theta \\approx \\frac{y}{L} = \\frac{0.024\\text{ m}}{1\\text{ m}} = 0.024$', {
+  role: 'work',
+  anchor: [490, 220],
+  until: 'step'
+});
+
+// ขั้นที่ 4: แทนค่าในเงื่อนไขแถบมืดช่องเดี่ยวและคำนวณความยาวคลื่น
+var s4 = Shell.step('ใช้เงื่อนไขแถบมืดของช่องเดี่ยว $a\\sin\\theta = n\\lambda$ แทนค่า $\\sin\\theta \\approx \\frac{y}{L}$ เพื่อคำนวณหาความยาวคลื่น $\\lambda$', {
+  why: 'แถบมืดลำดับที่ $n$ ของช่องเดี่ยวเกิดเมื่อคลื่นย่อยจากขอบช่องมีผลต่างทางเดินแสงเท่ากับ $n\\lambda$ ทำให้หักล้างกันหมด',
+  uses: [1, 2, 3]
+});
+
+// วงแหวนเน้นคำตอบสุดท้ายที่แถบมืดที่ 1
+var ansRing = document.createElementNS(SVGNS, 'circle');
+ansRing.setAttribute('cx', '757'); ansRing.setAttribute('cy', '150');
+ansRing.setAttribute('r', '7.5');
+ansRing.setAttribute('fill', 'none');
+ansRing.setAttribute('stroke', C.answer); ansRing.setAttribute('stroke-width', '2.5');
+s4.appendChild(ansRing);
+
+Shell.label(s4, 490, 340, '$\\lambda = \\frac{ay}{nL} = \\frac{(5 \\times 10^{-5})(2.4 \\times 10^{-2})}{(1)(1)} = 1.2 \\times 10^{-6}$ m', {
+  role: 'answer',
+  anchor: [490, 325],
+  until: 'step'
+});
+
+Shell.answer(
+  'ความยาวคลื่นของแสงที่ใช้',
+  '$\\lambda = 1.2 \\times 10^{-6}\\text{ m} = 1200\\text{ nm}$',
+  {sanity: 'ความยาวคลื่น $1200$ nm อยู่ในช่วงรังสีอินฟราเรดใกล้ (NIR) ซึ่งยาวกว่าแสงขาว จึงเลี้ยวเบนได้แถบมืดกว้างถึง 2.4 cm ที่ระยะฉาก 1 m'}
+);
+
+Shell.done();
+</script>
+</body></html>

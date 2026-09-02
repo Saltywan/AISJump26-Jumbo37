@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>การเคลื่อนที่ด้วยความเร่งคงที่และกราฟ v-t</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/jsxgraph.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/jsxgraphcore.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+Shell.page({
+  title: 'การเคลื่อนที่ด้วยความเร่งคงที่และกราฟ $v$-$t$',
+  problem: 'วัตถุเคลื่อนที่จากหยุดนิ่งด้วยความเร่งคงที่ $2$ m/s² เป็นเวลา $6$ วินาที จงหาความเร็วสุดท้ายและระยะทางที่เคลื่อนที่ได้ พร้อมเขียนกราฟ $v$-$t$'
+});
+
+var b = Shell.board({
+  box: [-1.2, 15, 7.8, -2.5],
+  axis: true,
+  grid: true,
+  keepaspect: false
+});
+var C = Shell.C;
+
+Shell.setup('กราฟความเร็วกับเวลา ($v$-$t$) ช่วยให้เห็นภาพการเคลื่อนที่ได้อย่างชัดเจน โดยความชันของกราฟเท่ากับความเร่ง และพื้นที่ใต้กราฟเท่ากับการกระจัดหรือระยะทาง');
+
+Shell.group('วิเคราะห์สิ่งที่โจทย์กำหนดและหาความเร็วสุดท้าย');
+
+var p0 = b.create('point', [0, 0], {
+  name: '',
+  withLabel: false,
+  strokeColor: C.given,
+  fillColor: C.given,
+  size: 4,
+  fixed: true
+});
+var s1 = Shell.step('ระบุสิ่งที่โจทย์กำหนด:<br>• ความเร็วต้น $u = 0$ m/s (จากหยุดนิ่ง)<br>• ความเร่งคงที่ $a = 2$ m/s²<br>• เวลา $t = 6$ s<br>จุดเริ่มต้นของการเคลื่อนที่ที่เวลา $t = 0$ s คือจุด $(0, 0)$ บนกราฟ $v$-$t$');
+Shell.on(s1, p0);
+Shell.tag(s1, p0, '$u = 0$', {role: 'given'});
+Shell.tag(s1, [7.2, 0], '$t$ (s)', {role: 'note'});
+Shell.tag(s1, [0, 14], '$v$ (m/s)', {role: 'note'});
+
+var p1 = b.create('point', [6, 12], {
+  name: '',
+  withLabel: false,
+  strokeColor: C.work,
+  fillColor: C.work,
+  size: 4,
+  fixed: true
+});
+var s2 = Shell.step('หาความเร็วสุดท้าย $v$ จากสมการความเร่งคงที่ $v = u + at$<br>แทนค่า: $v = 0 + (2)(6) = 12$ m/s<br>จะได้จุดปลายของการเคลื่อนที่ที่เวลา $t = 6$ s คือพิกัด $(6, 12)$', {
+  why: 'เมื่อวัตถุมีความเร่งคงที่ ความเร็วจะเพิ่มขึ้นอย่างสม่ำเสมอในอัตรา $2$ m/s ในทุกหนึ่งวินาที',
+  uses: [1]
+});
+Shell.on(s2, p1);
+Shell.tag(s2, p1, '$(6, 12)$', {role: 'work'});
+
+Shell.group('เขียนกราฟความเร็วกับเวลา ($v$-$t$)');
+
+var lineV = b.create('segment', [p0, p1], {
+  name: '',
+  withLabel: false,
+  strokeColor: C.work,
+  strokeWidth: 3
+});
+var s3 = Shell.step('ลากเส้นตรงจากจุด $(0, 0)$ ไปยัง $(6, 12)$<br>ความชันของกราฟคือความเร่ง $a = \\frac{\\Delta v}{\\Delta t} = \\frac{12 - 0}{6 - 0} = 2$ m/s²', {
+  why: 'ความเร่งคงที่ กราฟระหว่างความเร็วกับเวลาจึงเป็นเส้นตรงที่มีความชันคงที่เท่ากับความเร่ง',
+  uses: [1, 2]
+});
+Shell.on(s3, lineV);
+Shell.tag(s3, [3, 7.5], 'ความชัน $a = 2$ m/s²', {role: 'work', until: 'step'});
+
+var ptAxis = b.create('point', [6, 0], {
+  name: '',
+  withLabel: false,
+  strokeColor: C.note,
+  fillColor: C.note,
+  size: 3,
+  fixed: true
+});
+var pvAxis = b.create('point', [0, 12], {
+  name: '',
+  withLabel: false,
+  strokeColor: C.note,
+  fillColor: C.note,
+  size: 3,
+  fixed: true
+});
+var vDrop = b.create('segment', [p1, ptAxis], {
+  name: '',
+  withLabel: false,
+  strokeColor: C.note,
+  strokeWidth: 1.5,
+  dash: 2
+});
+var hDrop = b.create('segment', [pvAxis, p1], {
+  name: '',
+  withLabel: false,
+  strokeColor: C.note,
+  strokeWidth: 1.5,
+  dash: 2
+});
+var s4 = Shell.step('ลากเส้นประจากจุด $(6, 12)$ ลงมายังแกนเวลาที่ $t = 6$ s และไปยังแกนความเร็วที่ $v = 12$ m/s เพื่อกำหนดขอบเขตของพื้นที่ใต้กราฟในช่วงเวลา $0$ ถึง $6$ วินาที', {
+  uses: [2, 3]
+});
+Shell.on(s4, ptAxis, pvAxis, vDrop, hDrop);
+Shell.tag(s4, ptAxis, '$t = 6$ s', {role: 'note', until: 'step'});
+Shell.tag(s4, pvAxis, '$v = 12$ m/s', {role: 'note', until: 'step'});
+
+Shell.group('หาระยะทางจากพื้นที่ใต้กราฟ');
+
+var areaTri = b.create('polygon', [p0, ptAxis, p1], {
+  name: '',
+  withLabel: false,
+  fillColor: C.answer,
+  fillOpacity: 0.25,
+  strokeColor: C.answer,
+  strokeWidth: 1.5
+});
+var s5 = Shell.step('คำนวณระยะทาง $s$ จากพื้นที่ใต้กราฟ $v$-$t$ (รูปสามเหลี่ยมมุมฉาก ฐาน $6$ s สูง $12$ m/s):<br>ระยะทาง $s = \\frac{1}{2} \\times 6 \\times 12 = 36$ m', {
+  why: 'การกระจัดหรือระยะทางในแนวตรงเท่ากับพื้นที่ใต้กราฟระหว่างความเร็วกับเวลา',
+  uses: [4]
+});
+Shell.on(s5, areaTri);
+Shell.tag(s5, [4, 4], 'พื้นที่ $s = 36$ m', {role: 'answer'});
+
+Shell.answer(
+  'ความเร็วสุดท้ายและระยะทางที่เคลื่อนที่ได้',
+  '$v = 12$ m/s และ $s = 36$ m',
+  {sanity: 'ระยะทาง $36$ m สอดคล้องกับการคำนวณด้วยสูตร $s = ut + \\frac{1}{2}at^2 = 0 + \\frac{1}{2}(2)(6^2) = 36$ m'}
+);
+
+Shell.done();
+</script>
+</body></html>

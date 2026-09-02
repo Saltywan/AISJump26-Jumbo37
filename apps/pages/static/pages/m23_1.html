@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>การดำเนินการของเซต: A∪B และ A∩B</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+var SVGNS = 'http://www.w3.org/2000/svg';
+
+Shell.page({
+  title: 'การดำเนินการของเซต: ยูเนียนและอินเตอร์เซกชัน',
+  problem: 'กำหนด $A = \\{1, 2, 3, 4, 5\\}$ และ $B = \\{3, 4, 5, 6, 7\\}$ จงหา $A \\cup B$ และ $A \\cap B$'
+});
+
+var canvas = Shell.canvas();
+var C = Shell.C;
+
+Shell.setup('ใช้แผนภาพเวนน์ช่วยจำแนกสมาชิกที่ซ้ำกันระหว่างสองเซต เพื่อให้หาทั้งอินเตอร์เซกชันและยูเนียนได้อย่างถูกต้องโดยไม่นับสมาชิกซ้ำ');
+
+// วาดกรอบเอกภพสัมพัทธ์ (U)
+var uRect = document.createElementNS(SVGNS, 'rect');
+uRect.setAttribute('x', '150');
+uRect.setAttribute('y', '60');
+uRect.setAttribute('width', '660');
+uRect.setAttribute('height', '420');
+uRect.setAttribute('rx', '12');
+uRect.setAttribute('fill', 'none');
+uRect.setAttribute('stroke', C.note);
+uRect.setAttribute('stroke-width', '1.5');
+uRect.setAttribute('stroke-dasharray', '6 4');
+canvas.appendChild(uRect);
+
+Shell.label(canvas, 180, 90, '$\\mathcal{U}$', {role:'note', anchor:[180, 90], pin:true});
+
+Shell.group('แจกแจงสมาชิกลงในแผนภาพเวนน์');
+
+// ขั้นที่ 1: สมาชิกที่ซ้ำกัน (A ∩ B)
+var s1 = Shell.step('วาดวงกลมแทนเซต $A$ และ $B$ จากนั้นหาสมาชิกที่ซ้ำกันคือ $3, 4, 5$ ใส่ลงในบริเวณที่ทับซ้อนกัน', {
+  why: 'สมาชิกที่ปรากฏในทั้งสองเซตพร้อมกัน จะต้องอยู่ตรงกลางในส่วนที่วงกลมทั้งสองตัดกัน'
+});
+
+var circA = document.createElementNS(SVGNS, 'circle');
+circA.setAttribute('cx', '390');
+circA.setAttribute('cy', '270');
+circA.setAttribute('r', '150');
+circA.setAttribute('fill', 'none');
+circA.setAttribute('stroke', C.given);
+circA.setAttribute('stroke-width', '2.5');
+s1.appendChild(circA);
+
+var circB = document.createElementNS(SVGNS, 'circle');
+circB.setAttribute('cx', '570');
+circB.setAttribute('cy', '270');
+circB.setAttribute('r', '150');
+circB.setAttribute('fill', 'none');
+circB.setAttribute('stroke', C.given);
+circB.setAttribute('stroke-width', '2.5');
+s1.appendChild(circB);
+
+Shell.label(s1, 290, 135, 'เซต $A$', {role:'given', anchor:[290, 135], pin:true});
+Shell.label(s1, 670, 135, 'เซต $B$', {role:'given', anchor:[670, 135], pin:true});
+
+Shell.label(s1, 480, 215, '$3$', {role:'work', anchor:[480, 215], pin:true});
+Shell.label(s1, 480, 270, '$4$', {role:'work', anchor:[480, 270], pin:true});
+Shell.label(s1, 480, 325, '$5$', {role:'work', anchor:[480, 325], pin:true});
+
+// ขั้นที่ 2: สมาชิกที่เหลือของแต่ละเซต
+var s2 = Shell.step('ใส่สมาชิกที่เหลือของเซต $A$ คือ $1, 2$ และเซต $B$ คือ $6, 7$ ลงในบริเวณเฉพาะของแต่ละวง', {
+  uses: [1],
+  why: 'สมาชิกที่ไม่ซ้ำกับอีกเซต จะอยู่เฉพาะในเสี้ยววงกลมของเซตของตนเองเท่านั้น'
+});
+
+Shell.label(s2, 320, 235, '$1$', {role:'given', anchor:[320, 235], pin:true});
+Shell.label(s2, 320, 305, '$2$', {role:'given', anchor:[320, 305], pin:true});
+Shell.label(s2, 640, 235, '$6$', {role:'given', anchor:[640, 235], pin:true});
+Shell.label(s2, 640, 305, '$7$', {role:'given', anchor:[640, 305], pin:true});
+
+Shell.group('หาผลลัพธ์อินเตอร์เซกชันและยูเนียน');
+
+// ขั้นที่ 3: หา A ∩ B
+var s3 = Shell.step('หาอินเตอร์เซกชัน $A \\cap B$ คือเซตของสมาชิกที่อยู่ในทั้ง $A$ และ $B$ ได้ $A \\cap B = \\{3, 4, 5\\}$', {
+  uses: [1],
+  why: 'นิยามของอินเตอร์เซกชันคือบริเวณส่วนที่ทับซ้อนกันของเซตทั้งสอง'
+});
+
+var interLens = document.createElementNS(SVGNS, 'path');
+interLens.setAttribute('d', 'M 480 150 A 150 150 0 0 1 480 390 A 150 150 0 0 1 480 150 Z');
+interLens.setAttribute('fill', C.answer);
+interLens.setAttribute('fill-opacity', '0.25');
+interLens.setAttribute('stroke', C.answer);
+interLens.setAttribute('stroke-width', '3');
+s3.appendChild(interLens);
+
+Shell.label(s3, 480, 430, '$A \\cap B = \\{3, 4, 5\\}$', {role:'answer', anchor:[480, 390], until:'step'});
+
+// ขั้นที่ 4: หา A ∪ B
+var s4 = Shell.step('หายูเนียน $A \\cup B$ คือการนำสมาชิกทั้งหมดของทั้งสองเซตมารวมกัน ได้ $A \\cup B = \\{1, 2, 3, 4, 5, 6, 7\\}$', {
+  uses: [1, 2],
+  why: 'นิยามของยูเนียนคือการรวมสมาชิกทั้งหมดที่อยู่ใน $A$ หรืออยู่ใน $B$ โดยนับตัวที่ซ้ำกันเพียงครั้งเดียว'
+});
+
+var unionShape = document.createElementNS(SVGNS, 'path');
+unionShape.setAttribute('d', 'M 480 150 A 150 150 0 1 1 480 390 A 150 150 0 1 1 480 150 Z');
+unionShape.setAttribute('fill', C.answer);
+unionShape.setAttribute('fill-opacity', '0.15');
+unionShape.setAttribute('stroke', C.answer);
+unionShape.setAttribute('stroke-width', '3');
+s4.appendChild(unionShape);
+
+Shell.label(s4, 480, 445, '$A \\cup B = \\{1, 2, 3, 4, 5, 6, 7\\}$', {role:'answer', anchor:[480, 415], until:'end'});
+
+Shell.answer(
+  'คำตอบ $A \\cup B$ และ $A \\cap B$',
+  '$A \\cup B = \\{1, 2, 3, 4, 5, 6, 7\\},\\quad A \\cap B = \\{3, 4, 5\\}$',
+  {sanity: 'ตรวจสอบด้วยสูตรจำนวนสมาชิก: $n(A \\cup B) = n(A) + n(B) - n(A \\cap B) = 5 + 5 - 3 = 7$ ตรงกับจำนวนสมาชิกที่นับได้จริง'}
+);
+
+Shell.done();
+</script>
+</body></html>

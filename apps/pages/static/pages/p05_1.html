@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>การสั่นพ้องในท่อปลายเปิดหนึ่งด้านและปรากฏการณ์บีตส์</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+var SVGNS = 'http://www.w3.org/2000/svg';
+function svgEl(tag, attrs) {
+  var el = document.createElementNS(SVGNS, tag);
+  for (var k in attrs) {
+    el.setAttribute(k, attrs[k]);
+  }
+  return el;
+}
+
+Shell.page({
+  title: 'การสั่นพ้องในท่อปลายเปิดหนึ่งด้านและปรากฏการณ์บีตส์',
+  problem: 'ท่อปลายเปิดหนึ่งด้านยาว $0.85$ เมตร เกิดการสั่นพ้องของเสียงที่ความถี่มูลฐาน จงหาความถี่มูลฐานนั้น (อัตราเร็วเสียงในอากาศ $v = 340$ m/s) และอธิบายปรากฏการณ์บีตส์ที่เกิดขึ้นเมื่อมีเสียงจากท่อนี้รวมกับเสียงความถี่ใกล้เคียงอีกความถี่หนึ่ง'
+});
+
+var g = Shell.canvas(), C = Shell.C;
+
+var PX_PER_M = 600;
+var PX_PER_S = 600;
+
+Shell.setup('วิเคราะห์คลื่นนิ่งในท่อปลายเปิดหนึ่งด้าน (ปลายอีกด้านปิด) โดยปลายปิดเป็นบัพของการกระจัดและปลายเปิดเป็นปฏิบัพ จากนั้นพิจารณาการแทรกสอดของคลื่นเสียงสองความถี่ที่ใกล้เคียงกันเกิดเป็นบีตส์');
+
+Shell.group('การสั่นพ้องและความถี่มูลฐานในท่อปลายเปิดหนึ่งด้าน');
+
+var s1 = Shell.step(
+  'กำหนดลักษณะของท่อปลายเปิดหนึ่งด้าน โดยที่ปลายปิดอนุภาคอากาศเคลื่อนที่ไม่ได้จึงเกิดเป็น <b>บัพ (Node, $N$)</b> ของการกระจัด ส่วนที่ปลายเปิดอนุภาคสั่นได้อย่างอิสระจึงเกิดเป็น <b>ปฏิบัพ (Antinode, $A$)</b> ของการกระจัด และท่อยาว $L = 0.85$ m',
+  {why: 'ปลายปิดทำให้อนุภาคอากาศชนผนังและสะท้อนกลับจนสั่นไม่ได้จึงเป็นบัพ ส่วนปลายเปิดสัมผัสบรรยากาศทำให้อนุภาคสั่นได้อิสระจึงเป็นปฏิบัพ'}
+);
+
+var pipeX1 = 225, pipeX2 = 735, pipeY1 = 50, pipeY2 = 190, pipeYmid = 120;
+
+s1.appendChild(svgEl('line', {x1: pipeX1, y1: pipeY1, x2: pipeX2, y2: pipeY1, stroke: C.given, 'stroke-width': 4}));
+s1.appendChild(svgEl('line', {x1: pipeX1, y1: pipeY2, x2: pipeX2, y2: pipeY2, stroke: C.given, 'stroke-width': 4}));
+s1.appendChild(svgEl('rect', {x: pipeX1 - 12, y: pipeY1 - 4, width: 12, height: pipeY2 - pipeY1 + 8, fill: C.given, stroke: C.given}));
+
+for (var hy = pipeY1; hy <= pipeY2; hy += 12) {
+  s1.appendChild(svgEl('line', {x1: pipeX1 - 12, y1: hy + 8, x2: pipeX1, y2: hy - 4, stroke: '#ffffff', 'stroke-width': 1.5, opacity: 0.6}));
+}
+
+s1.appendChild(svgEl('line', {x1: pipeX1, y1: pipeYmid, x2: pipeX2, y2: pipeYmid, stroke: C.note, 'stroke-width': 1.5, 'stroke-dasharray': '5,5'}));
+
+for (var r = 14; r <= 38; r += 12) {
+  var arcPath = 'M ' + (pipeX2 + r * 0.7) + ' ' + (pipeYmid - r * 0.7) +
+                ' A ' + r + ' ' + r + ' 0 0 1 ' + (pipeX2 + r * 0.7) + ' ' + (pipeYmid + r * 0.7);
+  s1.appendChild(svgEl('path', {d: arcPath, fill: 'none', stroke: C.note, 'stroke-width': 2, opacity: 0.7}));
+}
+
+Shell.arrow(s1, pipeX1, 205, pipeX2, 205, {role: 'given', label: '$L = 0.85$ m', value: 0.85, unit: 'm', until: 'end'});
+Shell.label(s1, 150, pipeYmid, 'บัพ ($N$)', {role: 'given', anchor: [pipeX1, pipeYmid], until: 'end'});
+Shell.label(s1, 805, pipeYmid, 'ปฏิบัพ ($A$)', {role: 'given', anchor: [pipeX2, pipeYmid], until: 'end'});
+
+var s2 = Shell.step(
+  'ที่ความถี่มูลฐาน (ฮาร์มอนิกที่ 1) เกิดคลื่นนิ่งรูปแบบที่ง่ายที่สุด คือ มี 1 บัพที่ปลายปิด และ 1 ปฏิบัพที่ปลายเปิด ระยะระหว่างบัพถึงปฏิบัพที่ติดกันเท่ากับ $\\frac{\\lambda_1}{4}$<br>ดังนั้น $L = \\frac{\\lambda_1}{4} \\implies \\lambda_1 = 4L = 4(0.85) = 3.40$ m',
+  {
+    why: 'ความถี่มูลฐานมีจำนวนบัพและปฏิบัพน้อยที่สุด โดยระยะทางระหว่างบัพกับปฏิบัพที่อยู่ถัดกันเท่ากับหนึ่งในสี่ของความยาวคลื่นเสมอ',
+    uses: [1]
+  }
+);
+
+var waveLen = pipeX2 - pipeX1;
+var pathUp = 'M ' + pipeX1 + ' ' + pipeYmid;
+var pathLow = 'M ' + pipeX1 + ' ' + pipeYmid;
+var pathFill = 'M ' + pipeX1 + ' ' + pipeYmid;
+
+for (var i = 1; i <= 30; i++) {
+  var wx = pipeX1 + (waveLen * i) / 30;
+  var wyUp = pipeYmid - 50 * Math.sin((Math.PI * (wx - pipeX1)) / (2 * waveLen));
+  pathUp += ' L ' + wx.toFixed(1) + ' ' + wyUp.toFixed(1);
+}
+for (var i = 1; i <= 30; i++) {
+  var wx = pipeX1 + (waveLen * i) / 30;
+  var wyLow = pipeYmid + 50 * Math.sin((Math.PI * (wx - pipeX1)) / (2 * waveLen));
+  pathLow += ' L ' + wx.toFixed(1) + ' ' + wyLow.toFixed(1);
+}
+pathFill = pathUp;
+for (var i = 30; i >= 0; i--) {
+  var wx = pipeX1 + (waveLen * i) / 30;
+  var wyLow = pipeYmid + 50 * Math.sin((Math.PI * (wx - pipeX1)) / (2 * waveLen));
+  pathFill += ' L ' + wx.toFixed(1) + ' ' + wyLow.toFixed(1);
+}
+pathFill += ' Z';
+
+s2.appendChild(svgEl('path', {d: pathFill, fill: C.work, 'fill-opacity': 0.15}));
+s2.appendChild(svgEl('path', {d: pathUp, fill: 'none', stroke: C.work, 'stroke-width': 2.5}));
+s2.appendChild(svgEl('path', {d: pathLow, fill: 'none', stroke: C.work, 'stroke-width': 2, 'stroke-dasharray': '5,4'}));
+s2.appendChild(svgEl('circle', {cx: pipeX1, cy: pipeYmid, r: 4.5, fill: C.work}));
+
+Shell.arrow(s2, pipeX1, 35, pipeX2, 35, {role: 'work', label: '$\\frac{\\lambda_1}{4} = 0.85$ m', value: 0.85, unit: 'm', until: 'step'});
+Shell.label(s2, 480, 80, '$\\lambda_1 = 4L = 3.40$ m', {role: 'work', anchor: [480, pipeYmid], until: 'step'});
+
+var s3 = Shell.step(
+  'คำนวณหาความถี่มูลฐาน $f_1$ จากความสัมพันธ์ $v = f_1 \\lambda_1$<br>จะได้ $f_1 = \\frac{v}{\\lambda_1} = \\frac{340}{3.40} = 100$ Hz',
+  {
+    why: 'ความถี่ของคลื่นเสียงในอากาศขึ้นกับอัตราเร็วเสียงและความยาวคลื่นตามสมการ $v = f\\lambda$',
+    uses: [2]
+  }
+);
+
+Shell.label(s3, 735, 60, '$f_1 = 100$ Hz', {role: 'answer', anchor: [pipeX2, pipeYmid], until: 'end'});
+
+Shell.group('ปรากฏการณ์บีตส์จากการรวมคลื่นเสียงสองความถี่');
+
+var s4 = Shell.step(
+  'เมื่อนำเสียงจากท่อ ($f_1 = 100$ Hz) มารวมกับเสียงความถี่ใกล้เคียง เช่น $f_2 = 102$ Hz คลื่นเสียงทั้งสองจะเกิดการแทรกสอดเสริมและหักล้างสลับกันเป็นจังหวะตามเวลา ทำให้ได้ยินเสียง <b>ดัง-ค่อย สลับกันเป็นจังหวะสม่ำเสมอ</b> เรียกว่า <b>ปรากฏการณ์บีตส์ (Beats)</b>',
+  {
+    why: 'คลื่นสองขบวนที่มีความถี่ต่างกันเล็กน้อย มีเฟสตรงกันและเฟสตรงข้ามกันสลับกันตามเวลาอย่างต่อเนื่อง'
+  }
+);
+
+s4.appendChild(svgEl('line', {x1: 70, y1: 245, x2: 890, y2: 245, stroke: C.note, 'stroke-dasharray': '3,3', opacity: 0.4}));
+
+var beatX0 = 180, beatYmid = 380, beatW = 600;
+
+s4.appendChild(svgEl('line', {x1: beatX0 - 20, y1: beatYmid, x2: beatX0 + beatW + 20, y2: beatYmid, stroke: C.note, 'stroke-dasharray': '3,3', opacity: 0.4}));
+
+var carrierD = '';
+var envUpPts = [];
+var envLowPts = [];
+var N = 300;
+
+for (var i = 0; i <= N; i++) {
+  var t = i / N;
+  var bx = beatX0 + t * beatW;
+  var envAmp = 55 * Math.abs(Math.cos(Math.PI * 2 * t));
+  var byCarrier = beatYmid - 55 * Math.cos(Math.PI * 2 * t) * Math.sin(2 * Math.PI * 20 * t);
+  envUpPts.push([bx, beatYmid - envAmp]);
+  envLowPts.push([bx, beatYmid + envAmp]);
+  carrierD += (i === 0 ? 'M ' : ' L ') + bx.toFixed(1) + ' ' + byCarrier.toFixed(1);
+}
+
+var envUpD = 'M ' + envUpPts.map(function(p) { return p[0].toFixed(1) + ' ' + p[1].toFixed(1); }).join(' L ');
+var envLowD = 'M ' + envLowPts.map(function(p) { return p[0].toFixed(1) + ' ' + p[1].toFixed(1); }).join(' L ');
+var beatFillD = envUpD + ' L ' + envLowPts.slice().reverse().map(function(p) { return p[0].toFixed(1) + ' ' + p[1].toFixed(1); }).join(' L ') + ' Z';
+
+s4.appendChild(svgEl('path', {d: beatFillD, fill: C.work, 'fill-opacity': 0.1}));
+s4.appendChild(svgEl('path', {d: envUpD, fill: 'none', stroke: C.note, 'stroke-dasharray': '4,3', 'stroke-width': 1.5}));
+s4.appendChild(svgEl('path', {d: envLowD, fill: 'none', stroke: C.note, 'stroke-dasharray': '4,3', 'stroke-width': 1.5}));
+s4.appendChild(svgEl('path', {d: carrierD, fill: 'none', stroke: C.work, 'stroke-width': 2}));
+
+Shell.label(s4, 180, 310, 'เสียงดัง', {role: 'work', anchor: [180, 325], until: 'end'});
+Shell.label(s4, 330, 310, 'เสียงค่อย', {role: 'note', anchor: [330, 380], until: 'end'});
+Shell.label(s4, 480, 310, 'เสียงดัง', {role: 'work', anchor: [480, 325], until: 'end'});
+
+var s5 = Shell.step(
+  'ความถี่บีตส์ ($f_B$) คือจำนวนครั้งที่ได้ยินเสียงดังใน 1 วินาที คำนวณจากผลต่างของความถี่:<br>$f_B = |f_1 - f_2| = |100 - 102| = 2$ Hz<br>และคาบบีตส์ $T_B = \\frac{1}{f_B} = 0.50$ s (ได้ยินเสียงดังทุก ๆ $0.50$ วินาที)',
+  {
+    why: 'แอมพลิจูดรวมของคลื่นเปลี่ยนไปด้วยความถี่บีตส์ซึ่งเท่ากับผลต่างของความถี่ของคลื่นทั้งสองขบวน',
+    uses: [3, 4]
+  }
+);
+
+Shell.arrow(s5, beatX0, 465, beatX0 + 300, 465, {role: 'answer', label: '$T_B = 0.50$ s', value: 0.5, unit: 's', until: 'end'});
+Shell.label(s5, 480, 505, '$f_B = |f_1 - f_2| = 2$ Hz', {role: 'answer', anchor: [480, 465], until: 'end'});
+
+Shell.answer(
+  'ความถี่มูลฐานและปรากฏการณ์บีตส์',
+  'ความถี่มูลฐาน $f_1 = 100$ Hz และเกิดบีตส์ความถี่ $f_B = |f_1 - f_2|$',
+  {sanity: 'ความถี่มูลฐาน $100$ Hz สอดคล้องกับ $\\lambda = 4(0.85) = 3.4$ m ในอากาศ และความถี่บีตส์อยู่ในย่านที่หูมนุษย์แยกจังหวะเสียงดัง-ค่อยได้ชัดเจน (ไม่เกิน 7 Hz)'}
+);
+
+Shell.done();
+</script>
+</body></html>

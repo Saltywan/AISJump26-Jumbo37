@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>สมดุลของคานและโมเมนต์รอบจุดรองรับ</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+var SVGNS = 'http://www.w3.org/2000/svg';
+
+Shell.page({
+  title: 'สมดุลของคานและโมเมนต์รอบจุดรองรับ',
+  problem: 'คานสม่ำเสมอยาว 6 เมตร หนัก 150 นิวตัน วางพาดอยู่บนจุดรองรับสองจุดที่ปลายทั้งสองข้าง มีน้ำหนัก 300 นิวตันวางห่างจากปลายด้านหนึ่ง 2 เมตร จงหาแรงปฏิกิริยาที่จุดรองรับทั้งสองจุด โดยวิเคราะห์โมเมนต์รอบจุดรองรับ'
+});
+
+var g = Shell.canvas();
+var C = Shell.C;
+var PX_PER_N = 0.4;
+
+Shell.setup('การเลือกจุดรองรับใดจุดหนึ่งเป็นจุดหมุน จะทำให้แนวแรงปฏิกิริยาที่จุดนั้นผ่านจุดหมุนพอดี ส่งผลให้แขนของแรงเป็นศูนย์ (โมเมนต์เป็นศูนย์) จึงสามารถแก้สมการหาแรงปฏิกิริยาที่จุดรองรับอีกจุดหนึ่งได้โดยตรง');
+
+function drawSupport(parent, x, yTop, yBottom) {
+  var poly = document.createElementNS(SVGNS, 'polygon');
+  poly.setAttribute('points', x + ',' + yTop + ' ' + (x - 20) + ',' + yBottom + ' ' + (x + 20) + ',' + yBottom);
+  poly.setAttribute('stroke', C.note);
+  poly.setAttribute('stroke-width', '2');
+  poly.setAttribute('fill', 'none');
+  parent.appendChild(poly);
+
+  var baseLine = document.createElementNS(SVGNS, 'line');
+  baseLine.setAttribute('x1', x - 30); baseLine.setAttribute('y1', yBottom);
+  baseLine.setAttribute('x2', x + 30); baseLine.setAttribute('y2', yBottom);
+  baseLine.setAttribute('stroke', C.note);
+  baseLine.setAttribute('stroke-width', '2');
+  parent.appendChild(baseLine);
+
+  for (var h = -24; h <= 24; h += 8) {
+    var hatch = document.createElementNS(SVGNS, 'line');
+    hatch.setAttribute('x1', x + h); hatch.setAttribute('y1', yBottom);
+    hatch.setAttribute('x2', x + h - 6); hatch.setAttribute('y2', yBottom + 8);
+    hatch.setAttribute('stroke', C.note);
+    hatch.setAttribute('stroke-width', '1.5');
+    parent.appendChild(hatch);
+  }
+}
+
+function addDim(parent, x1, x2, y, text) {
+  var line = document.createElementNS(SVGNS, 'line');
+  line.setAttribute('x1', x1); line.setAttribute('y1', y);
+  line.setAttribute('x2', x2); line.setAttribute('y2', y);
+  line.setAttribute('stroke', C.note);
+  line.setAttribute('stroke-width', '1.5');
+  parent.appendChild(line);
+
+  var t1 = document.createElementNS(SVGNS, 'line');
+  t1.setAttribute('x1', x1); t1.setAttribute('y1', y - 5);
+  t1.setAttribute('x2', x1); t1.setAttribute('y2', y + 5);
+  t1.setAttribute('stroke', C.note);
+  t1.setAttribute('stroke-width', '1.5');
+  parent.appendChild(t1);
+
+  var t2 = document.createElementNS(SVGNS, 'line');
+  t2.setAttribute('x1', x2); t2.setAttribute('y1', y - 5);
+  t2.setAttribute('x2', x2); t2.setAttribute('y2', y + 5);
+  t2.setAttribute('stroke', C.note);
+  t2.setAttribute('stroke-width', '1.5');
+  parent.appendChild(t2);
+
+  Shell.label(parent, (x1 + x2) / 2, y - 10, text, {role:'note', anchor:[(x1 + x2) / 2, y], pin:true, until:'end'});
+}
+
+function addGuide(parent, x, y1, y2) {
+  var line = document.createElementNS(SVGNS, 'line');
+  line.setAttribute('x1', x); line.setAttribute('y1', y1);
+  line.setAttribute('x2', x); line.setAttribute('y2', y2);
+  line.setAttribute('stroke', C.note);
+  line.setAttribute('stroke-width', '1');
+  line.setAttribute('stroke-dasharray', '3,3');
+  parent.appendChild(line);
+}
+
+Shell.group('สร้างแผนภาพวัตถุอิสระ (FBD)');
+
+var s1 = Shell.step('วางคานยาว 6 เมตร บนจุดรองรับ $A$ และ $B$ ที่ปลายทั้งสอง น้ำหนักคาน $W = 150$ N ลงที่จุดกึ่งกลางคาน $C$ (ห่างจากปลายแต่ละข้าง 3 เมตร)', {
+  why: 'คานสม่ำเสมอมีมวลกระจายตัวเท่ากันตลอดความยาว น้ำหนักของคานจึงเสมือนรวมอยู่ที่จุดศูนย์กลางมวล ณ กึ่งกลางคานพอดี'
+});
+
+var beam = document.createElementNS(SVGNS, 'rect');
+beam.setAttribute('x', '120');
+beam.setAttribute('y', '260');
+beam.setAttribute('width', '720');
+beam.setAttribute('height', '20');
+beam.setAttribute('rx', '3');
+beam.setAttribute('stroke', C.note);
+beam.setAttribute('stroke-width', '2');
+beam.setAttribute('fill', C.note);
+beam.setAttribute('fill-opacity', '0.15');
+s1.appendChild(beam);
+
+drawSupport(s1, 120, 280, 310);
+drawSupport(s1, 840, 280, 310);
+
+Shell.label(s1, 120, 335, '$A$', {role:'note', anchor:[120, 280], pin:true, until:'end'});
+Shell.label(s1, 840, 335, '$B$', {role:'note', anchor:[840, 280], pin:true, until:'end'});
+
+var cLine = document.createElementNS(SVGNS, 'line');
+cLine.setAttribute('x1', '480'); cLine.setAttribute('y1', '252');
+cLine.setAttribute('x2', '480'); cLine.setAttribute('y2', '288');
+cLine.setAttribute('stroke', C.note);
+cLine.setAttribute('stroke-width', '1.5');
+cLine.setAttribute('stroke-dasharray', '3,3');
+s1.appendChild(cLine);
+Shell.label(s1, 480, 245, '$C$', {role:'note', anchor:[480, 260], pin:true, until:'end'});
+
+addDim(s1, 120, 840, 55, '$6$ m');
+addGuide(s1, 120, 50, 260);
+addGuide(s1, 840, 50, 260);
+
+Shell.arrow(s1, 480, 270, 480, 270 + 150 * PX_PER_N, {
+  role: 'given',
+  label: '$W = 150$ N',
+  value: 150,
+  unit: 'N',
+  until: 'end'
+});
+
+var s2 = Shell.step('วางน้ำหนัก $W_1 = 300$ N ห่างจากจุดรองรับ $A$ เป็นระยะ 2 เมตร (ห่างจากจุดกึ่งกลางคาน $C$ เป็นระยะ 1 เมตร)');
+
+var loadBox = document.createElementNS(SVGNS, 'rect');
+loadBox.setAttribute('x', '335');
+loadBox.setAttribute('y', '220');
+loadBox.setAttribute('width', '50');
+loadBox.setAttribute('height', '40');
+loadBox.setAttribute('rx', '4');
+loadBox.setAttribute('stroke', C.given);
+loadBox.setAttribute('stroke-width', '2');
+loadBox.setAttribute('fill', C.given);
+loadBox.setAttribute('fill-opacity', '0.2');
+s2.appendChild(loadBox);
+
+addDim(s2, 120, 360, 105, '$2$ m');
+addDim(s2, 360, 480, 105, '$1$ m');
+addDim(s2, 480, 840, 105, '$3$ m');
+addGuide(s2, 360, 100, 220);
+addGuide(s2, 480, 100, 252);
+
+Shell.arrow(s2, 360, 270, 360, 270 + 300 * PX_PER_N, {
+  role: 'given',
+  label: '$W_1 = 300$ N',
+  value: 300,
+  unit: 'N',
+  until: 'end'
+});
+
+Shell.group('วิเคราะห์โมเมนต์รอบจุดรองรับ A เพื่อหา $R_B$');
+
+var s3 = Shell.step('ให้จุดรองรับ $A$ เป็นจุดหมุน (กำจัดแรง $R_A$ ออกจากการคำนวณ)<br>ผลรวมโมเมนต์รอบจุด $A$ ต้องเป็นศูนย์: $\\sum M_A = 0$<br><b>โมเมนต์ทวนเข็มนาฬิกา</b> = <b>โมเมนต์ตามเข็มนาฬิกา</b><br>$R_B \\times 6 = (300 \\times 2) + (150 \\times 3)$<br>$6 R_B = 600 + 450 = 1050$<br>$R_B = \\frac{1050}{6} = 175$ N', {
+  why: 'แรง $R_A$ มีแนวแรงผ่านจุดหมุน A พอดี แขนของแรงจึงเป็นศูนย์ โมเมนต์ของ $R_A$ จึงเป็นศูนย์',
+  uses: [1, 2]
+});
+
+var pivotA = document.createElementNS(SVGNS, 'circle');
+pivotA.setAttribute('cx', '120');
+pivotA.setAttribute('cy', '280');
+pivotA.setAttribute('r', '14');
+pivotA.setAttribute('stroke', C.warn);
+pivotA.setAttribute('stroke-width', '2.5');
+pivotA.setAttribute('fill', 'none');
+pivotA.setAttribute('stroke-dasharray', '4,3');
+s3.appendChild(pivotA);
+
+Shell.label(s3, 120, 360, 'จุดหมุน A', {role:'warn', anchor:[120, 280], until:'step'});
+
+Shell.arrow(s3, 840, 270, 840, 270 - 175 * PX_PER_N, {
+  role: 'answer',
+  label: '$R_B = 175$ N',
+  value: 175,
+  unit: 'N',
+  until: 'end'
+});
+
+Shell.group('วิเคราะห์โมเมนต์รอบจุดรองรับ B เพื่อหา $R_A$');
+
+var s4 = Shell.step('ให้จุดรองรับ $B$ เป็นจุดหมุน (กำจัดแรง $R_B$ ออกจากการคำนวณ)<br>ผลรวมโมเมนต์รอบจุด $B$ ต้องเป็นศูนย์: $\\sum M_B = 0$<br><b>โมเมนต์ตามเข็มนาฬิกา</b> = <b>โมเมนต์ทวนเข็มนาฬิกา</b><br>$R_A \\times 6 = (300 \\times 4) + (150 \\times 3)$<br>$6 R_A = 1200 + 450 = 1650$<br>$R_A = \\frac{1650}{6} = 275$ N', {
+  why: 'แรง $R_B$ มีแนวแรงผ่านจุดหมุน B จึงไม่เกิดโมเมนต์ สามารถหาแรง $R_A$ ได้โดยตรงจากสมดุลโมเมนต์',
+  uses: [1, 2]
+});
+
+var pivotB = document.createElementNS(SVGNS, 'circle');
+pivotB.setAttribute('cx', '840');
+pivotB.setAttribute('cy', '280');
+pivotB.setAttribute('r', '14');
+pivotB.setAttribute('stroke', C.warn);
+pivotB.setAttribute('stroke-width', '2.5');
+pivotB.setAttribute('fill', 'none');
+pivotB.setAttribute('stroke-dasharray', '4,3');
+s4.appendChild(pivotB);
+
+Shell.label(s4, 840, 360, 'จุดหมุน B', {role:'warn', anchor:[840, 280], until:'step'});
+
+Shell.arrow(s4, 120, 270, 120, 270 - 275 * PX_PER_N, {
+  role: 'answer',
+  label: '$R_A = 275$ N',
+  value: 275,
+  unit: 'N',
+  until: 'end'
+});
+
+Shell.group('ตรวจสอบความถูกต้องด้วยสมดุลของแรง');
+
+Shell.step('ตรวจสอบความสอดคล้องด้วยสมดุลแรงแนวดิ่ง: $\\sum F_y = 0$<br><b>แรงขึ้นทั้งหมด</b> = $R_A + R_B = 275 + 175 = 450$ N<br><b>แรงลงทั้งหมด</b> = $W_1 + W = 300 + 150 = 450$ N<br>แรงขึ้นเท่ากับแรงลงพอดี ($450$ N $= 450$ N) คานจึงอยู่ในภาวะสมดุลสมบูรณ์', {
+  why: 'วัตถุที่อยู่ในภาวะสมดุลสมบูรณ์ นอกจากโมเมนต์ลัพธ์รอบทุกจุดต้องเป็นศูนย์แล้ว แรงลัพธ์ในทุกแนวแกนต้องเป็นศูนย์ด้วย',
+  uses: [3, 4]
+});
+
+Shell.answer('แรงปฏิกิริยาที่จุดรองรับทั้งสอง', '$R_A = 275$ N และ $R_B = 175$ N', {
+  sanity: 'แรง $R_A$ ($275$ N) มีค่ามากกว่า $R_B$ ($175$ N) เนื่องจากน้ำหนัก 300 N วางอยู่ใกล้จุด A มากกว่าจุด B และผลรวมแรงปฏิกิริยา $275 + 175 = 450$ N มีค่าเท่ากับน้ำหนักรวมทั้งหมด ($300 + 150 = 450$ N) พอดี'
+});
+
+Shell.done();
+</script>
+</body></html>

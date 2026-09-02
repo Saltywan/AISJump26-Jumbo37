@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>ความหนาแน่นของน้ำแข็งและระดับน้ำเมื่อน้ำแข็งละลาย</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+var SVGNS = 'http://www.w3.org/2000/svg';
+
+Shell.page({
+  title: 'ความหนาแน่นของน้ำแข็งและระดับน้ำเมื่อน้ำแข็งละลาย',
+  problem: 'ก้อนน้ำแข็งลอยอยู่ในน้ำโดยมีส่วนที่จมอยู่ใต้น้ำ 90% ของปริมาตรทั้งหมด จงหาความหนาแน่นของน้ำแข็ง และอธิบายว่าเมื่อน้ำแข็งละลายหมด ระดับน้ำในภาชนะจะเปลี่ยนแปลงหรือไม่ พร้อมพิสูจน์ด้วยหลักของอาร์คิมิดีส'
+});
+
+var g = Shell.canvas();
+var C = Shell.C;
+var PX_PER_N = 1.0;
+
+function createSVG(tag, attrs) {
+  var el = document.createElementNS(SVGNS, tag);
+  for (var k in attrs) {
+    el.setAttribute(k, attrs[k]);
+  }
+  return el;
+}
+
+// พื้นรองรับภาชนะ
+var floor = createSVG('line', {
+  x1: '60', y1: '450', x2: '900', y2: '450',
+  stroke: C.note, 'stroke-width': '2'
+});
+g.appendChild(floor);
+
+Shell.setup('วัตถุลอยตัวในของเหลวอย่างสมดุล แรงลอยตัวจากของเหลวจะเท่ากับน้ำหนักของวัตถุพอดี และการเปลี่ยนสถานะของสสารจะไม่ทำให้มวลสูญหาย');
+
+// ==========================================
+// ส่วนที่ 1: หาความหนาแน่นของน้ำแข็ง
+// ==========================================
+Shell.group('ส่วนที่ 1: หาความหนาแน่นของน้ำแข็ง');
+
+var s1 = Shell.step('พิจารณาน้ำแข็งปริมาตร $V_{\\text{ice}}$ ลอยนิ่งในน้ำ โดยมีส่วนจม $90\\%$ ($V_{\\text{sub}} = 0.90 V_{\\text{ice}}$)', {
+  why: 'โจทย์กำหนดสัดส่วนปริมาตรส่วนที่จมใต้น้ำมาให้ชัดเจน'
+});
+
+// ภาชนะที่ 1
+var b1 = createSVG('path', {
+  d: 'M 110,160 L 110,450 L 370,450 L 370,160',
+  fill: 'none', stroke: C.note, 'stroke-width': '3', 'stroke-linecap': 'round'
+});
+s1.appendChild(b1);
+
+// น้ำในภาชนะที่ 1
+var water1 = createSVG('rect', {
+  x: '112', y: '280', width: '256', height: '168',
+  fill: C.work, 'fill-opacity': '0.15'
+});
+s1.appendChild(water1);
+
+var waterLine1 = createSVG('line', {
+  x1: '110', y1: '280', x2: '370', y2: '280',
+  stroke: C.work, 'stroke-width': '2'
+});
+s1.appendChild(waterLine1);
+
+// ก้อนน้ำแข็ง (ความกว้าง 120, สูงรวม 140, ส่วนจม 126 = 90%, ส่วนพ้นน้ำ 14 = 10%)
+var iceSub = createSVG('rect', {
+  x: '180', y: '280', width: '120', height: '126',
+  fill: C.given, 'fill-opacity': '0.35', stroke: C.given, 'stroke-width': '2'
+});
+s1.appendChild(iceSub);
+
+var iceExp = createSVG('rect', {
+  x: '180', y: '266', width: '120', height: '14',
+  fill: C.given, 'fill-opacity': '0.55', stroke: C.given, 'stroke-width': '2'
+});
+s1.appendChild(iceExp);
+
+Shell.label(s1, 240, 135, 'ภาชนะที่ 1: ขณะน้ำแข็งลอย', {role:'note', anchor:[240, 160], until:'end'});
+Shell.label(s1, 240, 350, '$V_{\\text{sub}} = 0.90 V_{\\text{ice}}$', {role:'given', anchor:[240, 350], until:'step'});
+Shell.label(s1, 335, 260, '$0.10 V_{\\text{ice}}$', {role:'note', anchor:[300, 273], until:'step'});
+
+// ขั้นที่ 2: สมดุลแรง
+var s2 = Shell.step('เขียนสมดุลแรงในแนวดิ่ง $\\sum F_y = 0$ ได้แรงลอยตัวเท่ากับน้ำหนัก $F_B = W_{\\text{ice}}$', {
+  why: 'น้ำแข็งลอยนิ่งในแนวดิ่ง ไม่มีความเร่ง จึงอยู่ในสมดุลกลตามกฎข้อที่หนึ่งของนิวตัน',
+  uses: [1]
+});
+
+var dot1 = createSVG('circle', {cx:'240', cy:'336', r:'4', fill:C.work});
+s2.appendChild(dot1);
+
+Shell.arrow(s2, 240, 336, 240, 336 + 90 * PX_PER_N, {
+  role: 'given', label: '$W = 90$ N', value: 90, unit: 'N', until: 'step'
+});
+Shell.arrow(s2, 240, 336, 240, 336 - 90 * PX_PER_N, {
+  role: 'work', label: '$F_B = 90$ N', value: 90, unit: 'N', until: 'step'
+});
+
+// ขั้นที่ 3: กฎของอาร์คิมิดีส
+var s3 = Shell.step('แทนค่าตามหลักของอาร์คิมิดีส $F_B = \\rho_w V_{\\text{sub}} g$ และ $W_{\\text{ice}} = \\rho_{\\text{ice}} V_{\\text{ice}} g$', {
+  why: 'แรงลอยตัวมีขนาดเท่ากับน้ำหนักของน้ำที่ถูกแทนที่ด้วยปริมาตรส่วนที่จม',
+  uses: [2]
+});
+
+Shell.label(s3, 240, 350, '$\\rho_w V_{\\text{sub}} g = \\rho_{\\text{ice}} V_{\\text{ice}} g$', {
+  role: 'work', anchor: [240, 350], until: 'step'
+});
+
+// ขั้นที่ 4: คำนวณความหนาแน่น
+var s4 = Shell.step('ตัด $g$ ทั้งสองข้าง ได้ $\\rho_{\\text{ice}} = \\rho_w \\left(\\frac{V_{\\text{sub}}}{V_{\\text{ice}}}\\right) = 1000 \\times 0.90 = 900\\text{ kg/m}^3$', {
+  why: 'อัตราส่วนความหนาแน่นของวัตถุต่อของเหลวเท่ากับสัดส่วนปริมาตรส่วนที่จมพอดี',
+  uses: [1, 3]
+});
+
+Shell.label(s4, 240, 350, '$\\rho_{\\text{ice}} = 900\\text{ kg/m}^3$', {
+  role: 'answer', anchor: [240, 350], until: 'step'
+});
+
+// ==========================================
+// ส่วนที่ 2: วิเคราะห์ระดับน้ำเมื่อน้ำแข็งละลายหมด
+// ==========================================
+Shell.group('ส่วนที่ 2: วิเคราะห์ระดับน้ำเมื่อน้ำแข็งละลายหมด');
+
+// ขั้นที่ 5: ปริมาตรน้ำที่ถูกแทนที่ตอนแรก
+var s5 = Shell.step('ขณะลอย ปริมาตรน้ำที่ถูกแทนที่คือ $V_{\\text{sub}} = \\frac{m_{\\text{ice}}}{\\rho_w}$', {
+  why: 'จากสมดุล $\\rho_w V_{\\text{sub}} g = m_{\\text{ice}} g$ ย้ายข้างหาปริมาตรน้ำที่ถูกดันออกไป',
+  uses: [2]
+});
+
+Shell.label(s5, 240, 350, '$V_{\\text{sub}} = \\frac{m_{\\text{ice}}}{\\rho_w}$', {
+  role: 'work', anchor: [240, 350], until: 'end'
+});
+
+// ขั้นที่ 6: น้ำแข็งละลายกลายเป็นน้ำ
+var s6 = Shell.step('เมื่อน้ำแข็งละลายหมด มวลคงเดิม $m_w = m_{\\text{ice}}$ ปริมาตรของน้ำที่ได้คือ $V_{\\text{melted}} = \\frac{m_{\\text{ice}}}{\\rho_w}$', {
+  why: 'มวลไม่สูญหายตามกฎการอนุรักษ์มวล และน้ำแข็งละลายกลายเป็นน้ำเหลวที่มีความหนาแน่น $\\rho_w$',
+  uses: [5]
+});
+
+// ภาชนะที่ 2 (หลังละลาย)
+var b2 = createSVG('path', {
+  d: 'M 590,160 L 590,450 L 850,450 L 850,160',
+  fill: 'none', stroke: C.note, 'stroke-width': '3', 'stroke-linecap': 'round'
+});
+s6.appendChild(b2);
+
+var water2 = createSVG('rect', {
+  x: '592', y: '280', width: '256', height: '168',
+  fill: C.work, 'fill-opacity': '0.15'
+});
+s6.appendChild(water2);
+
+var waterLine2 = createSVG('line', {
+  x1: '590', y1: '280', x2: '850', y2: '280',
+  stroke: C.work, 'stroke-width': '2'
+});
+s6.appendChild(waterLine2);
+
+// ปริมาตรน้ำที่ละลายออกมา เติมเต็มบริเวณขนาดเท่าส่วนจมเดิมพอดี
+var meltedArea = createSVG('rect', {
+  x: '660', y: '280', width: '120', height: '126',
+  fill: C.answer, 'fill-opacity': '0.25', stroke: C.answer,
+  'stroke-width': '2', 'stroke-dasharray': '5 4'
+});
+s6.appendChild(meltedArea);
+
+Shell.label(s6, 720, 135, 'ภาชนะที่ 2: หลังน้ำแข็งละลายหมด', {role:'note', anchor:[720, 160], until:'end'});
+Shell.label(s6, 480, 220, 'ละลายหมด $\\rightarrow$', {role:'note', anchor:[480, 220], until:'step'});
+Shell.label(s6, 720, 350, '$V_{\\text{melted}} = \\frac{m_{\\text{ice}}}{\\rho_w}$', {
+  role: 'work', anchor: [720, 350], until: 'end'
+});
+
+// ขั้นที่ 7: สรุปการเปรียบเทียบระดับน้ำ
+var s7 = Shell.step('พบว่า $V_{\\text{melted}} = V_{\\text{sub}}$ ปริมาตรน้ำที่ได้จะเข้าไปแทนที่ช่องว่างส่วนที่จมเดิมพอดี ระดับน้ำจึงคงที่เท่าเดิม', {
+  why: 'ปริมาตรน้ำใหม่ที่เกิดขึ้นเท่ากับปริมาตรของเหลวที่ถูกแทนที่ไปแต่แรกพอดิบพอดี',
+  uses: [5, 6]
+});
+
+// เส้นประแสดงระดับผิวน้ำที่เท่ากันทั้งสองภาชนะ
+var levelRef = createSVG('line', {
+  x1: '80', y1: '280', x2: '880', y2: '280',
+  stroke: C.warn, 'stroke-width': '2', 'stroke-dasharray': '6 4'
+});
+s7.appendChild(levelRef);
+
+Shell.label(s7, 85, 255, 'ระดับน้ำเดิม $h$', {role:'note', anchor:[110, 280], until:'end'});
+Shell.label(s7, 875, 255, 'ระดับน้ำใหม่ $h$ (คงเดิม)', {role:'answer', anchor:[850, 280], until:'end'});
+Shell.label(s7, 480, 260, '$V_{\\text{melted}} = V_{\\text{sub}}$', {role:'answer', anchor:[480, 280], until:'end'});
+Shell.label(s7, 480, 320, 'น้ำที่ละลายเติมเต็มส่วนจมเดิมพอดี', {role:'answer', anchor:[480, 320], until:'end'});
+
+Shell.answer(
+  'ความหนาแน่นของน้ำแข็ง และการเปลี่ยนแปลงของระดับน้ำ',
+  '$\\rho_{\\text{ice}} = 900\\text{ kg/m}^3$ และระดับน้ำคงที่เท่าเดิมไม่เปลี่ยนแปลง',
+  {
+    sanity: 'สมเหตุสมผลเพราะน้ำแข็งเบากว่าน้ำจึงลอย ($\rho_{\\text{ice}} < \\rho_w$) และเมื่อน้ำแข็งละลาย ปริมาตรจะหดตัวลง 10% จนเท่ากับปริมาตรส่วนที่จม 90% เดิมพอดี'
+  }
+);
+
+Shell.done();
+</script>
+</body></html>

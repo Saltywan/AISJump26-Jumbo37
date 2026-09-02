@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>การสร้างเส้นตั้งฉากจากจุดภายนอกมายังเส้นตรง</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/jsxgraph.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/jsxgraphcore.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+Shell.page({
+  title: 'การสร้างเส้นตั้งฉากจากจุดภายนอกมายังเส้นตรง',
+  problem: 'จงสร้างเส้นตั้งฉากจากจุด $P$ ซึ่งอยู่นอกเส้นตรง $AB$ มายังเส้นตรง $AB$ โดยใช้วงเวียนและสันตรงเท่านั้น'
+});
+
+var b = Shell.board({
+  box: [-7, 7.5, 7, -5],
+  axis: false,
+  grid: false,
+  keepaspect: true
+});
+var C = Shell.C;
+
+Shell.setup('จุดทุกจุดบนเส้นตั้งฉากที่แบ่งครึ่งส่วนของเส้นตรง จะมีระยะห่างจากปลายทั้งสองข้างเท่ากันเสมอ เราจึงใช้วงเวียนสร้างจุด $C$ และ $D$ บนเส้นตรง $AB$ ให้ห่างจากจุด $P$ เท่ากัน ($PC = PD$) จากนั้นสร้างจุด $Q$ ทางฝั่งตรงข้ามให้มีระยะห่างเท่ากัน ($QC = QD$) ทำให้เส้นตรงที่ลากผ่านจุด $P$ และ $Q$ ตั้งฉากกับเส้นตรง $AB$');
+
+Shell.group('ใช้วงเวียนสร้างจุดที่มีระยะห่างเท่ากันบนเส้นตรง');
+
+var A = b.create('point', [-5.5, 0], {name: '', withLabel: false, strokeColor: C.given, fillColor: C.given, size: 3, fixed: true});
+var B = b.create('point', [5.5, 0], {name: '', withLabel: false, strokeColor: C.given, fillColor: C.given, size: 3, fixed: true});
+var lineAB = b.create('line', [A, B], {name: '', withLabel: false, strokeColor: C.given, strokeWidth: 2, fixed: true});
+var P = b.create('point', [0, 3], {name: '', withLabel: false, strokeColor: C.given, fillColor: C.given, size: 4, fixed: true});
+
+var s1 = Shell.step('กำหนดเส้นตรง $AB$ และจุด $P$ ซึ่งเป็นจุดที่อยู่นอกเส้นตรงตามที่โจทย์กำหนด');
+Shell.on(s1, lineAB, A, B, P);
+Shell.tag(s1, A, '$A$', {role: 'given'});
+Shell.tag(s1, B, '$B$', {role: 'given'});
+Shell.tag(s1, P, '$P$', {role: 'given'});
+
+var R = 3.4;
+var cP = b.create('circle', [P, R], {name: '', withLabel: false, strokeColor: C.work, strokeWidth: 1.5, dash: 2});
+var C_pt = b.create('intersection', [lineAB, cP, 0], {name: '', withLabel: false, strokeColor: C.work, fillColor: C.work, size: 3});
+var D_pt = b.create('intersection', [lineAB, cP, 1], {name: '', withLabel: false, strokeColor: C.work, fillColor: C.work, size: 3});
+
+var s2 = Shell.step('ใช้วงเวียนโดยให้จุด $P$ เป็นจุดศูนย์กลาง กางรัศมี $r > d(P, AB)$ เขียนส่วนโค้งตัดเส้นตรง $AB$ ที่จุด $C$ และ $D$', {
+  why: 'รัศมีต้องยาวกว่าระยะห่างจากจุด $P$ ถึงเส้นตรง $AB$ เพื่อให้วงเวียนตัดเส้นตรงได้สองจุด ซึ่งทำให้ได้ $PC = PD$',
+  uses: [1]
+});
+Shell.on(s2, cP, C_pt, D_pt);
+Shell.tag(s2, C_pt, '$C$', {role: 'work'});
+Shell.tag(s2, D_pt, '$D$', {role: 'work'});
+
+Shell.group('หาจุดตัดร่วมเพื่อกำหนดแนวเส้นตั้งฉาก');
+
+var cC = b.create('circle', [C_pt, P], {name: '', withLabel: false, strokeColor: C.work, strokeWidth: 1.5, dash: 2});
+var cD = b.create('circle', [D_pt, P], {name: '', withLabel: false, strokeColor: C.work, strokeWidth: 1.5, dash: 2});
+var int0 = b.create('intersection', [cC, cD, 0], {name: '', withLabel: false, visible: false});
+var int1 = b.create('intersection', [cC, cD, 1], {name: '', withLabel: false, visible: false});
+
+var Q = b.create('point', [
+  function() { return (int0.Y() < 0) ? int0.X() : int1.X(); },
+  function() { return (int0.Y() < 0) ? int0.Y() : int1.Y(); }
+], {
+  name: '',
+  withLabel: false,
+  strokeColor: C.work,
+  fillColor: C.work,
+  size: 3
+});
+
+var s3 = Shell.step('ใช้วงเวียนรัศมีเดิม กางจากจุด $C$ และจุด $D$ เขียนส่วนโค้งตัดกันที่จุด $Q$ ทางฝั่งตรงข้ามของจุด $P$', {
+  why: 'การใช้รัศมีเท่าเดิมทำให้ $QC = QD = PC = PD$ ส่งผลให้จุด $Q$ อยู่บนแนวเส้นตั้งฉากเดียวกับจุด $P$',
+  uses: [2]
+});
+Shell.on(s3, cC, cD, Q);
+Shell.tag(s3, Q, '$Q$', {role: 'work'});
+
+Shell.group('ลากเส้นตั้งฉากด้วยสันตรง');
+
+var perpLine = b.create('line', [P, Q], {name: '', withLabel: false, strokeColor: C.answer, strokeWidth: 2.5});
+var M = b.create('intersection', [lineAB, perpLine, 0], {name: '', withLabel: false, strokeColor: C.answer, fillColor: C.answer, size: 4});
+var rightAngle = b.create('angle', [B, M, P], {name: '', withLabel: false, radius: 0.5, strokeColor: C.answer, fillColor: 'none'});
+
+var s4 = Shell.step('ใช้สันตรงทาบและลากเส้นตรงผ่านจุด $P$ และจุด $Q$ ตัดเส้นตรง $AB$ ที่จุด $M$', {
+  why: 'เส้นตรงที่ลากผ่านจุดสองจุดซึ่งห่างจากปลายทั้งสองของ $CD$ เท่ากัน จะเป็นเส้นแบ่งครึ่งตั้งฉากของ $CD$ เสมอ',
+  uses: [2, 3]
+});
+Shell.on(s4, perpLine, M, rightAngle);
+Shell.tag(s4, M, '$M$', {role: 'answer'});
+
+Shell.answer(
+  'เส้นตั้งฉากจากจุด $P$ มายังเส้นตรง $AB$',
+  'เส้นตรง $PQ \\perp AB$ ที่จุด $M$ (หรือส่วนของเส้นตรง $PM \\perp AB$)',
+  {sanity: 'รูปสี่เหลี่ยม $PCQD$ มีด้านทั้งสี่เท่ากัน ($PC = PD = QC = QD$) จึงเป็นรูปสี่เหลี่ยมขนมเปียกปูน ซึ่งเส้นทแยงมุมตัดกันเป็นมุมฉาก ($90^\\circ$) เสมอ'}
+);
+
+Shell.done();
+</script>
+</body></html>

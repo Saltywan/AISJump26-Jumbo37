@@ -16,7 +16,7 @@ export default function Home() {
         {PAGES.map((p) => (
           <Link key={p.file} className="card" to={`/p/${encodeURIComponent(p.file)}`}>
             <p className="card-title">{p.title}</p>
-            <span className="card-level">{p.level}</span>
+            {p.level && <span className="card-level">{p.level}</span>}
           </Link>
         ))}
       </div>

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>มุมที่จุดศูนย์กลางและมุมระหว่างเส้นสัมผัส</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/jsxgraph.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/jsxgraphcore.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+Shell.page({
+  title: 'มุมที่จุดศูนย์กลางและมุมระหว่างเส้นสัมผัส',
+  problem: 'เส้นสัมผัส $PA$ และ $PB$ ลากจากจุด $P$ ภายนอกวงกลมไปสัมผัสวงกลมที่จุด $A$ และ $B$ ถ้ามุม $\\angle APB = 50^\\circ$ จงหาขนาดของมุม $\\angle AOB$ ($O$ คือจุดศูนย์กลาง)'
+});
+
+var b = Shell.board({box: [-8, 4.5, 6, -4.5], axis: false, grid: false, keepaspect: true});
+var C = Shell.C;
+
+Shell.setup('เส้นสัมผัสของวงกลมมีสมบัติสำคัญคือจะตั้งฉากกับรัศมีที่จุดสัมผัสเสมอ ทำให้เกิดรูปสี่เหลี่ยม $PAOB$ ซึ่งสามารถใช้สมบัติผลรวมมุมภายในของรูปสี่เหลี่ยมหาขนาดของมุม $\\angle AOB$ ได้');
+
+var O = b.create('point', [1.5, 0], {name: '', withLabel: false, strokeColor: C.given, fillColor: C.given, size: 4, fixed: true});
+var P = b.create('point', [1.5 - 3 / Math.sin(25 * Math.PI / 180), 0], {name: '', withLabel: false, strokeColor: C.given, fillColor: C.given, size: 4, fixed: true});
+var circ = b.create('circle', [O, 3], {name: '', withLabel: false, strokeColor: C.given, strokeWidth: 2.5, fixed: true});
+
+var M = b.create('midpoint', [O, P], {visible: false});
+var cThales = b.create('circle', [M, O], {visible: false});
+
+var int1 = b.create('intersection', [circ, cThales, 0], {name: '', withLabel: false, strokeColor: C.given, fillColor: C.given, size: 4});
+var int2 = b.create('intersection', [circ, cThales, 1], {name: '', withLabel: false, strokeColor: C.given, fillColor: C.given, size: 4});
+
+var isInt1Top = int1.Y() > int2.Y();
+var A = isInt1Top ? int1 : int2;
+var B = isInt1Top ? int2 : int1;
+
+var segPA = b.create('segment', [P, A], {name: '', withLabel: false, strokeColor: C.given, strokeWidth: 2.5});
+var segPB = b.create('segment', [P, B], {name: '', withLabel: false, strokeColor: C.given, strokeWidth: 2.5});
+
+var segOA = b.create('segment', [O, A], {name: '', withLabel: false, strokeColor: C.work, strokeWidth: 2.5});
+var segOB = b.create('segment', [O, B], {name: '', withLabel: false, strokeColor: C.work, strokeWidth: 2.5});
+
+var quad = b.create('polygon', [P, A, O, B], {
+  name: '', withLabel: false,
+  fillColor: C.work, fillOpacity: 0.08,
+  borders: {visible: false},
+  vertices: {visible: false}
+});
+
+var angP = b.create('angle', [B, P, A], {
+  name: '', withLabel: false,
+  radius: 1.2,
+  strokeColor: C.given,
+  fillColor: C.given,
+  fillOpacity: 0.2
+});
+
+var angA = b.create('angle', [P, A, O], {
+  name: '', withLabel: false,
+  radius: 0.6,
+  strokeColor: C.work,
+  fillColor: C.work,
+  fillOpacity: 0.2,
+  orthoType: 'square'
+});
+
+var angB = b.create('angle', [O, B, P], {
+  name: '', withLabel: false,
+  radius: 0.6,
+  strokeColor: C.work,
+  fillColor: C.work,
+  fillOpacity: 0.2,
+  orthoType: 'square'
+});
+
+var angO = b.create('angle', [A, O, B], {
+  name: '', withLabel: false,
+  radius: 1.0,
+  strokeColor: C.answer,
+  fillColor: C.answer,
+  fillOpacity: 0.25
+});
+
+Shell.group('สร้างรูปและระบุสมบัติของเส้นสัมผัส');
+
+var s1 = Shell.step('พิจารณาวงกลมที่มีจุดศูนย์กลาง $O$ จุด $P$ อยู่ภายนอกวงกลม ลากเส้นสัมผัส $PA$ และ $PB$ ไปสัมผัสวงกลมที่จุด $A$ และ $B$ โดยมีมุม $\\angle APB = 50^\\circ$');
+Shell.on(s1, P, O, circ, A, B, segPA, segPB, angP);
+Shell.tag(s1, P, 'P', {role: 'given'});
+Shell.tag(s1, A, 'A', {role: 'given'});
+Shell.tag(s1, B, 'B', {role: 'given'});
+Shell.tag(s1, O, 'O', {role: 'given'});
+Shell.tag(s1, [-4.1, 0], '$50^\\circ$', {role: 'given'});
+
+var s2 = Shell.step('ลากรัศมี $OA$ และ $OB$ ไปยังจุดสัมผัส จะได้ว่า $OA \\perp PA$ และ $OB \\perp PB$ ทำให้ได้มุมฉาก $\\angle PAO = 90^\\circ$ และ $\\angle PBO = 90^\\circ$', {
+  why: 'รัศมีที่ลากไปยังจุดสัมผัสจะตั้งฉากกับเส้นสัมผัสของวงกลมเสมอ จึงทำให้เกิดมุมฉาก $90^\\circ$',
+  uses: [1]
+});
+Shell.on(s2, segOA, segOB, angA, angB);
+Shell.tag(s2, [-0.7, 1.9], '$90^\\circ$', {role: 'work', until: 3});
+Shell.tag(s2, [-0.7, -1.9], '$90^\\circ$', {role: 'work', until: 3});
+
+Shell.group('คำนวณขนาดของมุม $\\angle AOB$');
+
+var s3 = Shell.step('พิจารณารูปสี่เหลี่ยม $PAOB$ ผลรวมของมุมภายในรูปสี่เหลี่ยมเท่ากับ $360^\\circ$<br>$\\angle APB + \\angle PAO + \\angle PBO + \\angle AOB = 360^\\circ$<br>$50^\\circ + 90^\\circ + 90^\\circ + \\angle AOB = 360^\\circ$', {
+  why: 'รูปสี่เหลี่ยมใด ๆ สามารถแบ่งเป็นรูปสามเหลี่ยมได้ 2 รูป มุมภายในจึงรวมกันได้ $2 \\times 180^\\circ = 360^\\circ$',
+  uses: [1, 2]
+});
+Shell.on(s3, quad);
+
+var s4 = Shell.step('คำนวณหาขนาดของมุม $\\angle AOB$:<br>$\\angle AOB = 360^\\circ - (50^\\circ + 90^\\circ + 90^\\circ) = 360^\\circ - 230^\\circ = 130^\\circ$<br>(หรือคิดจากมุมตรงข้ามของรูปสี่เหลี่ยมนี้: $\\angle AOB = 180^\\circ - 50^\\circ = 130^\\circ$)', {
+  uses: [3]
+});
+Shell.on(s4, angO);
+Shell.tag(s4, [0.3, 0], '$130^\\circ$', {role: 'answer'});
+
+Shell.answer('ขนาดของมุม $\\angle AOB$', '$130^\\circ$', {
+  sanity: 'มุมตรงข้าม $\\angle APB$ และ $\\angle AOB$ ต้องรวมกันได้ $180^\\circ$ เสมอ เนื่องจากมุมอีกสองมุมเป็นมุมฉาก ($90^\\circ + 90^\\circ = 180^\\circ$) ดังนั้น $50^\\circ + 130^\\circ = 180^\\circ$ ซึ่งสมเหตุสมผล'
+});
+
+Shell.done();
+</script>
+</body></html>

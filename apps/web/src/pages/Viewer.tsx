@@ -33,7 +33,7 @@ export default function Viewer() {
           ‹
         </Link>
         <span className="viewer-title">{entry.title}</span>
-        <span className="viewer-level">{entry.level}</span>
+        {entry.level && <span className="viewer-level">{entry.level}</span>}
       </div>
       <div className="viewer-stage">
         {!loaded && (

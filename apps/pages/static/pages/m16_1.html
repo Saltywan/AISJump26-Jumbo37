@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>คาบและแอมพลิจูดของ y = 3sin(2x)</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/jsxgraph.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/jsxgraphcore.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+Shell.page({
+  title: 'คาบและแอมพลิจูดของฟังก์ชันตรีโกณมิติ',
+  problem: 'จงหาคาบและแอมพลิจูดของฟังก์ชัน $y = 3\\sin(2x)$'
+});
+
+var b = Shell.board({
+  box: [-0.6, 4.2, 3.8, -4.2],
+  axis: true,
+  grid: true,
+  keepaspect: false
+});
+var C = Shell.C;
+
+Shell.setup('เทียบสมการกับรูปมาตรฐาน $y = A\\sin(Bx)$ เพื่อวิเคราะห์ขนาดการแกว่งจาก $|A|$ และคาบการซ้ำรอบจาก $T = \\frac{2\\pi}{|B|}$');
+
+var s1 = Shell.step('เทียบฟังก์ชัน $y = 3\\sin(2x)$ กับรูปทั่วไป $y = A\\sin(Bx)$ จะได้ $A = 3$ และ $B = 2$');
+var f = b.create('functiongraph', [function(x){ return 3 * Math.sin(2 * x); }, -0.6, 3.8], {
+  strokeColor: C.given,
+  strokeWidth: 2.5
+});
+Shell.on(s1, f);
+Shell.tag(s1, [0.8, 3.3], '$y = 3\\sin(2x)$', {role: 'given'});
+
+Shell.group('การหาแอมพลิจูด (Amplitude)');
+
+var s2 = Shell.step('แอมพลิจูดคือระยะทางจากแนวสมดุล ($y = 0$) ถึงจุดสูงสุด คำนวณจาก $|A| = |3| = 3$', {
+  why: 'แอมพลิจูดแสดงขนาดการแกว่งสูงสุดของคลื่น จึงวัดจากระยะเบี่ยงเบนสัมบูรณ์จากแนวสมดุล',
+  uses: [1]
+});
+var lineMax = b.create('segment', [[-0.4, 3], [3.6, 3]], {
+  strokeColor: C.note,
+  strokeWidth: 1.5,
+  dash: 3
+});
+var pMid = b.create('point', [Math.PI / 4, 0], {
+  withLabel: false,
+  strokeColor: C.note,
+  fillColor: C.note,
+  size: 3,
+  fixed: true
+});
+var pPeak = b.create('point', [Math.PI / 4, 3], {
+  withLabel: false,
+  strokeColor: C.work,
+  fillColor: C.work,
+  size: 4,
+  fixed: true
+});
+var segAmp = b.create('segment', [pMid, pPeak], {
+  strokeColor: C.work,
+  strokeWidth: 2.5,
+  dash: 2
+});
+Shell.on(s2, lineMax, pMid, pPeak, segAmp);
+Shell.tag(s2, pPeak, 'จุดสูงสุด $\\left(\\frac{\\pi}{4}, 3\\right)$', {role: 'work'});
+Shell.tag(s2, [Math.PI / 4 + 0.15, 1.5], 'แอมพลิจูด $= 3$', {role: 'answer'});
+
+Shell.group('การหาคาบ (Period)');
+
+var s3 = Shell.step('คาบคือความยาวช่วงบนแกน $x$ ที่คลื่นเคลื่อนที่ครบ 1 รอบ คำนวณจาก $T = \\frac{2\\pi}{|B|} = \\frac{2\\pi}{2} = \\pi$', {
+  why: 'ฟังก์ชันไซน์ปกติมีคาบ $2\\pi$ เมื่อมีสัมประสิทธิ์ $B=2$ ทำให้คลื่นแกว่งครบหนึ่งรอบด้วยความเร็วขึ้น 2 เท่า คาบจึงลดลงเหลือ $\\frac{2\\pi}{2}$',
+  uses: [1]
+});
+var oneCycle = b.create('functiongraph', [function(x){ return 3 * Math.sin(2 * x); }, 0, Math.PI], {
+  strokeColor: C.answer,
+  strokeWidth: 3.5
+});
+var pStart = b.create('point', [0, 0], {
+  withLabel: false,
+  strokeColor: C.work,
+  fillColor: C.work,
+  size: 4,
+  fixed: true
+});
+var pEnd = b.create('point', [Math.PI, 0], {
+  withLabel: false,
+  strokeColor: C.answer,
+  fillColor: C.answer,
+  size: 4,
+  fixed: true
+});
+var segPeriod = b.create('segment', [pStart, pEnd], {
+  strokeColor: C.answer,
+  strokeWidth: 3
+});
+Shell.on(s3, oneCycle, pStart, pEnd, segPeriod);
+Shell.tag(s3, pEnd, 'ครบ 1 รอบที่ $x = \\pi$', {role: 'answer'});
+Shell.tag(s3, [Math.PI / 2, -0.6], 'คาบ $T = \\pi$', {role: 'answer'});
+
+Shell.answer('คาบและแอมพลิจูดของฟังก์ชัน', 'แอมพลิจูด $= 3$ และ คาบ $= \\pi$', {
+  sanity: 'แอมพลิจูดเป็นบวกเสมอ ($|3| = 3$) และสัมประสิทธิ์ $B = 2 > 1$ ทำให้กราฟบีบตัวในแนวราบ คาบจึงลดลงเหลือครึ่งหนึ่งของฟังก์ชันไซน์ปกติ ($2\\pi \\to \\pi$)'
+});
+
+Shell.done();
+</script>
+</body></html>

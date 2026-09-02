@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>การแก้อสมการเชิงเส้นตัวแปรเดียว</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+var SVGNS = 'http://www.w3.org/2000/svg';
+
+Shell.page({
+  title: 'การแก้อสมการเชิงเส้นตัวแปรเดียว',
+  problem: 'จงแก้อสมการ $2(x - 3) \\le 5x + 4$ และเขียนคำตอบในรูปช่วง'
+});
+
+var g = Shell.canvas();
+var C = Shell.C;
+var PX_PER_UNIT = 75;
+
+Shell.setup('การแก้อสมการเชิงเส้นใช้หลักการจัดรูปคล้ายสมการ แต่ต้องระวังเป็นพิเศษเมื่อคูณหรือหารด้วยจำนวนลบ เพราะเครื่องหมายอสมการจะต้องกลับทิศเสมอ');
+
+function createCard(x, y, w, h) {
+  var rect = document.createElementNS(SVGNS, 'rect');
+  rect.setAttribute('x', x);
+  rect.setAttribute('y', y);
+  rect.setAttribute('width', w);
+  rect.setAttribute('height', h);
+  rect.setAttribute('rx', 8);
+  rect.setAttribute('fill', 'none');
+  rect.setAttribute('stroke', C.note);
+  rect.setAttribute('stroke-width', '1');
+  rect.setAttribute('stroke-opacity', '0.35');
+  return rect;
+}
+
+Shell.group('แก้อสมการหาค่าของตัวแปร');
+
+var s1 = Shell.step('กระจาย $2$ เข้าไปในวงเล็บ $(x - 3)$ จะได้ $2x - 6 \\le 5x + 4$', {
+  why: 'สมบัติการแจกแจงช่วยปลดวงเล็บ เพื่อแยกพจน์ตัวแปรและค่าคงที่ออกจากกันได้'
+});
+s1.appendChild(createCard(100, 35, 760, 65));
+Shell.label(s1, 240, 68, '$2(x - 3) \\le 5x + 4$', {role: 'given', anchor: [240, 68], until: 'end'});
+Shell.label(s1, 480, 50, 'กระจาย $2$', {role: 'note', anchor: [480, 68], until: 'step'});
+Shell.label(s1, 480, 68, '$\\longrightarrow$', {role: 'note', anchor: [480, 68], until: 'end'});
+Shell.label(s1, 700, 68, '$2x - 6 \\le 5x + 4$', {role: 'work', anchor: [700, 68], until: 'end'});
+
+var s2 = Shell.step('ย้ายพจน์ตัวแปรไปไว้ทางซ้าย และพจน์ตัวเลขไปไว้ทางขวา จะได้ $-3x \\le 10$', {
+  why: 'นำ $5x$ มาลบทั้งสองข้าง และนำ $6$ มาบวกทั้งสองข้าง เพื่อรวบรวมพจน์ที่คล้ายกัน',
+  uses: [1]
+});
+s2.appendChild(createCard(100, 110, 760, 65));
+Shell.label(s2, 240, 143, '$2x - 5x \\le 4 + 6$', {role: 'work', anchor: [240, 143], until: 'end'});
+Shell.label(s2, 480, 125, '$-5x + 6$', {role: 'note', anchor: [480, 143], until: 'step'});
+Shell.label(s2, 480, 143, '$\\longrightarrow$', {role: 'note', anchor: [480, 143], until: 'end'});
+Shell.label(s2, 700, 143, '$-3x \\le 10$', {role: 'work', anchor: [700, 143], until: 'end'});
+
+var s3 = Shell.step('หารทั้งสองข้างด้วย $-3$ และ<b>กลับเครื่องหมายอสมการ</b>จาก $\\le$ เป็น $\\ge$ จะได้ $x \\ge -\\frac{10}{3}$', {
+  why: 'การหารด้วยจำนวนลบทำให้ลำดับค่าบนเส้นจำนวนกลับทิศ จึงต้องกลับเครื่องหมายอสมการ',
+  uses: [2]
+});
+s3.appendChild(createCard(100, 185, 760, 65));
+Shell.label(s3, 240, 218, '$\\frac{-3x}{-3} \\ge \\frac{10}{-3}$', {role: 'work', anchor: [240, 218], until: 'end'});
+Shell.label(s3, 480, 200, '$\\div (-3)$ กลับเครื่องหมาย', {role: 'warn', anchor: [480, 218], until: 'step'});
+Shell.label(s3, 480, 218, '$\\longrightarrow$', {role: 'note', anchor: [480, 218], until: 'end'});
+Shell.label(s3, 700, 218, '$x \\ge -\\frac{10}{3}$', {role: 'answer', anchor: [700, 218], until: 'end'});
+
+Shell.group('เขียนคำตอบบนเส้นจำนวนและรูปช่วง');
+
+var s4 = Shell.step('แสดงคำตอบบนเส้นจำนวน: ใช้<b>จุดทึบ</b>ที่ $-\\frac{10}{3}$ (ประมาณ $-3.33$) แล้วลากเส้นทึบพร้อมลูกศรไปทางขวา', {
+  why: 'เครื่องหมาย $\\ge$ หมายถึง "มากกว่าหรือเท่ากับ" จึงนับรวมจุดขอบ (จุดทึบ) และมีทิศทางไปทางขวา',
+  uses: [3]
+});
+s4.appendChild(createCard(100, 275, 760, 235));
+
+var axisLine = document.createElementNS(SVGNS, 'line');
+axisLine.setAttribute('x1', 130);
+axisLine.setAttribute('y1', 370);
+axisLine.setAttribute('x2', 830);
+axisLine.setAttribute('y2', 370);
+axisLine.setAttribute('stroke', C.note);
+axisLine.setAttribute('stroke-width', '2.5');
+s4.appendChild(axisLine);
+
+var ticks = [-6, -5, -4, -3, -2, -1, 0, 1, 2];
+ticks.forEach(function(val) {
+  var tx = 650 + val * PX_PER_UNIT;
+  var tick = document.createElementNS(SVGNS, 'line');
+  tick.setAttribute('x1', tx);
+  tick.setAttribute('y1', 362);
+  tick.setAttribute('x2', tx);
+  tick.setAttribute('y2', 378);
+  tick.setAttribute('stroke', C.note);
+  tick.setAttribute('stroke-width', '2');
+  s4.appendChild(tick);
+
+  Shell.label(s4, tx, 398, '$' + val + '$', {
+    role: 'note',
+    anchor: [tx, 370],
+    pin: true,
+    until: 'end'
+  });
+});
+
+var critX = 400;
+
+var critTick = document.createElementNS(SVGNS, 'line');
+critTick.setAttribute('x1', critX);
+critTick.setAttribute('y1', 358);
+critTick.setAttribute('x2', critX);
+critTick.setAttribute('y2', 382);
+critTick.setAttribute('stroke', C.answer);
+critTick.setAttribute('stroke-width', '3');
+s4.appendChild(critTick);
+
+var guideLine = document.createElementNS(SVGNS, 'line');
+guideLine.setAttribute('x1', critX);
+guideLine.setAttribute('y1', 382);
+guideLine.setAttribute('x2', critX);
+guideLine.setAttribute('y2', 420);
+guideLine.setAttribute('stroke', C.answer);
+guideLine.setAttribute('stroke-width', '1.5');
+guideLine.setAttribute('stroke-dasharray', '3,3');
+s4.appendChild(guideLine);
+
+Shell.label(s4, critX, 438, '$-\\frac{10}{3}$', {
+  role: 'answer',
+  anchor: [critX, 370],
+  pin: true,
+  until: 'end'
+});
+
+var rayUnits = 5.6;
+var rayLen = rayUnits * PX_PER_UNIT;
+Shell.arrow(s4, critX, 370, critX + rayLen, 370, {
+  role: 'answer',
+  value: rayUnits,
+  unit: 'หน่วย',
+  until: 'end'
+});
+
+var closedDot = document.createElementNS(SVGNS, 'circle');
+closedDot.setAttribute('cx', critX);
+closedDot.setAttribute('cy', 370);
+closedDot.setAttribute('r', 7.5);
+closedDot.setAttribute('fill', C.answer);
+closedDot.setAttribute('stroke', C.answer);
+closedDot.setAttribute('stroke-width', '2');
+s4.appendChild(closedDot);
+
+Shell.label(s4, 610, 338, '$x \\ge -\\frac{10}{3}$', {
+  role: 'answer',
+  anchor: [610, 370],
+  until: 'end'
+});
+
+Shell.label(s4, 320, 330, 'จุดทึบ (รวม $-\\frac{10}{3}$)', {
+  role: 'work',
+  anchor: [critX, 370],
+  until: 'step'
+});
+
+var s5 = Shell.step('แปลงเป็นรูปช่วง: เริ่มจากจุดทึบ $[-\\frac{10}{3}$ ไปจนถึงอนันต์ทางขวา เขียนแทนด้วย $\\left[-\\frac{10}{3}, \\infty\\right)$', {
+  why: 'จุดทึบใช้สัญลักษณ์ก้ามปู $[$ และปลายเปิดทางขวาไม่มีที่สิ้นสุดใช้สัญลักษณ์ $\\infty)$',
+  uses: [4]
+});
+
+Shell.label(s5, 480, 480, '$x \\in \\left[-\\frac{10}{3}, \\infty\\right)$', {
+  role: 'answer',
+  anchor: [480, 480],
+  pin: true,
+  until: 'end'
+});
+
+Shell.answer(
+  'คำตอบในรูปช่วง',
+  '$\\left[-\\frac{10}{3}, \\infty\\right)$',
+  {
+    sanity: 'ตรวจสอบ: แทน $x = 0$ ซึ่งอยู่ในช่วง จะได้ $2(0 - 3) = -6 \\le 4$ เป็นจริง แต่ถ้าแทน $x = -4$ ซึ่งอยู่นอกช่วง จะได้ $2(-7) = -14 \\le -16$ เป็นเท็จ (-14 มากกว่า -16) คำตอบจึงถูกต้อง'
+  }
+);
+
+Shell.done();
+</script>
+</body></html>

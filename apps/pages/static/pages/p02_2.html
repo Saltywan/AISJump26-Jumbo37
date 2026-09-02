@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>การเคลื่อนที่แบบวงกลมเป็นรูปกรวย</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+var SVGNS = 'http://www.w3.org/2000/svg';
+
+Shell.page({
+  title: 'การเคลื่อนที่แบบวงกลมเป็นรูปกรวย (Conical Pendulum)',
+  problem: 'วัตถุเคลื่อนที่เป็นวงกลมในแนวราบด้วยรัศมี 2 เมตร ผูกกับเชือกที่ทำมุม 30° กับแนวดิ่ง (การแกว่งเป็นรูปกรวย) จงหาอัตราเร็วของวัตถุและแรงตึงเชือก'
+});
+
+var g = Shell.canvas();
+var C = Shell.C;
+
+// กำหนดมาตราส่วนพิกัด
+var PX_PER_M = 90.0;   // รัศมี 2 m = 180 px
+var PX_PER_N = 12.0;   // มาตราส่วนแรง (อิงมวล m = 1 kg, g = 9.8 m/s²)
+
+Shell.setup('การเคลื่อนที่แบบวงกลมในแนวราบ วัตถุมีความเร่งสู่ศูนย์กลางในแนวราบเพียงแนวเดียว ($\\Sigma F_x = F_c = \\frac{mv^2}{r}$) และไม่มีความเร่งในแนวดิ่ง ($\\Sigma F_y = 0$) จึงเลือกตั้งแกนอ้างอิงในแนวราบและแนวดิ่ง แล้วแตกแรงตึงเชือก $T$ เข้าสู่ทั้งสองแกนนี้');
+
+// วาดสิ่งแวดล้อมพื้นฐาน: เพดาน, จุดหมุน, แกนดิ่ง และระนาบวงกลม
+function createSVG(tag, attrs) {
+  var el = document.createElementNS(SVGNS, tag);
+  for (var k in attrs) {
+    el.setAttribute(k, attrs[k]);
+  }
+  return el;
+}
+
+// เพดานและจุดแขวน
+var ceiling = createSVG('line', {x1: 400, y1: 56, x2: 560, y2: 56, stroke: C.note, 'stroke-width': 3});
+g.appendChild(ceiling);
+for (var xH = 410; xH <= 550; xH += 14) {
+  g.appendChild(createSVG('line', {x1: xH, y1: 56, x2: xH + 10, y2: 44, stroke: C.note, 'stroke-width': 1.5}));
+}
+g.appendChild(createSVG('polygon', {points: '474,56 486,56 480,68', fill: C.note}));
+g.appendChild(createSVG('circle', {cx: 480, cy: 68, r: 4, fill: C.note}));
+
+// เส้นแกนดิ่งอ้างอิง
+g.appendChild(createSVG('line', {x1: 480, y1: 68, x2: 480, y2: 430, stroke: C.note, 'stroke-width': 1.5, 'stroke-dasharray': '5,5'}));
+
+// ระนาบการเคลื่อนที่วงกลม (ภาพฉายรูปวงรี)
+g.appendChild(createSVG('ellipse', {cx: 480, cy: 380, rx: 180, ry: 50, fill: 'none', stroke: C.note, 'stroke-width': 1.5, 'stroke-dasharray': '4,4'}));
+g.appendChild(createSVG('circle', {cx: 480, cy: 380, r: 3, fill: C.note}));
+
+// ==========================================
+// กลุ่มที่ 1: แผนภาพวัตถุอิสระ (FBD) และการแตกแรง
+// ==========================================
+Shell.group('แผนภาพวัตถุอิสระ (FBD) และการแตกแรง');
+
+// ขั้นที่ 1: วาดภาพสถานการณ์และแสดงการเคลื่อนที่
+var s1 = Shell.step('พิจารณาระบบ: วัตถุมวล $m$ เคลื่อนที่เป็นวงกลมรัศมี $r = 2$ m เชือกทำมุม $\\theta = 30^\\circ$ กับแนวดิ่ง');
+
+// ลูกศรรัศมี r = 2 m (ความยาว 180 px = 2 * 90 px/m)
+Shell.arrow(s1, 480, 380, 660, 380, {role: 'given', label: '$r = 2$ m', value: 2, unit: 'm', until: 'end'});
+Shell.label(s1, 462, 380, '$O$', {role: 'note', anchor: [480, 380], until: 'end'});
+
+// ส่วนโค้งแสดงมุม 30° ที่จุดแขวน
+s1.appendChild(createSVG('path', {d: 'M 480 118 A 50 50 0 0 0 505 111.3', fill: 'none', stroke: C.note, 'stroke-width': 1.5}));
+Shell.label(s1, 510, 130, '$30^\\circ$', {role: 'given', anchor: [495, 115], until: 'end'});
+
+// เส้นเชือกและลูกตุ้มที่เคลื่อนที่วนครบรอบ
+var stringLine = createSVG('line', {x1: 480, y1: 68, x2: 660, y2: 380, stroke: C.given, 'stroke-width': 2.5});
+s1.appendChild(stringLine);
+
+var mover = Shell.motion(s1, null, function(t) {
+  var angle = 2 * Math.PI * t;
+  return [480 + 180 * Math.cos(angle), 380 + 50 * Math.sin(angle)];
+}, {
+  dur: 1500,
+  onFrame: function(pt, t) {
+    stringLine.setAttribute('x2', pt[0]);
+    stringLine.setAttribute('y2', pt[1]);
+  }
+});
+var bob = createSVG('circle', {cx: 0, cy: 0, r: 13, fill: C.given});
+mover.appendChild(bob);
+
+// ขั้นที่ 2: ระบุแรงภายนอกที่กระทำต่อวัตถุ
+var s2 = Shell.step('เขียนแรงกระทำต่อวัตถุ: มีแรงดึงดูดของโลก $W = mg$ ในแนวดิ่งลง และแรงตึงเชือก $T$ ตามแนวเส้นเชือก', {
+  why: 'วัตถุมีมวล $m$ จึงมีน้ำหนักกระทำผ่านจุดศูนย์กลางมวล และถูกผูกรั้งด้วยเชือกเส้นเดียว จึงมีเพียงสองแรงนี้กระทำ'
+});
+
+// เส้นแนวดิ่งช่วยที่ตัววัตถุเพื่อวัดมุม 30°
+s2.appendChild(createSVG('line', {x1: 660, y1: 380, x2: 660, y2: 245, stroke: C.note, 'stroke-width': 1.5, 'stroke-dasharray': '4,4'}));
+s2.appendChild(createSVG('path', {d: 'M 660 335 A 45 45 0 0 0 637.5 341', fill: 'none', stroke: C.note, 'stroke-width': 1.5}));
+Shell.label(s2, 638, 315, '$30^\\circ$', {role: 'note', anchor: [648, 338], until: 'end'});
+
+// แรง W = mg (แนวดิ่งลง ยาว 117.6 px แทน 9.8 N, มาตราส่วน 12 px/N)
+Shell.arrow(s2, 660, 380, 660, 497.6, {role: 'given', label: '$W = mg$', value: 9.8, unit: 'N', until: 'end'});
+
+// แรงตึงเชือก T (ทิศตามเชือก ยาว 135.8 px แทน 11.32 N, มาตราส่วน 12 px/N)
+Shell.arrow(s2, 660, 380, 592.1, 262.4, {role: 'given', label: '$T$', value: 11.32, unit: 'N', until: 'end'});
+
+// ขั้นที่ 3: แตกแรงตึงเชือก T
+var s3 = Shell.step('แตกแรงตึงเชือก $T$ เข้าสู่แกน: แนวดิ่ง $T_y = T\\cos 30^\\circ$ และแนวราบ $T_x = T\\sin 30^\\circ$', {
+  why: 'เพื่อให้แรงอยู่ในแนวการเคลื่อนที่ (แนวราบสู่ศูนย์กลาง) และแนวสมดุล (แนวดิ่ง)',
+  uses: [2]
+});
+
+// เส้นประแสดงการฉายเวกเตอร์
+var projX = createSVG('line', {x1: 592.1, y1: 262.4, x2: 660, y2: 262.4, stroke: C.note, 'stroke-width': 1.2, 'stroke-dasharray': '3,3'});
+s3.appendChild(projX);
+var projY = createSVG('line', {x1: 592.1, y1: 262.4, x2: 592.1, y2: 380, stroke: C.note, 'stroke-width': 1.2, 'stroke-dasharray': '3,3'});
+s3.appendChild(projY);
+
+// เวกเตอร์องค์ประกอบ Ty (ยาว 117.6 px แทน 9.8 N)
+Shell.arrow(s3, 660, 380, 660, 262.4, {role: 'work', label: '$T_y = T\\cos 30^\\circ$', value: 9.8, unit: 'N', until: 'step'});
+
+// เวกเตอร์องค์ประกอบ Tx (ยาว 67.9 px แทน 5.66 N)
+Shell.arrow(s3, 660, 380, 592.1, 380, {role: 'work', label: '$T_x = T\\sin 30^\\circ$', value: 5.66, unit: 'N', until: 'step'});
+
+// ==========================================
+// กลุ่มที่ 2: ตั้งสมการและคำนวณหาคำตอบ
+// ==========================================
+Shell.group('ตั้งสมการการเคลื่อนที่และคำนวณ');
+
+// ขั้นที่ 4: สมดุลในแนวดิ่ง หาแรงตึงเชือก T
+var s4 = Shell.step('พิจารณาแนวดิ่ง: วัตถุไม่เคลื่อนที่ขึ้นหรือลง จึงสมดุลในแนวดิ่ง ($\\Sigma F_y = 0$)<br>$T\\cos 30^\\circ = mg \\implies T = \\frac{mg}{\\cos 30^\\circ} = \\frac{2}{\\sqrt{3}}mg \\approx 1.15mg$<br>(เมื่อใช้ $g = 9.8$ m/s² จะได้ $T \\approx 11.3m$ N)', {
+  why: 'วัตถุรักษาระดับความสูงเดิมขณะหมุน ความเร่งในแนวดิ่ง $a_y = 0$',
+  uses: [3]
+});
+
+// ขั้นที่ 5: การเคลื่อนที่วงกลมในแนวราบ
+var s5 = Shell.step('พิจารณาแนวราบ: แรงตึงเชือกในแนวราบทำหน้าที่เป็นแรงสู่ศูนย์กลาง ($F_c$)<br>$\\Sigma F_x = F_c \\implies T\\sin 30^\\circ = \\frac{mv^2}{r}$', {
+  why: 'แรงตึงเชือกในแนวราบเป็นแรงลัพธ์เพียงแรงเดียวที่ชี้เข้าหาจุดศูนย์กลางวงกลม',
+  uses: [3]
+});
+
+// ขั้นที่ 6: คำนวณหาอัตราเร็ว v
+var s6 = Shell.step('นำสมการแนวราบหารด้วยแนวดิ่งเพื่อหาอัตราเร็ว $v$:<br>$\\frac{T\\sin 30^\\circ}{T\\cos 30^\\circ} = \\frac{mv^2/r}{mg} \\implies \\tan 30^\\circ = \\frac{v^2}{rg}$<br>$v = \\sqrt{rg\\tan 30^\\circ} = \\sqrt{2 \\times 9.8 \\times \\tan 30^\\circ} = \\sqrt{11.316} \\approx 3.36$ m/s', {
+  why: 'การนำสมการมาหารกันทำให้ตัวแปร $T$ และ $m$ ตัดกันไป จึงคำนวณ $v$ ได้โดยตรงโดยไม่ต้องทราบมวล',
+  uses: [4, 5]
+});
+
+Shell.label(s6, 720, 380, '$v \\approx 3.36$ m/s', {role: 'answer', anchor: [660, 380], until: 'end'});
+
+// กล่องคำตอบสรุป
+Shell.answer(
+  'อัตราเร็วและแรงตึงเชือก',
+  '$v \\approx 3.36$ m/s, $T = \\frac{2}{\\sqrt{3}}mg \\approx 1.15mg$ N (หรือ $\\approx 11.3m$ N)',
+  {sanity: 'เมื่อมุม $\\theta \\to 0^\\circ$ อัตราเร็ว $v \\to 0$ และ $T \\to mg$ (แขวนนิ่งในแนวดิ่ง); เมื่อ $\\theta \\to 90^\\circ$ ต้องใช้ $v \\to \\infty$ และ $T \\to \\infty$ เพื่อให้เชือกขนานแนวราบ สอดคล้องกับพฤติกรรมจริง'}
+);
+
+Shell.done();
+</script>
+</body></html>

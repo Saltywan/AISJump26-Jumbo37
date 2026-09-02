@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>หาความสูงของสามเหลี่ยมด้วยทฤษฎีบทพีทาโกรัส</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+var SVGNS = 'http://www.w3.org/2000/svg';
+
+Shell.page({
+  title: 'หาความสูงของสามเหลี่ยมด้วยทฤษฎีบทพีทาโกรัส',
+  problem: 'กำหนดสามเหลี่ยม $ABC$ ที่มี $AB = 13$, $BC = 14$, $AC = 15$ จงหาความยาวของเส้นสูงจาก $A$ มายัง $BC$ โดยใช้ทฤษฎีบทพีทาโกรัสร่วมกับการตั้งสมการ'
+});
+
+var g = Shell.canvas();
+var C = Shell.C;
+
+Shell.setup('เมื่อทราบความยาวด้านทั้งสามของรูปสามเหลี่ยม การลากเส้นสูงลงมาตั้งฉากกับฐานจะแบ่งรูปออกเป็นสามเหลี่ยมมุมฉาก 2 รูปที่ใช้เส้นสูงร่วมกัน ทำให้สามารถตั้งสมการพีทาโกรัส 2 สมการเพื่อแก้หาตัวแปรได้');
+
+function createSvg(tag, attrs) {
+  var el = document.createElementNS(SVGNS, tag);
+  for (var k in attrs) {
+    el.setAttribute(k, attrs[k]);
+  }
+  return el;
+}
+
+/* พิกัดในระบบมาตราส่วน 32 พิกเซลต่อหน่วย เพื่อให้รูปมีขนาดพอดีและสมดุลบนจอ 960x540 */
+var Ax = 416, Ay = 70;
+var Bx = 256, By = 454;
+var Cx = 704, Cy = 454;
+var Dx = 416, Dy = 454;
+
+Shell.group('กำหนดตัวแปรและวาดเส้นช่วย');
+
+/* ขั้นที่ 1: วาดสามเหลี่ยม ABC */
+var s1 = Shell.step('วาดสามเหลี่ยม $ABC$ โดยกำหนดความยาวด้านตามโจทย์: $AB = 13$, $BC = 14$ และ $AC = 15$');
+
+var tri = createSvg('polygon', {
+  points: Ax + ',' + Ay + ' ' + Bx + ',' + By + ' ' + Cx + ',' + Cy,
+  fill: 'none',
+  stroke: C.given,
+  'stroke-width': '3',
+  'stroke-linejoin': 'round'
+});
+s1.appendChild(tri);
+
+var dotA = createSvg('circle', { cx: Ax, cy: Ay, r: '4', fill: C.given });
+var dotB = createSvg('circle', { cx: Bx, cy: By, r: '4', fill: C.given });
+var dotC = createSvg('circle', { cx: Cx, cy: Cy, r: '4', fill: C.given });
+s1.appendChild(dotA);
+s1.appendChild(dotB);
+s1.appendChild(dotC);
+
+Shell.label(s1, Ax, Ay - 25, 'A', { role: 'given', anchor: [Ax, Ay], until: 'end' });
+Shell.label(s1, Bx - 22, By + 10, 'B', { role: 'given', anchor: [Bx, By], until: 'end' });
+Shell.label(s1, Cx + 22, By + 10, 'C', { role: 'given', anchor: [Cx, Cy], until: 'end' });
+
+Shell.label(s1, (Ax + Bx) / 2 - 26, (Ay + By) / 2 - 10, '$13$', { role: 'given', anchor: [(Ax + Bx) / 2, (Ay + By) / 2], until: 'end' });
+Shell.label(s1, (Ax + Cx) / 2 + 26, (Ay + Cy) / 2 - 10, '$15$', { role: 'given', anchor: [(Ax + Cx) / 2, (Ay + Cy) / 2], until: 'end' });
+Shell.label(s1, (Bx + Cx) / 2, By + 48, '$BC = 14$', { role: 'given', anchor: [(Bx + Cx) / 2, By], until: 2 });
+
+/* ขั้นที่ 2: ลากเส้นสูง AD */
+var s2 = Shell.step('ลากเส้นสูงจากจุดยอด $A$ ลงมาตั้งฉากกับด้าน $BC$ ที่จุด $D$ ให้ความยาวเส้นสูง $AD = h$', {
+  why: 'การลากเส้นตั้งฉากกับฐานจะสร้างมุมฉากที่จุด $D$ ทำให้เกิดสามเหลี่ยมมุมฉากสองรูปที่ใช้ด้าน $h$ ร่วมกัน'
+});
+
+var altLine = createSvg('line', {
+  x1: Ax, y1: Ay, x2: Dx, y2: Dy,
+  stroke: C.work,
+  'stroke-width': '2.5',
+  'stroke-dasharray': '6,4'
+});
+s2.appendChild(altLine);
+
+var rightAngleLeft = createSvg('path', {
+  d: 'M ' + (Dx - 18) + ' ' + Dy + ' L ' + (Dx - 18) + ' ' + (Dy - 18) + ' L ' + Dx + ' ' + (Dy - 18),
+  fill: 'none',
+  stroke: C.note,
+  'stroke-width': '2'
+});
+var rightAngleRight = createSvg('path', {
+  d: 'M ' + (Dx + 18) + ' ' + Dy + ' L ' + (Dx + 18) + ' ' + (Dy - 18) + ' L ' + Dx + ' ' + (Dy - 18),
+  fill: 'none',
+  stroke: C.note,
+  'stroke-width': '2'
+});
+s2.appendChild(rightAngleLeft);
+s2.appendChild(rightAngleRight);
+
+var dotD = createSvg('circle', { cx: Dx, cy: Dy, r: '4', fill: C.work });
+s2.appendChild(dotD);
+
+Shell.label(s2, Dx, Dy + 25, 'D', { role: 'work', anchor: [Dx, Dy], until: 'end' });
+Shell.label(s2, Dx + 20, (Ay + Dy) / 2, '$h$', { role: 'work', anchor: [Dx, (Ay + Dy) / 2], until: 6 });
+
+/* ขั้นที่ 3: กำหนดตัวแปรบนฐาน */
+var s3 = Shell.step('กำหนดให้ความยาวส่วนฐาน $BD = x$ จะได้ว่า $CD = 14 - x$', {
+  why: 'เนื่องจากจุด $D$ อยู่บนส่วนของเส้นตรง $BC$ ซึ่งยาว $14$ หน่วย ความยาวส่วนที่เหลือจึงเป็น $14 - x$',
+  uses: [1, 2]
+});
+
+var segBD = createSvg('line', {
+  x1: Bx, y1: By, x2: Dx, y2: Dy,
+  stroke: C.work,
+  'stroke-width': '4'
+});
+var segCD = createSvg('line', {
+  x1: Dx, y1: Dy, x2: Cx, y2: Cy,
+  stroke: C.note,
+  'stroke-width': '4'
+});
+s3.appendChild(segBD);
+s3.appendChild(segCD);
+
+Shell.label(s3, (Bx + Dx) / 2, By + 25, '$x$', { role: 'work', anchor: [(Bx + Dx) / 2, By], until: 5 });
+Shell.label(s3, (Dx + Cx) / 2, By + 25, '$14 - x$', { role: 'work', anchor: [(Dx + Cx) / 2, By], until: 5 });
+
+Shell.group('สร้างระบบสมการพีทาโกรัส');
+
+/* ขั้นที่ 4: สามเหลี่ยมมุมฉาก ABD */
+var s4 = Shell.step('พิจารณาสามเหลี่ยมมุมฉาก $ABD$:<br>จากทฤษฎีบทพีทาโกรัส $AD^2 + BD^2 = AB^2$<br>จะได้ $h^2 + x^2 = 13^2 = 169$<br>จัดรูปได้ <b>สมการที่ (1):</b> $h^2 = 169 - x^2$', {
+  why: 'ใช้ทฤษฎีบทพีทาโกรัสกับสามเหลี่ยมรูปซ้ายเพื่อเขียน $h^2$ ในรูปของ $x$',
+  uses: [2, 3]
+});
+
+var shadeABD = createSvg('polygon', {
+  points: Bx + ',' + By + ' ' + Dx + ',' + Dy + ' ' + Ax + ',' + Ay,
+  fill: C.work,
+  'fill-opacity': '0.12',
+  stroke: C.work,
+  'stroke-width': '2'
+});
+s4.appendChild(shadeABD);
+
+/* ขั้นที่ 5: สามเหลี่ยมมุมฉาก ACD */
+var s5 = Shell.step('พิจารณาสามเหลี่ยมมุมฉาก $ACD$:<br>จากทฤษฎีบทพีทาโกรัส $AD^2 + CD^2 = AC^2$<br>จะได้ $h^2 + (14 - x)^2 = 15^2 = 225$<br>จัดรูปได้ <b>สมการที่ (2):</b> $h^2 = 225 - (14 - x)^2$', {
+  why: 'ใช้ทฤษฎีบทพีทาโกรัสกับสามเหลี่ยมรูปขวาเพื่อให้ได้สมการที่สองสำหรับแก้ระบบสมการ',
+  uses: [2, 3]
+});
+
+var shadeACD = createSvg('polygon', {
+  points: Dx + ',' + Dy + ' ' + Cx + ',' + Cy + ' ' + Ax + ',' + Ay,
+  fill: C.note,
+  'fill-opacity': '0.12',
+  stroke: C.note,
+  'stroke-width': '2'
+});
+s5.appendChild(shadeACD);
+
+Shell.group('แก้ระบบสมการหาค่าความสูง');
+
+/* ขั้นที่ 6: จับสมการเท่ากันเพื่อหา x */
+var s6 = Shell.step('เนื่องจากทั้งสองสมการแทนค่า $h^2$ ตัวเดียวกัน จึงนำสมการ (1) เท่ากับ (2):<br>$169 - x^2 = 225 - (196 - 28x + x^2)$<br>$169 - x^2 = 29 + 28x - x^2$<br>$169 = 29 + 28x \\implies 28x = 140 \\implies x = 5$', {
+  uses: [4, 5]
+});
+
+Shell.label(s6, (Bx + Dx) / 2, By + 25, '$x = 5$', { role: 'work', anchor: [(Bx + Dx) / 2, By], until: 'end' });
+Shell.label(s6, (Dx + Cx) / 2, By + 25, '$14 - x = 9$', { role: 'work', anchor: [(Dx + Cx) / 2, By], until: 'end' });
+
+/* ขั้นที่ 7: หาค่า h */
+var s7 = Shell.step('แทนค่า $x = 5$ ลงในสมการที่ (1):<br>$h^2 = 169 - 5^2$<br>$h^2 = 169 - 25 = 144$<br>$h = \\sqrt{144} = 12$ หน่วย (เนื่องจากความยาวต้องเป็นบวก)', {
+  uses: [4, 6]
+});
+
+var ansLine = createSvg('line', {
+  x1: Ax, y1: Ay, x2: Dx, y2: Dy,
+  stroke: C.answer,
+  'stroke-width': '4'
+});
+s7.appendChild(ansLine);
+
+Shell.label(s7, Dx + 32, (Ay + Dy) / 2, '$h = 12$', { role: 'answer', anchor: [Dx, (Ay + Dy) / 2], until: 'end' });
+
+Shell.answer('ความยาวของเส้นสูงจาก $A$ มายัง $BC$', '$h = 12$ หน่วย', {
+  sanity: 'ความสูง $h = 12$ สอดคล้องกับเงื่อนไข $h < AB$ ($12 < 13$) และ $h < AC$ ($12 < 15$) เสมอ เพราะด้านตรงข้ามมุมฉากต้องเป็นด้านที่ยาวที่สุดในสามเหลี่ยมมุมฉาก'
+});
+
+Shell.done();
+</script>
+</body></html>

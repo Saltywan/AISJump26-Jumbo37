@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<title>สมดุลกลของบันไดพาดกำแพง</title>
+<link rel="stylesheet" href="./lib/katex.min.css">
+<link rel="stylesheet" href="./lib/shell.css">
+</head><body>
+<script src="./lib/katex.min.js"></script>
+<script src="./lib/auto-render.min.js"></script>
+<script src="./lib/shell.js"></script>
+<script>
+var SVGNS = 'http://www.w3.org/2000/svg';
+
+Shell.page({
+  title: 'สมดุลกลของบันไดพาดกำแพง',
+  problem: 'บันไดสม่ำเสมอยาว 5 เมตร หนัก 100 นิวตัน พาดกับกำแพงเรียบ (ไม่มีแรงเสียดทาน) ทำมุม 60° กับพื้น จงหาแรงเสียดทานที่พื้นต้องกระทำต่อบันไดเพื่อให้สมดุล'
+});
+
+var g = Shell.canvas(), C = Shell.C;
+
+// มาตราส่วนแรง: 1.6 พิกเซล ต่อนิวตัน
+var PX_PER_N = 1.6;
+
+// พิกัดเรขาคณิตของระบบ
+// บันไดยาว 480 px, มุม 60 องศากับพื้น
+// แนวราบ D = 480 * cos(60°) = 240 px
+// แนวดิ่ง H = 480 * sin(60°) = 415.7 px
+var xWall = 340;
+var yFloor = 470;
+var xA = xWall + 240;      // 580 px (จุดสัมผัสพื้น)
+var yA = yFloor;           // 470 px
+var xB = xWall;            // 340 px (จุดสัมผัสกำแพง)
+var yB = yFloor - 415.7;   // 54.3 px
+var xM = (xA + xB) / 2;    // 460 px (จุดศูนย์กลางมวล)
+var yM = (yA + yB) / 2;    // 262.15 px
+
+// ฟังก์ชันสร้างเส้น SVG พื้นฐาน
+function makeLine(x1, y1, x2, y2, stroke, width, dash) {
+  var line = document.createElementNS(SVGNS, 'line');
+  line.setAttribute('x1', x1); line.setAttribute('y1', y1);
+  line.setAttribute('x2', x2); line.setAttribute('y2', y2);
+  line.setAttribute('stroke', stroke);
+  line.setAttribute('stroke-width', width || 1.5);
+  if (dash) line.setAttribute('stroke-dasharray', dash);
+  return line;
+}
+
+// ----------------------------------------------------
+// วาดฉากพื้นหลัง: กำแพง พื้น และตัวบันได
+// ----------------------------------------------------
+
+// ลายขีดหลังกำแพง (แสดงผิวทึบ)
+for (var y = 40; y <= 460; y += 18) {
+  g.appendChild(makeLine(xWall - 18, y + 14, xWall, y, '#94a3b8', 1.5));
+}
+// เส้นแนวกำแพง
+g.appendChild(makeLine(xWall, 30, xWall, yFloor, '#475569', 3.5));
+
+// ลายขีดใต้พื้น
+for (var x = 240; x <= 800; x += 18) {
+  g.appendChild(makeLine(x, yFloor, x - 12, yFloor + 14, '#94a3b8', 1.5));
+}
+// เส้นแนวพื้น
+g.appendChild(makeLine(220, yFloor, 820, yFloor, '#475569', 3.5));
+
+// ป้ายกำกับฉาก
+Shell.label(g, 260, 90, 'กำแพงเรียบ', { role: 'note', anchor: [xWall, 90], until: 'end' });
+Shell.label(g, 720, 500, 'พื้นระดับ', { role: 'note', anchor: [720, yFloor], until: 'end' });
+
+// วาดตัวบันได (รางสองข้างและขั้นบันได)
+var nx = 0.866025 * 7; // เวกเตอร์ตั้งฉากกับบันได ครึ่งความกว้าง 7 px
+var ny = -0.5 * 7;
+for (var i = 1; i <= 9; i++) {
+  var t = i / 10;
+  var rx = xA * (1 - t) + xB * t;
+  var ry = yA * (1 - t) + yB * t;
+  g.appendChild(makeLine(rx - nx, ry - ny, rx + nx, ry + ny, '#64748b', 2.5));
+}
+g.appendChild(makeLine(xA - nx, yA - ny, xB - nx, yB - ny, '#334155', 3.5));
+g.appendChild(makeLine(xA + nx, yA + ny, xB + nx, yB + ny, '#334155', 3.5));
+
+// ส่วนโค้งแสดงมุม 60°
+var arc60 = document.createElementNS(SVGNS, 'path');
+arc60.setAttribute('d', 'M ' + (xA - 50) + ' ' + yFloor + ' A 50 50 0 0 1 ' + (xA - 25) + ' ' + (yFloor - 43.3));
+arc60.setAttribute('fill', 'none');
+arc60.setAttribute('stroke', C.note);
+arc60.setAttribute('stroke-width', 2);
+g.appendChild(arc60);
+Shell.label(g, xA - 65, yFloor - 18, '$60^\\circ$', { role: 'note', anchor: [xA - 38, yFloor - 22], until: 'end' });
+Shell.label(g, 430, 210, '$L = 5$ m', { role: 'note', anchor: [450, 230], until: 'end' });
+
+// ----------------------------------------------------
+// แนวทางการแก้โจทย์
+// ----------------------------------------------------
+Shell.setup('บันไดอยู่ในภาวะสมดุลสถิต จึงต้องสอดคล้องกับทั้งสมดุลต่อการเลื่อนที่ ($\\sum \\vec{F} = 0$) และสมดุลต่อการหมุน ($\\sum \\tau = 0$) การเลือกจุดสัมผัสพื้นเป็นจุดหมุนจะช่วยตัดแรงที่ไม่ทราบค่าสองแรงออก ทำให้คำนวณแรงดันกำแพงได้ทันที');
+
+// ----------------------------------------------------
+// กลุ่มที่ 1: แผนภาพวัตถุอิสระและสมดุลแนวดิ่ง
+// ----------------------------------------------------
+Shell.group('1. แรงกระทำและสมดุลแนวดิ่ง');
+
+var s1 = Shell.step('น้ำหนักของบันไดสม่ำเสมอ $W = 100$ N กระทำที่จุดกึ่งกลาง (CG) ในแนวดิ่งพุ่งลง', {
+  why: 'บันไดสม่ำเสมอ มวลกระจายตัวเท่ากันตลอดความยาว จุดศูนย์ถ่วงจึงอยู่ที่กึ่งกลางพอดี'
+});
+var cgDot = document.createElementNS(SVGNS, 'circle');
+cgDot.setAttribute('cx', xM); cgDot.setAttribute('cy', yM); cgDot.setAttribute('r', 4.5);
+cgDot.setAttribute('fill', C.given);
+s1.appendChild(cgDot);
+Shell.label(s1, xM + 25, yM - 5, 'CG', { role: 'given', anchor: [xM, yM], until: 'end' });
+Shell.arrow(s1, xM, yM, xM, yM + 100 * PX_PER_N, {
+  role: 'given', label: '$W = 100$ N', value: 100, unit: 'N', until: 'end'
+});
+
+var s2 = Shell.step('พิจารณาสมดุลแนวดิ่ง $\\sum F_y = 0$ พื้นต้องดันบันไดขึ้นด้วยแรงปฏิกิริยา $N_f = W = 100$ N', {
+  why: 'กำแพงเรียบไม่มีแรงเสียดทาน จึงไม่มีแรงในแนวดิ่งที่กำแพง แรงจากพื้นจึงต้องรับน้ำหนักทั้งหมดของบันได',
+  uses: [1]
+});
+Shell.arrow(s2, xA, yFloor, xA, yFloor - 100 * PX_PER_N, {
+  role: 'work', label: '$N_f = 100$ N', value: 100, unit: 'N', until: 'end'
+});
+
+// ----------------------------------------------------
+// กลุ่มที่ 2: สมดุลต่อการหมุน (หาแรงดันกำแพง)
+// ----------------------------------------------------
+Shell.group('2. สมดุลต่อการหมุน');
+
+var s3 = Shell.step('เลือกจุดที่พื้น (จุด $A$) เป็นจุดหมุน เพื่อหาแขนของแรงแต่ละแนว', {
+  why: 'แนวแรง $N_f$ และแรงเสียดทาน $f$ ผ่านจุด $A$ พอดี แขนของแรงเป็นศูนย์ จึงไม่เกิดโมเมนต์รอบจุดนี้'
+});
+// เส้นประแสดงแขนของแรงน้ำหนัก d_W = (L/2)*cos(60°) = 1.25 m
+s3.appendChild(makeLine(xM, yM, xM, yFloor, C.note, 1.5, '4,4'));
+s3.appendChild(makeLine(xM, yFloor + 20, xA, yFloor + 20, C.work, 2));
+s3.appendChild(makeLine(xM, yFloor + 14, xM, yFloor + 26, C.work, 2));
+s3.appendChild(makeLine(xA, yFloor + 14, xA, yFloor + 26, C.work, 2));
+Shell.label(s3, (xM + xA) / 2, yFloor + 38, '$d_W = 1.25$ m', { role: 'work', anchor: [(xM + xA) / 2, yFloor + 20], until: 'step' });
+
+// เส้นประแสดงแขนของแรงดันกำแพง d_w = L*sin(60°) = 4.33 m
+s3.appendChild(makeLine(xWall - 25, yB, xWall, yB, C.note, 1.5, '4,4'));
+s3.appendChild(makeLine(xWall - 25, yB, xWall - 25, yFloor, C.work, 2));
+s3.appendChild(makeLine(xWall - 31, yB, xWall - 19, yB, C.work, 2));
+s3.appendChild(makeLine(xWall - 31, yFloor, xWall - 19, yFloor, C.work, 2));
+Shell.label(s3, xWall - 75, (yB + yFloor) / 2, '$d_w = 4.33$ m', { role: 'work', anchor: [xWall - 25, (yB + yFloor) / 2], until: 'step' });
+
+var pivotCircle = document.createElementNS(SVGNS, 'circle');
+pivotCircle.setAttribute('cx', xA); pivotCircle.setAttribute('cy', yFloor); pivotCircle.setAttribute('r', 6);
+pivotCircle.setAttribute('fill', 'none'); pivotCircle.setAttribute('stroke', C.work); pivotCircle.setAttribute('stroke-width', 2.5);
+s3.appendChild(pivotCircle);
+Shell.label(s3, xA + 28, yFloor - 8, 'จุดหมุน $A$', { role: 'work', anchor: [xA, yFloor], until: 'step' });
+
+var s4 = Shell.step('สมดุลต่อการหมุนรอบจุด $A$ ($\\sum \\tau_A = 0$)<br>โมเมนต์ทวนเข็ม (จาก $N_w$) = โมเมนต์ตามเข็ม (จาก $W$)<br>$N_w(L \\sin 60^\\circ) = W\\left(\\frac{L}{2} \\cos 60^\\circ\\right)$<br>$N_w(4.33) = 100(1.25) \\implies N_w = \\frac{50}{\\sqrt{3}} \\approx 28.9$ N', {
+  why: 'ผลรวมโมเมนต์รอบจุดหมุนต้องเป็นศูนย์ เพื่อให้บันไดรักษาสมดุลไม่หมุนล้ม',
+  uses: [1, 3]
+});
+Shell.arrow(s4, xWall, yB, xWall + 28.9 * PX_PER_N, yB, {
+  role: 'work', label: '$N_w = 28.9$ N', value: 28.9, unit: 'N', until: 'end'
+});
+
+// ----------------------------------------------------
+// กลุ่มที่ 3: สมดุลแรงแนวราบและแรงเสียดทาน
+// ----------------------------------------------------
+Shell.group('3. สมดุลแนวราบและแรงเสียดทาน');
+
+var s5 = Shell.step('พิจารณาสมดุลแรงแนวราบ $\\sum F_x = 0$ หาแรงเสียดทานที่พื้น $f$<br>แรงไปทางขวา = แรงไปทางซ้าย $\\implies N_w - f = 0$<br>ดังนั้น $f = N_w = \\frac{50}{\\sqrt{3}} \\approx 28.9$ N (ทิศเข้าหากำแพง)', {
+  why: 'บันไดไม่เลื่อนในแนวราบ แรงลัพธ์แนวราบต้องเป็นศูนย์ แรงเสียดทานจึงต้องหักล้างกับแรงดันจากกำแพงพอดี',
+  uses: [4]
+});
+Shell.arrow(s5, xA, yFloor, xA - 28.9 * PX_PER_N, yFloor, {
+  role: 'answer', label: '$f = 28.9$ N', value: 28.9, unit: 'N', until: 'end'
+});
+
+Shell.answer(
+  'แรงเสียดทานที่พื้นกระทำต่อบันได',
+  '$f = \\frac{50}{\\sqrt{3}} \\approx 28.9$ N',
+  { sanity: 'เมื่อมุมพาด $\\theta$ ชันขึ้นเข้าใกล้ $90^\\circ$ แรงเสียดทาน $f \\propto \\cot\\theta$ จะลดลงเข้าใกล้ศูนย์ เพราะน้ำหนักทั้งหมดจะถ่ายลงสู่พื้นตรง ๆ' }
+);
+
+Shell.done();
+</script>
+</body></html>
