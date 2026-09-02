@@ -1,5 +1,10 @@
 # PoC plan
 
+> **Superseded by [BUILD-PLAN.html](BUILD-PLAN.html)** (3 Sep 2026), which carries the
+> same five stages plus what the generator work since 31 Aug changed: the review-screen
+> signals, the vendored-kit sync, and the risks that turned out to matter. This file is
+> kept for its schema and API notes.
+
 Hackathon demo, production-ish shape. FastAPI + React, docker-compose on a laptop.
 Full scope: generate → review → student view, plus student chat, plus photo upload.
 

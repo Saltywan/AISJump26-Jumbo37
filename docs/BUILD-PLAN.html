@@ -1,0 +1,329 @@
+<title>Five Stages to the Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --paper:#F4F6F6; --card:#FFFFFF; --sunk:#E9EDEC; --rule:#DCE3E2; --rule-2:#BFCBC9;
+  --ink:#111A19; --ink-2:#4C5A58; --ink-3:#7A8886;
+  --deep:#14524C; --deep-soft:#E0EDEB;
+  --amber:#8A5A00; --amber-soft:#F7EEDC;
+  --clay:#95382C; --clay-soft:#F7E6E2;
+  --fd:Newsreader,Georgia,serif;
+  --fb:"IBM Plex Sans","Helvetica Neue",Arial,sans-serif;
+  --fm:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#0D1211; --card:#151D1C; --sunk:#1C2625; --rule:#283433; --rule-2:#3A4A48;
+  --ink:#E9EFEE; --ink-2:#A9B6B4; --ink-3:#7B8987;
+  --deep:#5FBDB2; --deep-soft:#102421;
+  --amber:#D9A441; --amber-soft:#241C0D;
+  --clay:#E08878; --clay-soft:#2A1613;
+}}
+:root[data-theme="dark"]{
+  --paper:#0D1211; --card:#151D1C; --sunk:#1C2625; --rule:#283433; --rule-2:#3A4A48;
+  --ink:#E9EFEE; --ink-2:#A9B6B4; --ink-3:#7B8987;
+  --deep:#5FBDB2; --deep-soft:#102421;
+  --amber:#D9A441; --amber-soft:#241C0D;
+  --clay:#E08878; --clay-soft:#2A1613;
+}
+*{box-sizing:border-box}
+body{margin:0;padding:0 22px 100px;background:var(--paper);color:var(--ink);
+  font-family:var(--fb);font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:900px;margin:0 auto}
+p{margin:0 0 13px;max-width:70ch}
+a{color:var(--deep)}
+code{font-family:var(--fm);font-size:.85em;background:var(--sunk);padding:1.5px 5px;border-radius:3px}
+h1,h2,h3{font-family:var(--fd);font-weight:600}
+
+header{padding:58px 0 26px;border-bottom:1px solid var(--rule)}
+.eyebrow{font-family:var(--fm);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--deep);margin:0 0 13px}
+h1{font-size:clamp(32px,5vw,50px);line-height:1.05;letter-spacing:-.015em;margin:0 0 15px;
+  text-wrap:balance}
+.lede{font-size:18px;color:var(--ink-2);margin:0;max-width:62ch}
+.lede b{color:var(--ink);font-weight:600}
+
+.sec{margin-top:52px}
+.sec-no{font-family:var(--fm);font-size:11px;letter-spacing:.14em;color:var(--ink-3);
+  text-transform:uppercase;margin:0 0 10px;display:flex;align-items:center;gap:11px}
+.sec-no::after{content:"";flex:1;height:1px;background:var(--rule)}
+h2{font-size:24px;letter-spacing:-.01em;margin:0 0 12px;text-wrap:balance}
+h3{font-family:var(--fb);font-weight:600;font-size:15.5px;margin:0 0 5px}
+
+pre{background:var(--card);border:1px solid var(--rule);border-radius:5px;padding:13px 15px;
+  overflow-x:auto;margin:15px 0;font-family:var(--fm);font-size:12.6px;line-height:1.7;
+  color:var(--ink-2)}
+pre b{color:var(--ink);font-weight:500}
+
+.tw{overflow-x:auto;margin:16px 0}
+table{border-collapse:collapse;width:100%;min-width:500px;font-size:14.5px}
+th{font-family:var(--fb);font-weight:600;font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink-3);text-align:left;padding:7px 12px 7px 0;border-bottom:1px solid var(--rule-2)}
+td{padding:9px 12px 9px 0;border-bottom:1px solid var(--rule);vertical-align:top;color:var(--ink-2)}
+td:first-child{color:var(--ink);font-weight:500}
+td.n{font-family:var(--fm);font-variant-numeric:tabular-nums;font-size:13.5px;white-space:nowrap}
+
+/* the stage rail: order is load-bearing here — a stage cannot be built before
+   the one under it, and the demo may be given from any commit */
+.stages{margin:22px 0 0;padding:0;list-style:none;position:relative}
+.stage{position:relative;padding:0 0 26px 58px}
+.stage::before{content:"";position:absolute;left:17px;top:32px;bottom:0;width:2px;
+  background:var(--rule)}
+.stage:last-child::before{display:none}
+.num{position:absolute;left:0;top:0;width:36px;height:36px;border-radius:50%;
+  background:var(--deep-soft);border:1px solid var(--rule-2);color:var(--deep);
+  font-family:var(--fm);font-size:14px;font-weight:500;
+  display:flex;align-items:center;justify-content:center}
+.stage h3{font-size:17px;font-family:var(--fd);font-weight:600;margin:6px 0 6px}
+.stage p{font-size:15px;margin:0 0 10px}
+.gate{display:inline-flex;align-items:flex-start;gap:8px;background:var(--amber-soft);
+  border:1px solid var(--rule);border-left:3px solid var(--amber);border-radius:4px;
+  padding:9px 13px;font-size:14px;color:var(--ink-2);max-width:64ch}
+.gate b{color:var(--amber);font-weight:600;font-family:var(--fm);font-size:11px;
+  letter-spacing:.07em;text-transform:uppercase;white-space:nowrap;padding-top:2px}
+
+.note{background:var(--deep-soft);border:1px solid var(--rule);border-radius:5px;
+  padding:15px 18px;margin:18px 0}
+.note p{margin:0;max-width:none;font-size:15px}
+.note p+p{margin-top:9px}
+
+.risk{background:var(--card);border:1px solid var(--rule);border-left:3px solid var(--clay);
+  border-radius:4px;padding:14px 18px;margin-bottom:10px}
+.risk h3{color:var(--clay)}
+.risk p{margin:0;font-size:14.6px;max-width:none;color:var(--ink-2)}
+
+.do{background:var(--card);border:1px solid var(--rule);border-left:3px solid var(--deep);
+  border-radius:4px;padding:14px 18px;margin-bottom:10px}
+.do h3{color:var(--deep)}
+.do p{margin:0;font-size:14.6px;max-width:none;color:var(--ink-2)}
+
+ul{max-width:70ch;padding-left:20px;margin:0 0 13px}
+li{margin-bottom:7px}
+footer{margin-top:60px;padding-top:20px;border-top:1px solid var(--rule);color:var(--ink-3);
+  font-size:14px}
+</style>
+
+<div class="wrap">
+<header>
+  <p class="eyebrow">JumpAIS · build plan · 3 ก.ย. 2569</p>
+  <h1>Five stages to the demo</h1>
+  <p class="lede">The generator is done and measured. What does not exist is the service around it.
+  This is the order to build it in, chosen so that <b>every stage ends in something you could
+  demo</b> — because the demo may have to be given from whatever commit exists on the day.</p>
+</header>
+
+<section class="sec">
+  <p class="sec-no">01 &nbsp;Where things stand</p>
+  <h2>One repo is real, the other is a scaffold</h2>
+
+  <p><code>~/Dev/JumpAIS</code> is the generator: 40+ commits, a 16-page golden set at zero
+  collisions, a canary that must report exactly one, a browser-based checker and an animation
+  probe. It works and it is measured.</p>
+
+  <p><code>~/Dev/jumpais-app</code> is one commit: a compose file, an nginx config for the page
+  origin, a vendored copy of the kit, and the plan this document replaces. <b>No application
+  code.</b> 26 real generated pages sit in <code>apps/pages/static/pages/</code> waiting to be
+  served — that is what makes stage 1 possible without any backend at all.</p>
+
+  <div class="note">
+    <p><b>Three things to do before stage 1, none of which take long.</b></p>
+    <p><b>Re-sync the vendored kit.</b> <code>packages/kit/VERSION</code> pins
+    <code>ceec857</code> from 31 Aug. It predates every fix from the last two days — the canvas
+    and 3D draw-in, the decrowding guard, the escaping rule, the checker's new columns. Copy the
+    current kit over and re-stamp it.</p>
+    <p><b>Script that sync, do not do it by hand.</b> The standalone demo bundle went stale twice
+    in two days and shipped a model and a prompt the repo had already abandoned. It is now stamped
+    with its commit so staleness is visible. The vendored kit needs the same treatment: one
+    command that copies, hashes and stamps, and a check that fails loudly when the pin does not
+    match what is on disk.</p>
+    <p><b>Leave the model and effort defaults alone for now.</b> High beats medium on 3.8 across
+    all 68 problems — 23 collisions against 35, half again as much animated geometry, more
+    explanations. But 3.8 crowds more than 3.7 did at either level, and whether its denser pages
+    are worth reading is a judgement call nobody has made yet. It changes a default, not a design.
+    Decide it with real pages in the review screen you are about to build.</p>
+  </div>
+</section>
+
+<section class="sec">
+  <p class="sec-no">02 &nbsp;The build</p>
+  <h2>Five stages, each one demoable</h2>
+
+  <p>The order is dependency-driven, and it is also risk-driven: the parts most likely to
+  misbehave in front of an audience come last, so that a bad week never leaves the demo broken.
+  Nothing here is half-built at any point.</p>
+
+  <ol class="stages">
+    <li class="stage">
+      <div class="num">1</div>
+      <h3>Student view, on fixtures</h3>
+      <p>Serve the 26 existing pages from the page origin and embed one in a sandboxed iframe.
+      Get the step-through, the sticky diagram and the mobile layout right. No API, no database,
+      no model calls. This is where the product either feels good or does not, and it costs
+      nothing to iterate on.</p>
+      <p class="gate"><b>Demoable</b><span>A student stepping through a real solution, on a
+      phone.</span></p>
+    </li>
+
+    <li class="stage">
+      <div class="num">2</div>
+      <h3>Teacher console and review, still on fixtures</h3>
+      <p>Submit box, queue, and the review screen: the page on one side, the check report on the
+      other, approve or reject. Fake the report from the JSON the checker already emits — it is
+      the same shape you will get for real in stage 3.</p>
+      <p class="gate"><b>Demoable</b><span>The entire human loop, end to end, with no model in
+      it.</span></p>
+    </li>
+
+    <li class="stage">
+      <div class="num">3</div>
+      <h3>Database, worker, real generation</h3>
+      <p>Postgres, the schema below, one worker loop, SSE progress. This is where the 30–90 second
+      wait becomes real, so it is also where the waiting screen has to earn its place — stream the
+      checks as they land rather than showing a spinner.</p>
+      <p class="gate"><b>Demoable</b><span>A teacher types a problem and watches a page get built
+      and audited.</span></p>
+    </li>
+
+    <li class="stage">
+      <div class="num">4</div>
+      <h3>Student chat, scoped to the page</h3>
+      <p>Context assembled from the <em>approved</em> page — each step, its <code>why</code>, the
+      answer and its sanity check — never from a fresh solve. Answers cite step numbers.</p>
+      <p class="gate"><b>Demoable</b><span>A student asking "why does step 3 work?" and getting an
+      answer that points back at the page.</span></p>
+    </li>
+
+    <li class="stage">
+      <div class="num">5</div>
+      <h3>Photo upload and extraction</h3>
+      <p>Last on purpose. It is the stage most likely to misbehave on stage, and putting it last
+      means it cannot destabilise anything else. The editable extracted-text field is not a nicety;
+      it is the only mitigation that exists.</p>
+      <p class="gate"><b>Demoable</b><span>A photo of a textbook problem becoming a solution
+      page.</span></p>
+    </li>
+  </ol>
+</section>
+
+<section class="sec">
+  <p class="sec-no">03 &nbsp;Data</p>
+  <h2>The schema, and the one field that matters most</h2>
+
+<pre>problem      id, source('text'|'image'), raw_text, image_path,
+             <b>extracted_text</b>          -- editable; the only OCR mitigation
+             extraction_confidence, level, created_by, created_at
+
+page         id, problem_id, <b>kit_version</b>, model, effort,
+             html_path, thumb_path, path_chosen('board'|'svg'),
+             checks_json             -- window.__shellCheck, verbatim
+             status('generating'|'ready'|'approved'|'rejected'), created_at
+
+job          id, problem_id, kind('extract'|'generate'), state,
+             stage, progress_json, attempts, error, started_at, finished_at
+
+review       id, page_id, reviewer, action, note,
+             <b>seconds_on_page</b>         -- see "rubber-stamping" below
+             created_at
+
+chat_message id, page_id, student_id, role, content, created_at</pre>
+
+  <p><code>kit_version</code> is not bookkeeping. It is what makes "improve the shell, re-execute
+  every past page" possible, and that has now paid off repeatedly: the LaTeX-escape fix, the table
+  crash, the <code>mirrorpoint</code> fix, and most recently a draw-in fix that took 5 of 6 3D
+  pages from completely static to animated <em>without regenerating anything</em>. Store it, and
+  keep the ability to re-run a page against a newer kit.</p>
+
+  <p>Page HTML is never served by the API. It is written to the shared volume and served by the
+  <code>pages</code> origin, sandboxed with <code>allow-scripts</code> and
+  <b>without</b> <code>allow-same-origin</code>. Generated pages run model-written JavaScript;
+  that is the whole containment story.</p>
+</section>
+
+<section class="sec">
+  <p class="sec-no">04 &nbsp;Review</p>
+  <h2>What the review screen has to show</h2>
+
+  <p>The checker emits more than a pass/fail, and the review screen is the only place any of it
+  reaches a human. Surface these, worst first, and link each one to the step it belongs to:</p>
+
+  <div class="tw"><table>
+    <thead><tr><th>Signal</th><th>What it means</th><th>Why a teacher cares</th></tr></thead>
+    <tbody>
+      <tr><td>collisions</td><td>overlapping labels, per step</td><td>something is unreadable at that step</td></tr>
+      <tr><td>collapsed</td><td>a LaTeX command written with one backslash</td><td>the student sees <code>hatA</code>; no other check can see this</td></tr>
+      <tr><td>leaked</td><td>LaTeX outside <code>$…$</code></td><td>raw commands rendered as text</td></tr>
+      <tr><td>failed / unknown / NaN</td><td>board geometry that did not build</td><td>the diagram is missing part of itself</td></tr>
+      <tr><td>MISSING-why</td><td>a step with no reason given</td><td>it shows the move but not the thinking</td></tr>
+      <tr><td>pre / zero-steps</td><td>figure built before step 1</td><td>stepping reveals nothing; it reads as static</td></tr>
+      <tr><td>moved / far / band</td><td>labels the placer relocated</td><td>on a positional diagram, a moved label is a defect</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="risk">
+    <h3>Every one of these was green on a page that was visibly wrong</h3>
+    <p>A geometry construction came out with its compass arcs clipped to fragments and a stray
+    filled sector, and scored clean on collisions, animation density, LaTeX and board health. It
+    was caught by a person looking at it. Design the review screen so that the fast path is
+    <em>looking at the page</em>, with the numbers as annotation — not a checklist that can be
+    cleared without ever seeing the diagram.</p>
+  </div>
+
+  <div class="risk">
+    <h3>Rubber-stamping is the failure mode that hides</h3>
+    <p>The review gate is the strongest correctness layer in the system and it fails silently: if
+    approving twenty pages is slow, teachers click approve without reading and every metric stays
+    green. Record <code>seconds_on_page</code> from the first day so the failure is at least
+    visible.</p>
+  </div>
+</section>
+
+<section class="sec">
+  <p class="sec-no">05 &nbsp;Demo day</p>
+  <h2>Assume the network hates you</h2>
+
+  <div class="do">
+    <h3>Pre-generate, and be honest that you did</h3>
+    <p>Have two or three approved pages already in the database before you present. Generate one
+    live because watching the checks stream is genuinely the best part of the pitch — but never be
+    in a position where a rate limit or a 40-second latency spike is the demo.</p>
+  </div>
+
+  <div class="do">
+    <h3>Do not read a single run as a quality score</h3>
+    <p>Regenerating the same 68 problems twice moved the collision count on 5 pages, with gross
+    movement larger than the net change. Model output varies run to run. If you show numbers,
+    show them for a fixed set of pre-approved pages, not for whatever was generated that morning.</p>
+  </div>
+
+  <div class="do">
+    <h3>Check the bundle stamp before you travel</h3>
+    <p><code>dist/jumpais-demo/VERSION</code> now records the commit, the build time, whether the
+    tree was dirty and the model default. It exists because a stale bundle shipped twice. Look at
+    it.</p>
+  </div>
+</section>
+
+<section class="sec">
+  <p class="sec-no">06 &nbsp;Carried</p>
+  <h2>Risks that do not go away</h2>
+  <ul>
+    <li><b>Extraction.</b> A misread photo yields a flawless page solving the wrong problem, and
+      every automated check passes it. Editable text is the entire mitigation — which is why the
+      human step sits between extract and generate, and why stage 5 is last.</li>
+    <li><b>Grade-appropriate method.</b> A page can be correct by a method the class has not been
+      taught. Nothing verifies this. It is judgement, and it is the likely rejection reason.</li>
+    <li><b>Model arithmetic.</b> No CAS. The model computes its own numbers. This is the largest
+      correctness gap in the system and no amount of shell work touches it.</li>
+    <li><b>Ill-posed input.</b> Missing or contradictory values are undefined behaviour.</li>
+    <li><b>Never call <code>sympify()</code> on model output.</b> It evaluates its input as Python
+      — remote code execution on the worker. <code>spikes/spike/render.py</code> does the unsafe
+      thing and must not be copied.</li>
+  </ul>
+</section>
+
+<footer>
+  Companion to the agent handoff, which covers the generator: what was tried, what failed, and
+  what holds. Read that before changing the kit; read this before building around it.
+</footer>
+</div>
