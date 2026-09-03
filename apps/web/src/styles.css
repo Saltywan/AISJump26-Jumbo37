@@ -31,6 +31,7 @@
      assume, so these are spelled out rather than derived */
   --space-none: 0;
   --space-2xs: 5px;
+  --space-xs: 8px;
   --space-sm: 10px;
   --space-md: 15px;
   --space-lg: 20px;
@@ -40,6 +41,10 @@
   /* Figma: Radius/border-radius-md, plus the 15px cards use their own */
   --radius: 10px;
   --radius-card: 15px;
+  --radius-lg: 20px;   /* the login card */
+
+  /* Figma: Shadow-center-01 */
+  --shadow-center: 0 0 10px 1px rgba(17, 17, 17, 0.05);
 
   /* Figma: type. IBM Plex Sans Thai carries Thai and Latin in one family, so
      there is no second face to fall back to mid-sentence. */
@@ -51,6 +56,8 @@
   --lh-body-sm: 22px;
   --text-h5: 20px;            /* Heading 5   20 / 32 / 600 */
   --lh-h5: 32px;
+  --text-h4: 24px;            /* Heading 4   24 / 32 / 700 */
+  --lh-h4: 32px;
   --text-h3: 32px;            /* Heading 3   32 / 42 / 700 */
   --lh-h3: 42px;
 
@@ -1082,4 +1089,164 @@ button.chip {
     margin-left: 0;
     flex: 1 1 100%;
   }
+}
+
+/* ---------------------------------------------------------------------------
+   Design-system primitives (Figma: Jumbo-37)
+   Measurements are the design's own: 5px spacing steps, radius 10 on controls
+   and 15 on cards, a 64px navbar, and a 1100px content column inside 1440.
+   --------------------------------------------------------------------------- */
+
+.shell { min-height: 100%; display: flex; flex-direction: column; background: var(--bg); }
+
+.navbar {
+  height: var(--navbar-h);
+  flex: 0 0 auto;
+  background: var(--card);
+  border-bottom: 1px solid var(--rule);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 var(--space-2xl);
+}
+.navbar-brand {
+  font-size: var(--text-h5); font-weight: 700; color: var(--ink);
+  text-decoration: none; letter-spacing: -0.01em;
+}
+.navbar-right { display: flex; align-items: center; gap: var(--space-xl); }
+.navbar-user { display: flex; align-items: center; gap: var(--space-sm); }
+.navbar-avatar { border-radius: 50%; display: block; }
+.navbar-name { font-size: var(--text-body); line-height: var(--lh-body); color: var(--ink); }
+
+.shell-main {
+  flex: 1 1 auto;
+  width: 100%; max-width: var(--page-max);
+  margin: 0 auto; padding: 50px var(--space-lg) var(--space-2xl);
+  display: flex; flex-direction: column; gap: var(--space-xl);
+}
+.shell-main-wide { max-width: none; padding: 0; gap: 0; }
+.shell-footer {
+  flex: 0 0 auto; padding: var(--space-lg);
+  text-align: center; color: var(--ink); font-size: var(--text-body);
+}
+
+/* Button ------------------------------------------------------------------ */
+.ui-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-lg);
+  border-radius: var(--radius);
+  border: 1px solid transparent;
+  font-family: inherit; font-size: var(--text-body); line-height: var(--lh-body);
+  font-weight: 600; text-decoration: none; cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+}
+.ui-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.ui-btn-block { width: 100%; }
+.ui-btn img { display: block; flex: 0 0 auto; }
+
+.ui-btn-primary { background: var(--primary); color: var(--primary-ink); }
+.ui-btn-primary:hover:not(:disabled) { background: #35a6bb; }
+
+.ui-btn-outline { background: var(--card); border-color: var(--rule); color: var(--ink); font-weight: 400; }
+.ui-btn-outline:hover { background: var(--sunk); }
+
+.ui-btn-quiet { background: none; color: var(--ink); font-weight: 400; padding: var(--space-2xs) var(--space-md); }
+.ui-btn-quiet:hover { background: var(--sunk); }
+
+.ui-btn-danger { background: var(--sev-critical); color: #fff; }
+.ui-btn-danger:hover:not(:disabled) { background: #8f1e18; }
+
+/* Input ------------------------------------------------------------------- */
+.ui-field { display: flex; flex-direction: column; gap: var(--space-sm); width: 100%; }
+.ui-field-label { font-size: 18px; line-height: var(--lh-body); font-weight: 600; color: var(--ink); }
+.ui-field-hint { font-size: var(--text-body-sm); line-height: var(--lh-body-sm); color: var(--ink-2); }
+.ui-input {
+  width: 100%;
+  background: var(--card);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: var(--space-sm) var(--space-lg);
+  font-family: inherit; font-size: var(--text-body-sm); line-height: var(--lh-body-sm);
+  color: var(--ink);
+}
+.ui-input::placeholder { color: var(--ink-2); }
+.ui-input:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; border-color: var(--primary); }
+.ui-textarea { min-height: 70px; resize: vertical; }
+
+/* Card -------------------------------------------------------------------- */
+.ui-card {
+  background: var(--card);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-card);
+  padding: var(--space-lg);
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-lg);
+}
+.ui-card-link { text-decoration: none; color: inherit; transition: border-color 0.15s ease; }
+.ui-card-link:hover { border-color: var(--primary); }
+.ui-card-text { display: flex; flex-direction: column; gap: var(--space-2xs); min-width: 0; }
+.ui-card-title { font-size: var(--text-h5); line-height: var(--lh-h5); font-weight: 600; color: var(--ink); }
+.ui-card-meta { font-size: var(--text-body); line-height: var(--lh-body); color: var(--ink-2); }
+.ui-card-action { flex: 0 0 auto; display: flex; align-items: center; gap: var(--space-sm); }
+
+/* Tabs -------------------------------------------------------------------- */
+.ui-tabs { display: flex; border-bottom: 1px solid var(--rule); }
+.ui-tab {
+  appearance: none; background: none; border: 0;
+  border-bottom: 2px solid transparent; margin-bottom: -1px;
+  padding: var(--space-sm) var(--space-xl);
+  font-family: inherit; font-size: var(--text-body); line-height: var(--lh-body);
+  color: var(--ink-2); text-decoration: none; cursor: pointer;
+}
+.ui-tab:hover { color: var(--ink); }
+.ui-tab-active { color: var(--ink); font-weight: 600; border-bottom-color: var(--primary); }
+
+/* Page header ------------------------------------------------------------- */
+.ui-page-header { display: flex; align-items: center; justify-content: space-between; gap: var(--space-lg); }
+.ui-page-header-text { display: flex; flex-direction: column; gap: var(--space-2xs); }
+.ui-page-title { margin: 0; font-size: var(--text-h3); line-height: var(--lh-h3); font-weight: 700; color: var(--ink); }
+.ui-page-subtitle { margin: 0; font-size: var(--text-body-sm); line-height: var(--lh-body-sm); color: var(--ink-2); }
+.ui-section-title { margin: 0; font-size: var(--text-h5); line-height: var(--lh-h5); font-weight: 600; color: var(--ink); }
+
+.ui-stack { display: flex; flex-direction: column; gap: var(--space-lg); }
+
+/* Login ------------------------------------------------------------------- */
+.login-ground { min-height: 100%; display: flex; align-items: center; justify-content: center; padding: var(--space-lg); background: var(--bg); }
+.login-card {
+  width: 450px; max-width: 100%;
+  background: var(--card); border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-center);
+  padding: 35px 45px;
+  display: flex; flex-direction: column; gap: var(--space-xl);
+}
+.login-title { margin: 0; text-align: center; font-size: var(--text-h4); line-height: var(--lh-h4); font-weight: 700; color: var(--ink); }
+.login-fields { display: flex; flex-direction: column; gap: var(--space-xl); }
+.login-alt { display: flex; flex-direction: column; gap: var(--space-md); }
+.login-or { display: flex; align-items: center; justify-content: center; gap: var(--space-md); }
+.login-rule { flex: 1 1 auto; height: 1px; background: var(--rule); }
+.login-or-text { font-size: var(--text-body-sm); color: var(--ink-2); }
+.login-google {
+  display: flex; align-items: center; justify-content: center; gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-md);
+  background: var(--card); border: 1px dashed var(--ink); border-radius: var(--radius);
+  font-family: inherit; font-size: 18px; font-weight: 600; color: var(--ink); cursor: pointer;
+}
+.login-google:hover { background: var(--sunk); }
+.login-demo { display: flex; flex-direction: column; gap: var(--space-sm); border-top: 1px solid var(--rule); padding-top: var(--space-md); }
+.login-demo-label { font-size: var(--text-body-sm); color: var(--ink-2); text-align: center; }
+.login-roles { display: flex; gap: var(--space-sm); }
+.login-role {
+  flex: 1 1 0; padding: var(--space-xs) var(--space-md);
+  background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius);
+  font-family: inherit; font-size: var(--text-body); color: var(--ink); cursor: pointer;
+}
+.login-role-on { border-color: var(--primary); background: var(--primary-bg); font-weight: 600; }
+
+@media (max-width: 900px) {
+  .navbar { padding: 0 var(--space-lg); }
+  .navbar-name { display: none; }
+  .shell-main { padding: var(--space-lg) var(--space-md) var(--space-xl); gap: var(--space-lg); }
+  .ui-page-header { flex-direction: column; align-items: flex-start; }
+  .ui-page-title { font-size: 26px; line-height: 34px; }
+  .ui-card { flex-direction: column; align-items: flex-start; gap: var(--space-sm); }
+  .ui-tab { padding: var(--space-sm) var(--space-md); }
+  .login-card { padding: var(--space-xl) var(--space-lg); }
 }
