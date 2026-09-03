@@ -28,10 +28,16 @@ services:
     profiles: ["backend"]
     environment:
       DATABASE_URL: postgresql+psycopg://jumpais:jumpais@db:5432/jumpais
-      GOOGLE_CLOUD_API_KEY: ${GOOGLE_CLOUD_API_KEY}
       PAGES_ORIGIN: http://localhost:8080
+      WEB_ORIGIN: http://localhost:5173
     ports: ["8000:8000"]
-    volumes: ["storage:/storage", "./packages/kit:/kit:ro"]
+    # the source is mounted so an edit reloads instead of needing a rebuild;
+    # the image still COPYs it, so a built image runs standalone
+    volumes:
+      - "storage:/storage"
+      - "./packages/kit:/kit:ro"
+      - "./apps/api/app:/app/app"
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
     depends_on: { db: { condition: service_healthy } }
 
   worker:
@@ -40,6 +46,9 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg://jumpais:jumpais@db:5432/jumpais
       GOOGLE_CLOUD_API_KEY: ${GOOGLE_CLOUD_API_KEY}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      GEN_MODEL: ${GEN_MODEL:-gemini-3.8-flash}
+      GEN_EFFORT: ${GEN_EFFORT:-high}
     volumes: ["storage:/storage", "./packages/kit:/kit:ro"]
     depends_on: { db: { condition: service_healthy } }
 
@@ -48,15 +57,19 @@ services:
     image: nginx:alpine
     ports: ["8080:80"]
     volumes:
-      # Stage 1: the 25 fixture pages ship in this repo, so bind-mount them
-      # straight in rather than the `storage` volume, which stage 3's worker
-      # hasn't been built yet to populate. `apps/pages/static/pages/lib` is a
-      # symlink to `../lib`, which resolves inside the container to the `/lib/`
-      # mount below — same trick either way. When stage 3's worker starts
-      # writing real generated pages into `storage`, swap this one line back
-      # to `storage:/usr/share/nginx/html/pages:ro` (or seed `storage` with
-      # these fixtures on first boot); nothing else about this service changes.
+      # Two sources, served as siblings.
+      #
+      # /pages/    the fixtures that ship in this repo — they back the demo when
+      #            nothing has been generated yet.
+      # /generated/ worker output from the `storage` volume.
+      #
+      # Stage 1 mounted the fixtures INSTEAD of storage because no worker
+      # existed; leaving it that way once the worker did meant every generated
+      # page 404'd from the origin meant to serve it. They cannot be nested —
+      # a mount cannot be created inside a read-only bind — so they sit side by
+      # side, and storage/lib -> ../lib lands directly on the lib mount below.
       - "./apps/pages/static/pages:/usr/share/nginx/html/pages:ro"
+      - "storage:/usr/share/nginx/html/generated:ro"
       - "./packages/kit/lib:/usr/share/nginx/html/lib:ro"
       - "./apps/pages/nginx.conf:/etc/nginx/conf.d/default.conf:ro"
 

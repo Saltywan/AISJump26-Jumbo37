@@ -39,6 +39,7 @@ declare -a VENDORED=(
   "prompts/shell-rules.th.txt:shell-rules.th.txt"
   "prompts/poc-original.th.txt:poc-original.th.txt"
   "checks/check.mjs:check.mjs"
+  "generate.py:generate.py"
 )
 
 for pair in "${VENDORED[@]}"; do

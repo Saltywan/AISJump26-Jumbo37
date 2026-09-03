@@ -8,8 +8,15 @@ import fs from 'fs';
 const argv = process.argv.slice(2);
 let shotDir = null;
 const files = [];
+let jsonOut = null;
 for (let i = 0; i < argv.length; i++) {
   if (argv[i] === '--shots') { shotDir = argv[++i]; continue; }
+  /* --json <file> writes every row this run measured. The review screen in the
+     service has to show a teacher what the checks found, and it cannot read it
+     out of the page: pages are embedded in an opaque-origin sandboxed iframe
+     precisely so nothing can reach into them. So the report has to be produced
+     here and stored alongside the page. */
+  if (argv[i] === '--json') { jsonOut = argv[++i]; continue; }
   files.push(argv[i]);
 }
 if (shotDir) fs.mkdirSync(shotDir, { recursive: true });
@@ -142,6 +149,10 @@ for (const f of files) {
   rows.push({ id, errs, collapsed, ...r });
 }
 await b.close();
+if (jsonOut) {
+  fs.writeFileSync(jsonOut, JSON.stringify(rows, null, 2));
+  console.log(`\nwrote ${rows.length} rows to ${jsonOut}`);
+}
 console.log('\nid                 steps  labels  moved   far  band  collisions-per-step   worst  errs');
 console.log('-'.repeat(88));
 console.log('  "moved" = labels the placer relocated; on a diagram whose meaning is positional');

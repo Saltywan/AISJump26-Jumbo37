@@ -1879,9 +1879,16 @@
           if (!cs.fill || cs.fill === 'none' || /rgba\(0, 0, 0, 0\)/.test(cs.fill)) continue;
           var fo = parseFloat(cs.fillOpacity);
           if (fo === 0) continue;
-          var tag = shapes[j].tagName.toLowerCase();
-          if (tag === 'path' && !shapes[j].getAttribute('fill')
-              && !(shapes[j].style && shapes[j].style.fill)) continue;   // stroke-only path
+          /* Only blame a fill somebody actually asked for. An SVG shape with no
+             authored fill computes to rgb(0,0,0) by specification, and how much
+             of that surfaces through getComputedStyle varies by browser
+             version: this check was clean on Chromium 1.62 and reported six
+             unreadable labels on the same page under 1.49, purely from
+             stroke-only geometry defaulting to black. A checker whose answer
+             depends on its browser build is not a checker, so require the fill
+             to be authored — as an attribute or inline — before judging it. */
+          if (!shapes[j].getAttribute('fill')
+              && !(shapes[j].style && shapes[j].style.fill)) continue;
           var q = shapes[j].getBoundingClientRect();
           if (cx < q.x || cx > q.x + q.width || cy < q.y || cy > q.y + q.height) continue;
           /* It has to be a BACKGROUND, not a speck. A 6px point marker in
