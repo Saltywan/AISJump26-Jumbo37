@@ -21,6 +21,8 @@
   --primary: #3ebad0;         /* Primary/500 */
   --primary-ink: #ffffff;     /* text on primary */
   --primary-bg: #e7f6f9;      /* primary at low tint, for selected states */
+  --danger-text: #f53f3f;     /* Danger/text */
+  --danger-bg: #fcebea;       /* Danger/bg */
 
   /* the app previously used a blue accent; keep the name pointing at the
      design's primary so nothing is left referring to a colour that is gone */
@@ -60,6 +62,8 @@
   --lh-h4: 32px;
   --text-h3: 32px;            /* Heading 3   32 / 42 / 700 */
   --lh-h3: 42px;
+  --text-label-sm: 14px;      /* Label SM    14 / 20 / 500 */
+  --lh-label-sm: 20px;
 
   /* layout: the design lays every page out on a 1100px column inside 1440 */
   --page-max: 1100px;
@@ -1240,6 +1244,101 @@ button.chip {
 }
 .login-role-on { border-color: var(--primary); background: var(--primary-bg); font-weight: 600; }
 
+/* ---------------------------------------------------------------------------
+   Teacher classroom screens (Figma: nodes 12:37, 12:61, 48:4941, 48:5042,
+   60:7009). Built on the primitives above; only what those don't already
+   cover lives here.
+   --------------------------------------------------------------------------- */
+
+.classroom-empty {
+  margin: 0;
+  padding: var(--space-2xl) 0;
+  text-align: center;
+  color: var(--ink-2);
+  font-size: var(--text-body-sm);
+}
+
+/* "‹ กลับไปยัง <ห้องเรียน>" + the classroom name/description/create-lesson
+   row that sits above the tab strip on all three classroom sub-screens. */
+.classroom-detail-head { display: flex; flex-direction: column; gap: var(--space-md); width: 100%; }
+.classroom-back {
+  appearance: none; border: none; background: none; cursor: pointer;
+  display: inline-flex; align-items: center; gap: var(--space-md);
+  padding: 0; font-family: inherit; font-size: var(--text-body); color: var(--ink);
+  align-self: flex-start;
+}
+.classroom-back:hover { color: var(--primary); }
+.classroom-title { margin: 0; font-size: 24px; line-height: var(--lh-h4); font-weight: 700; color: var(--ink); }
+
+/* Student list (นักเรียน tab) ----------------------------------------------- */
+.student-table {
+  width: 100%;
+  background: var(--card);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-center);
+  overflow: hidden;
+}
+.student-table-head {
+  appearance: none; border: none; cursor: pointer; width: 100%;
+  display: flex; align-items: center; gap: var(--space-xs);
+  background: var(--card); border-bottom: 1px solid var(--rule);
+  padding: var(--space-md) var(--space-xl);
+  font-family: inherit; font-size: var(--text-label-sm); line-height: var(--lh-label-sm);
+  font-weight: 500; color: var(--ink);
+}
+.student-sort-icons { display: flex; flex-direction: column; justify-self: center; }
+.student-sort-icons img { display: block; opacity: 0.35; margin-block: -2px; }
+.student-sort-icons img.student-sort-active { opacity: 1; }
+.student-row {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-md);
+  padding: var(--space-lg) var(--space-xl);
+  border-bottom: 1px solid var(--rule);
+}
+.student-row:last-child { border-bottom: none; }
+.student-row-name { display: flex; align-items: center; gap: var(--space-sm); font-size: var(--text-body); color: var(--ink); }
+.student-row-name img { border-radius: 50%; display: block; }
+.student-remove {
+  appearance: none; border: none; background: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  padding: var(--space-2xs); border-radius: 5px; gap: var(--space-md);
+}
+.student-remove:hover { background: var(--sunk); }
+.student-remove:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
+
+/* Settings form (การตั้งค่า tab) --------------------------------------------- */
+.classroom-settings-form { width: 100%; }
+.classroom-settings-actions { display: flex; align-items: center; justify-content: space-between; gap: var(--space-lg); }
+.classroom-saved-note { margin: calc(-1 * var(--space-md)) 0 0; font-size: var(--text-body-sm); color: var(--sev-clean); }
+
+/* Danger-soft — the design's delete button and its modal confirmation both
+   use this: tinted background, no border, not the solid --sev-critical fill
+   the review screen's reject button uses. Figma: Danger/bg + Danger/text. */
+.ui-btn-danger-soft {
+  background: var(--danger-bg); color: var(--danger-text); font-weight: 500;
+  padding: var(--space-2xs) var(--space-md);
+}
+.ui-btn-danger-soft:hover { filter: brightness(0.97); }
+.ui-btn-compact { padding: var(--space-2xs) var(--space-md); border-radius: var(--space-xs); font-weight: 500; }
+
+/* Delete-confirmation dialog (Figma: node 60:7009) -------------------------- */
+.modal-scrim {
+  position: fixed; inset: 0; z-index: 20;
+  background: color-mix(in srgb, var(--rule) 70%, transparent);
+  display: flex; align-items: center; justify-content: center;
+  padding: var(--space-lg);
+}
+.modal-card {
+  width: 465px; max-width: 100%;
+  background: var(--card); border-radius: var(--radius-card);
+  padding: var(--space-xl);
+  display: flex; flex-direction: column; align-items: center; gap: var(--space-lg);
+}
+.modal-text { display: flex; flex-direction: column; align-items: center; gap: var(--space-2xs); text-align: center; }
+.modal-title { margin: 0; font-size: var(--text-h5); line-height: var(--lh-h4); font-weight: 600; color: var(--ink); }
+.modal-desc { margin: 0; font-size: var(--text-body); line-height: var(--lh-body); color: var(--ink); }
+.modal-actions { display: flex; gap: var(--space-lg); width: 100%; }
+.modal-btn { flex: 1 1 0; justify-content: center; }
+
 @media (max-width: 900px) {
   .navbar { padding: 0 var(--space-lg); }
   .navbar-name { display: none; }
@@ -1249,4 +1348,310 @@ button.chip {
   .ui-card { flex-direction: column; align-items: flex-start; gap: var(--space-sm); }
   .ui-tab { padding: var(--space-sm) var(--space-md); }
   .login-card { padding: var(--space-xl) var(--space-lg); }
+
+  .classroom-settings-actions { flex-direction: column-reverse; align-items: stretch; }
+  .student-table-head { padding: var(--space-md); }
+  .student-row { padding: var(--space-md); flex-wrap: wrap; }
+  .modal-card { padding: var(--space-lg); }
+  .modal-actions { flex-direction: column; }
+}
+
+/* ---------------------------------------------------------------------------
+   Chat screens (Figma: 35:629 "New Chat", 35:675 "Chat", teacher; 48:6460
+   "Chat", student). One shared shell — sidebar + main panel + a prompt input
+   pinned to the bottom of the main panel — used by TeacherChat.tsx and (minus
+   the sidebar) StudentLessonChat.tsx. The generated-lesson card ("gen-card")
+   and its report are shared by both teacher and student views; only the
+   teacher's ever shows a report or a publish control, since only the teacher
+   makes the publish decision (see lib/chat.ts).
+
+   Sized against the viewport rather than the document (height: calc(100dvh -
+   navbar), not min-height) because the design pins the input to the bottom of
+   the visible chat area, not the bottom of a possibly-scrolled page — same
+   reasoning as .viewer/.review's 100dvh.
+   --------------------------------------------------------------------------- */
+
+.chat-shell { height: calc(100dvh - var(--navbar-h)); display: flex; background: var(--bg); position: relative; }
+.chat-shell-noside { display: block; }
+.chat-shell-noside .chat-main { height: 100%; }
+
+.chat-sidebar {
+  width: 350px; flex: 0 0 auto;
+  background: var(--card); border-right: 1px solid var(--rule);
+  padding: var(--space-xl);
+  display: flex; flex-direction: column; gap: var(--space-xl);
+  overflow-y: auto;
+}
+.chat-sidebar-back {
+  appearance: none; border: none; background: none; cursor: pointer;
+  display: inline-flex; align-items: center; gap: var(--space-md);
+  padding: 0; font-family: inherit; font-size: var(--text-body); color: var(--ink);
+  align-self: flex-start;
+}
+.chat-sidebar-back:hover { color: var(--primary); }
+
+.chat-lesson-picker { position: relative; border-bottom: 1px solid var(--rule); padding-bottom: var(--space-md); }
+.chat-lesson-select-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2xs); }
+.chat-lesson-eyebrow { margin: 0 0 2px; font-size: var(--text-body-sm); line-height: var(--lh-body-sm); color: var(--ink-2); }
+.chat-lesson-name { margin: 0; font-size: var(--text-body); line-height: var(--lh-body); font-weight: 500; color: var(--ink); }
+.chat-lesson-select {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  opacity: 0; cursor: pointer; border: none;
+}
+
+.chat-history { display: flex; flex-direction: column; gap: var(--space-md); min-height: 0; }
+.chat-history-title { margin: 0; font-size: var(--text-body); font-weight: 500; color: var(--ink); }
+.chat-history-empty { margin: 0; font-size: var(--text-body-sm); color: var(--ink-3); }
+.chat-history-list { display: flex; flex-direction: column; gap: var(--space-md); }
+.chat-history-item {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-sm);
+  background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius);
+  padding: var(--space-sm) var(--space-lg);
+  cursor: pointer; width: 100%; text-align: left;
+}
+.chat-history-item:hover { border-color: var(--primary); }
+.chat-history-item.chat-history-active { border-color: var(--primary); background: var(--primary-bg); }
+.chat-history-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.chat-history-title-row {
+  font-size: var(--text-body); font-weight: 500; color: var(--ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px;
+}
+.chat-history-status { display: flex; align-items: center; gap: 5px; font-size: var(--text-body-sm); color: var(--ink-2); }
+.chat-history-status-published { color: var(--primary); }
+.chat-history-status-draft { color: var(--ink-2); }
+.chat-history-status-generating { color: var(--ink-3); }
+.chat-history-status .spinner { width: 12px; height: 12px; border-width: 1.5px; }
+.chat-history-menu {
+  appearance: none; border: none; background: none; cursor: pointer;
+  padding: 5px; border-radius: 5px; flex: 0 0 auto;
+}
+.chat-history-menu:hover { background: var(--sunk); }
+
+.chat-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; position: relative; }
+.chat-main-head { flex: 0 0 auto; }
+.chat-mobile-toggle { display: none; }
+
+.chat-topbar {
+  flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between;
+  gap: var(--space-md); padding: var(--space-lg) var(--space-2xl);
+  background: var(--card); border-bottom: 1px solid var(--rule);
+}
+.chat-topbar-title {
+  font-size: 18px; line-height: var(--lh-body); font-weight: 600; color: var(--ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.chat-published-row { display: flex; align-items: center; gap: var(--space-md); flex-wrap: wrap; }
+.chat-published-note { display: inline-flex; align-items: center; gap: 6px; font-size: var(--text-body-sm); color: var(--primary); font-weight: 500; }
+.chat-draft-note { display: inline-flex; align-items: center; gap: 6px; font-size: var(--text-body-sm); color: var(--ink-2); }
+.chat-unpublish-btn {
+  appearance: none; border: 1px solid var(--rule); background: var(--card); color: var(--ink-2);
+  font: inherit; font-size: 13px; padding: 5px 12px; border-radius: 8px; cursor: pointer;
+}
+.chat-unpublish-btn:hover { border-color: var(--sev-critical); color: var(--sev-critical); }
+
+.chat-scroll {
+  flex: 1 1 auto; min-height: 0; overflow-y: auto;
+  padding: var(--space-2xl) var(--space-2xl) 140px;
+  display: flex; flex-direction: column; align-items: center; gap: var(--space-lg);
+}
+.chat-empty {
+  margin: auto; max-width: 631px; text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: var(--space-lg);
+}
+.chat-empty h2 { margin: 0; font-size: 24px; line-height: 1.5; font-weight: 600; color: var(--ink); }
+.chat-empty p { margin: 0; font-size: var(--text-body); color: var(--ink-2); }
+
+.chat-thread { width: 100%; max-width: 800px; display: flex; flex-direction: column; gap: var(--space-lg); }
+.chat-msg-user {
+  align-self: flex-end; max-width: 85%;
+  background: var(--sunk); color: var(--ink);
+  border-radius: var(--radius); padding: var(--space-sm) var(--space-lg);
+  font-size: var(--text-body); line-height: var(--lh-body);
+}
+.chat-msg-assistant { align-self: flex-start; font-size: var(--text-body); line-height: var(--lh-body); color: var(--ink); }
+
+/* Generated-lesson card — the animation plus, for the teacher, the check
+   report and the publish control. Shared by TeacherChat.tsx and
+   StudentLessonChat.tsx (the student version stops after gen-card-stage). */
+.gen-card {
+  width: 100%;
+  background: var(--card); border-radius: var(--radius);
+  box-shadow: var(--shadow-center);
+  overflow: hidden;
+  display: flex; flex-direction: column;
+}
+.gen-card-head {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 1px solid var(--rule);
+}
+.gen-card-title { font-size: var(--text-body); font-weight: 600; color: var(--ink); }
+.gen-card-replay {
+  display: inline-flex; align-items: center; gap: var(--space-md);
+  border: 1px solid var(--rule); background: var(--card); color: var(--ink);
+  border-radius: var(--radius); padding: var(--space-2xs) var(--space-md);
+  font: inherit; font-size: var(--text-body); cursor: pointer;
+}
+.gen-card-replay:hover { border-color: var(--primary); color: var(--primary); }
+.gen-card-stage { position: relative; height: 500px; background: var(--card); }
+.gen-card-frame { display: block; width: 100%; height: 100%; border: 0; }
+.gen-card-loading {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  gap: var(--space-sm); color: var(--ink-3); font-size: var(--text-body-sm); background: var(--bg);
+}
+.gen-card-generating {
+  display: flex; align-items: center; justify-content: center; gap: var(--space-sm);
+  padding: 60px var(--space-lg); color: var(--ink-3); font-size: var(--text-body);
+}
+.gen-card-report { border-top: 1px solid var(--rule); padding: var(--space-lg); }
+.gen-card-publish-row {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-md);
+  flex-wrap: wrap;
+  padding: var(--space-md) var(--space-lg);
+  border-top: 1px solid var(--rule); background: var(--sunk);
+}
+.chat-publish-btn {
+  display: inline-flex; align-items: center; gap: var(--space-md);
+  background: var(--primary); color: #fff; border: none;
+  border-radius: var(--space-xs); padding: var(--space-2xs) var(--space-md);
+  font: inherit; font-size: var(--text-body); font-weight: 500; cursor: pointer;
+}
+.chat-publish-btn:hover:not(:disabled) { background: #35a6bb; }
+.chat-publish-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Compact review report inside the card (see pages/chat/ReportSummary.tsx) —
+   reuses .flag-section/.flag-head/.flag-body/.chip verbatim from the full
+   review screen so the two read as one visual language. */
+.report-summary { display: flex; flex-direction: column; gap: var(--space-sm); }
+.report-caveat-compact { font-size: 12.5px; padding: var(--space-xs) var(--space-sm); }
+.report-summary-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.report-summary-detail { display: grid; gap: var(--space-sm); margin-top: 2px; }
+
+.chat-input-bar {
+  position: absolute; left: 50%; bottom: 30px; transform: translateX(-50%);
+  width: 850px; max-width: calc(100% - 32px);
+  background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius-card);
+  box-shadow: var(--shadow-center);
+  padding: var(--space-md) var(--space-lg);
+  display: flex; align-items: center; gap: var(--space-md);
+  z-index: 5;
+}
+.chat-input-field { flex: 1 1 auto; border: none; outline: none; background: none; font: inherit; font-size: var(--text-body); color: var(--ink); }
+.chat-input-field::placeholder { color: var(--ink-2); }
+.chat-input-send {
+  flex: 0 0 auto; width: 40px; height: 40px; border-radius: var(--space-sm);
+  border: none; background: var(--primary);
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.chat-input-send:hover:not(:disabled) { background: #35a6bb; }
+.chat-input-send:disabled { opacity: 0.5; cursor: default; }
+
+/* Sidebar becomes a slide-over drawer under 900px: 350px fixed + an 850px
+   input bar simply do not fit a 375px phone. The trigger is a plain ☰ button
+   in the chat-main-head, visible only at this width. */
+.chat-sidebar-scrim { display: none; }
+
+@media (max-width: 900px) {
+  .chat-mobile-toggle {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 34px; height: 34px; border-radius: var(--radius);
+    border: 1px solid var(--rule); background: var(--card); color: var(--ink);
+    font-size: 16px; cursor: pointer; flex: 0 0 auto;
+  }
+  .chat-main-head { display: flex; align-items: center; gap: var(--space-sm); padding: var(--space-sm) var(--space-md); background: var(--card); border-bottom: 1px solid var(--rule); }
+  .chat-main-head .chat-topbar { flex: 1 1 auto; border: none; padding: 0; background: none; }
+  .chat-topbar-title { font-size: var(--text-body); }
+  .chat-published-note, .chat-draft-note { font-size: 11.5px; }
+
+  .chat-sidebar {
+    position: fixed; z-index: 15; top: var(--navbar-h); bottom: 0; left: 0;
+    width: 85vw; max-width: 320px;
+    box-shadow: 2px 0 16px rgba(15, 23, 42, 0.18);
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+  }
+  .chat-sidebar.chat-sidebar-open { transform: translateX(0); }
+  .chat-sidebar-scrim {
+    display: block; position: fixed; z-index: 12;
+    top: var(--navbar-h); left: 0; right: 0; bottom: 0;
+    background: rgba(15, 23, 42, 0.35);
+  }
+
+  .chat-scroll { padding: var(--space-lg) var(--space-md) 130px; }
+  .chat-empty h2 { font-size: 19px; }
+  .gen-card-stage { height: 300px; }
+  .gen-card-head { padding: var(--space-sm) var(--space-md); flex-wrap: wrap; }
+  .gen-card-publish-row { flex-direction: column; align-items: stretch; }
+  .chat-input-bar { width: calc(100% - 24px); padding: var(--space-sm) var(--space-md); }
+}
+
+/* ---------------------------------------------------------------------------
+   Student lesson chat (Figma: 48:6460) — chat-shell without a sidebar, plus
+   the problem-navigation bar and the suggested-question chips the teacher
+   screen doesn't have.
+   --------------------------------------------------------------------------- */
+
+.lesson-chat-topbar {
+  flex: 0 0 auto; display: flex; align-items: center; gap: var(--space-xl);
+  padding: var(--space-lg) var(--space-2xl);
+  background: var(--card); border-bottom: 1px solid var(--rule);
+  flex-wrap: wrap;
+}
+.lesson-chat-lesson { position: relative; display: flex; align-items: center; gap: 5px; padding-right: var(--space-xl); border-right: 1px solid var(--rule); }
+.lesson-chat-nav { flex: 1 1 auto; display: flex; align-items: center; justify-content: center; gap: var(--space-xl); min-width: 0; }
+.lesson-chat-nav-btn {
+  appearance: none; border: none; background: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; border-radius: 5px; color: var(--ink);
+}
+.lesson-chat-nav-btn:hover:not(:disabled) { background: var(--sunk); }
+.lesson-chat-nav-btn:disabled { opacity: 0.3; cursor: default; }
+.lesson-chat-nav-title { font-size: 18px; font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 40vw; }
+.lesson-chat-nav-count { font-size: var(--text-body-sm); color: var(--ink-2); white-space: nowrap; }
+
+.chat-shell-noside .chat-scroll { padding-bottom: 210px; }
+
+.lesson-chat-suggested {
+  position: absolute; left: 50%; bottom: 115px; transform: translateX(-50%);
+  width: 850px; max-width: calc(100% - 32px);
+  display: flex; gap: var(--space-sm); justify-content: flex-end; flex-wrap: wrap;
+  z-index: 4;
+}
+.lesson-chat-chip {
+  appearance: none; border: none; background: var(--sunk); color: var(--ink);
+  font: inherit; font-size: var(--text-body); padding: var(--space-sm) var(--space-lg);
+  border-radius: var(--radius); cursor: pointer;
+}
+.lesson-chat-chip:hover { background: var(--rule); }
+
+.lesson-chat-demo-notice {
+  position: absolute; left: 50%; bottom: 115px; transform: translateX(-50%);
+  background: var(--sev-info-bg); color: var(--ink-2);
+  font-size: var(--text-body-sm); padding: var(--space-sm) var(--space-lg);
+  border-radius: var(--radius); z-index: 6;
+  box-shadow: var(--shadow-center);
+}
+
+@media (max-width: 900px) {
+  .lesson-chat-topbar { padding: var(--space-sm) var(--space-md); gap: var(--space-md); }
+  .lesson-chat-lesson { display: none; }
+  .lesson-chat-nav-title { max-width: 45vw; font-size: var(--text-body); }
+  .chat-shell-noside .chat-scroll { padding-bottom: 190px; }
+  .lesson-chat-suggested { bottom: 100px; justify-content: flex-start; }
+  .lesson-chat-chip { font-size: 13px; padding: 7px 12px; }
+  .lesson-chat-demo-notice { bottom: 100px; width: calc(100% - 32px); text-align: center; }
+}
+
+/* A lesson with generated-but-unconfirmed pages looks finished and is not, so
+   the count of drafts waiting rides on the lesson card in the list. */
+.lesson-waiting {
+  margin-left: var(--space-sm);
+  padding: 1px var(--space-sm);
+  border-radius: 999px;
+  background: var(--sev-warning-bg);
+  color: var(--sev-warning);
+  font-size: var(--text-body-sm);
+  line-height: var(--lh-body-sm);
+  font-weight: 600;
+  white-space: nowrap;
 }

@@ -7,20 +7,28 @@
  * is an addition the design does not have, because without a backend something
  * has to decide whether you land in the teacher app or the student one. It is
  * labelled as a demo control rather than dressed up as part of the product. */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button, Input } from "../components/ui";
 import { useSession, type Role } from "../lib/session";
 import googleUrl from "../icons/google.svg";
 
 export default function Login() {
-  const { signIn } = useSession();
+  const { user, signIn } = useSession();
   const navigate = useNavigate();
   const [role, setRole] = useState<Role>("teacher");
 
+  /* Navigate once the session has actually propagated, not in the same tick as
+     signIn(). Calling navigate() straight after it looked right and did not
+     work: the route guard re-rendered before the store update reached it, saw
+     no user, and redirected back to /login with replace — so the session was
+     set and the screen never moved. */
+  useEffect(() => {
+    if (user) navigate(user.role === "teacher" ? "/t" : "/s", { replace: true });
+  }, [user, navigate]);
+
   function enter() {
     signIn(role);
-    navigate(role === "teacher" ? "/t" : "/s");
   }
 
   return (
