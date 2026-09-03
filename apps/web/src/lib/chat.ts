@@ -23,6 +23,7 @@
 // the gate is a human looking at the rendered page, not a rule engine.
 import { useSyncExternalStore } from "react";
 import { PAGES } from "../manifest";
+import { api, isLive, watchJob } from "./api";
 
 export type ThreadStatus = "generating" | "draft" | "published";
 
@@ -46,6 +47,20 @@ export interface ChatThread {
   file?: string;
   /** Set only while status === "generating"; the fake pipeline flips it then. */
   readyAt?: number;
+
+  /* Set when the page came from the real backend rather than a fixture. */
+  jobId?: string;
+  pageId?: string;
+  /** Stage reported by the worker while generating — the waiting screen shows
+   *  it instead of a spinner, because a 30-90s spinner kills a live demo and
+   *  the checks are genuinely interesting to watch land. */
+  stage?: string;
+  /** How the page is served: worker output lives under /generated/, the
+   *  fixtures under /pages/. */
+  kind?: "generated" | "fixture";
+  /** Why this thread is a stand-in, when it is one. Shown on the card rather
+   *  than quietly pretending the model ran. */
+  demoReason?: string;
 }
 
 interface State {
@@ -116,6 +131,72 @@ function genId(prefix: string) {
  *  page "generates" after a short fake delay (see tickThreads), the same
  *  honest stand-in lib/store.ts uses — a real fixture page and its real
  *  checker output, not something produced from the typed text. */
+/* Real generation.
+ *
+ * Posts the problem, then streams the job. The thread goes to "draft" when a
+ * page exists — a draft, not an approval: a teacher still has to look at it.
+ * If the backend is unreachable or the job fails, this falls back to the
+ * fixture stand-in and records why on the thread, so the card can say so
+ * instead of passing a canned page off as a fresh one.
+ */
+export async function attachLiveJob(
+  threadId: string,
+  _classroomId: string,
+  lessonId: string,
+  text: string
+): Promise<void> {
+  const thread = { id: threadId };
+
+  if (!(await isLive())) {
+    patch(thread.id, { demoReason: "เซิร์ฟเวอร์ไม่พร้อมใช้งาน — แสดงตัวอย่างที่เตรียมไว้" });
+    return;
+  }
+
+  try {
+    const { job_id } = await api.addProblem(lessonId, { text });
+    patch(thread.id, { jobId: job_id, stage: "queued", readyAt: undefined, demoReason: undefined });
+
+    watchJob(
+      job_id,
+      (e) => patch(thread.id, { stage: e.stage ?? e.state }),
+      async (e) => {
+        const pageId = (e.progress as { page_id?: string } | null)?.page_id;
+        if (e.state === "failed" || !pageId) {
+          patch(thread.id, {
+            status: "draft",
+            stage: undefined,
+            readyAt: Date.now(),
+            demoReason:
+              e.error?.slice(0, 160) ?? "งานสร้างไม่สำเร็จ — แสดงตัวอย่างที่เตรียมไว้",
+          });
+          return;
+        }
+        try {
+          const page = await api.page(pageId);
+          patch(thread.id, {
+            status: "draft",
+            stage: undefined,
+            pageId,
+            file: page.html_path ?? undefined,
+            kind: "generated",
+            demoReason: undefined,
+          });
+        } catch {
+          patch(thread.id, { status: "draft", stage: undefined });
+        }
+      }
+    );
+  } catch (err) {
+    patch(thread.id, {
+      demoReason: `ส่งงานไม่สำเร็จ (${String(err).slice(0, 60)}) — แสดงตัวอย่างที่เตรียมไว้`,
+    });
+  }
+}
+
+function patch(id: string, fields: Partial<ChatThread>) {
+  set({ threads: state.threads.map((t) => (t.id === id ? { ...t, ...fields } : t)) });
+}
+
 export function submitPrompt(classroomId: string, lessonId: string, text: string): ChatThread {
   const file = FIXTURE_FILES[Math.floor(Math.random() * FIXTURE_FILES.length)];
   const now = Date.now();
@@ -129,6 +210,7 @@ export function submitPrompt(classroomId: string, lessonId: string, text: string
     createdAt: now,
     messages: [{ id: genId("msg"), role: "user", text, createdAt: now }],
     file,
+    kind: "fixture",
     readyAt: now + delayMs,
   };
   set({ threads: [thread, ...state.threads] });

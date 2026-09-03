@@ -22,6 +22,7 @@ import {
   threadsOf,
   threadOf,
   submitPrompt,
+  attachLiveJob,
   tickThreads,
   publishThread,
   unpublishThread,
@@ -43,7 +44,7 @@ import lockUrl from "../../icons/lock.svg";
 import menuDotsVerticalUrl from "../../icons/menu-dots-vertical.svg";
 import sendUrl from "../../icons/send.svg";
 
-const PAGES_URL = import.meta.env.VITE_PAGES_URL ?? "http://localhost:8080";
+import { pageSrc } from "../../lib/api";
 
 /* "บทที่ 1: การเคลื่อนที่แบบโปรเจกไทล์" -> ("บทที่ 1", "การเคลื่อนที่แบบโปรเจกไทล์"),
    matching the two-line eyebrow/title the sidebar and topbar both use. Falls
@@ -111,9 +112,14 @@ export default function TeacherChat() {
       );
       return;
     }
+    // Create the thread synchronously so the screen moves immediately, then let
+    // the real job attach to it. Generation takes 30-90s; making the teacher
+    // stare at a frozen input for that long is the thing the streamed stage
+    // exists to avoid.
     const created = submitPrompt(classroomId, lessonId, t);
     setText("");
     navigate(`/t/c/${classroomId}/lessons/${lessonId}/chat/${created.id}`);
+    void attachLiveJob(created.id, classroomId, lessonId, t);
   }
 
   return (
@@ -272,7 +278,9 @@ function PublishBar({ thread }: { thread: ChatThread }) {
 function ThreadPanel({ thread }: { thread: ChatThread }) {
   const [loaded, setLoaded] = useState(false);
   const [replayNonce, setReplayNonce] = useState(0);
-  const src = thread.file ? `${PAGES_URL}/pages/${thread.file}` : undefined;
+  // A worker-generated page is served from /generated/, a fixture from /pages/.
+  // Only pageSrc knows that split.
+  const src = thread.file ? pageSrc(thread.file, thread.kind ?? "fixture") : undefined;
   const check = thread.file ? CHECKS[checkIdOf(thread.file)] : undefined;
 
   return (
