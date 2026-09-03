@@ -1,19 +1,62 @@
-/* App chrome. Colours and type match apps/pages/static/lib/shell.css so the
-   surrounding app doesn't fight the pages it frames — same ink/rule/given
-   tokens, same Sarabun stack, just without the shell's own component classes
-   (those belong to the generated pages, not to us). */
+/* Design tokens, taken from the Figma file (Jumbo-37) rather than invented
+   here. Names on the left are the project's own semantic ones so existing
+   components pick the design up without being rewritten; the comment on each
+   line is the Figma variable it comes from, so a change there has one obvious
+   landing place.
+
+   The severity block below is NOT from Figma. It belongs to the review report,
+   which has no design, and it deliberately reuses Shell.C from
+   packages/kit/lib/shell.css so a flagged report and the page it describes
+   read as one visual language. */
 
 :root {
-  --bg: #f4f6f9;
-  --card: #ffffff;
-  --sunk: #edf1f6;
-  --rule: #d8e0ea;
-  --ink: #131a24;
-  --ink-2: #4a5666;
-  --ink-3: #7c8899;
-  --given: #1f5fbf;
-  --given-bg: #e5eefb;
+  /* Figma: colour */
+  --bg: #f8fafc;              /* BG */
+  --card: #ffffff;            /* White */
+  --sunk: #f1f5f9;            /* between BG and Neutral/200 */
+  --rule: #e2e8f0;            /* Neutral/200 */
+  --ink: #0f172a;             /* Neutral/900 */
+  --ink-2: #64748b;           /* Neutral/500 */
+  --ink-3: #94a3b8;           /* Neutral/400, for the quietest text */
+  --primary: #3ebad0;         /* Primary/500 */
+  --primary-ink: #ffffff;     /* text on primary */
+  --primary-bg: #e7f6f9;      /* primary at low tint, for selected states */
+
+  /* the app previously used a blue accent; keep the name pointing at the
+     design's primary so nothing is left referring to a colour that is gone */
+  --given: var(--primary);
+  --given-bg: var(--primary-bg);
+
+  /* Figma: Space/* — the design uses a 5px step, not the 4px one most systems
+     assume, so these are spelled out rather than derived */
+  --space-none: 0;
+  --space-2xs: 5px;
+  --space-sm: 10px;
+  --space-md: 15px;
+  --space-lg: 20px;
+  --space-xl: 30px;
+  --space-2xl: 50px;
+
+  /* Figma: Radius/border-radius-md, plus the 15px cards use their own */
   --radius: 10px;
+  --radius-card: 15px;
+
+  /* Figma: type. IBM Plex Sans Thai carries Thai and Latin in one family, so
+     there is no second face to fall back to mid-sentence. */
+  --font: "IBM Plex Sans Thai", "Sarabun", -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+  --text-body: 16px;          /* Body        16 / 24 / 400 */
+  --lh-body: 24px;
+  --text-body-sm: 14px;       /* Body SM     14 / 22 / 400 */
+  --lh-body-sm: 22px;
+  --text-h5: 20px;            /* Heading 5   20 / 32 / 600 */
+  --lh-h5: 32px;
+  --text-h3: 32px;            /* Heading 3   32 / 42 / 700 */
+  --lh-h3: 42px;
+
+  /* layout: the design lays every page out on a 1100px column inside 1440 */
+  --page-max: 1100px;
+  --navbar-h: 64px;
 
   /* Severity colours reuse Shell.C exactly (packages/kit/lib/shell.js /
      shell.css --sh-warn/--sh-work/--sh-answer) so a flagged report and the
@@ -24,8 +67,8 @@
   --sev-critical-bg: #fcebea;
   --sev-warning: #b4690e;
   --sev-warning-bg: #fbf0dc;
-  --sev-info: #6b7688;
-  --sev-info-bg: #edf1f6;
+  --sev-info: #64748b;
+  --sev-info-bg: #f1f5f9;
   --sev-clean: #0f7a46;
   --sev-clean-bg: #e2f3ea;
 }
@@ -44,7 +87,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--ink);
-  font-family: Sarabun, "Noto Sans Thai", system-ui, -apple-system, sans-serif;
+  font-family: var(--font);
   -webkit-font-smoothing: antialiased;
   overscroll-behavior-y: none;
 }
