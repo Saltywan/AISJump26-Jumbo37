@@ -35,6 +35,13 @@ misbehave on stage, and putting it last means it cannot destabilise anything els
 
 ## Data model
 
+> **Superseded by [SCHEMA.md](SCHEMA.md).** The model below predates the Figma
+> design and has no classroom, lesson or enrolment, and it conflates a lesson
+> with a single problem — the student chat header reads `1 จาก 4 โจทย์`, so a
+> lesson holds several. Kept here for the API surface and the reasoning around
+> it, which still stand.
+
+
 ```
 problem      id, source('text'|'image'), raw_text, image_path,
              extracted_text          -- editable; the only OCR mitigation
