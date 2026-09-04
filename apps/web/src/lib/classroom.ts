@@ -22,6 +22,10 @@ export interface Classroom {
   id: string;
   name: string;
   description: string;
+  /** ม.1–ม.6, from the creation form's level field. Optional: the API's own
+   *  column is nullable, and the three demo classrooms in seed() below
+   *  predate this field and have none. */
+  level?: string;
   createdAt: number;
 }
 
@@ -224,17 +228,17 @@ function genId(prefix: string) {
  * because the API has never heard of them. Generation silently fell back to a
  * fixture every single time, and looked exactly like it had worked. The id has
  * to come from whoever owns the row. */
-export async function createClassroom(name: string, description: string): Promise<Classroom> {
+export async function createClassroom(name: string, description: string, level?: string): Promise<Classroom> {
   let id = genId("c");
   if (await isLive()) {
     try {
-      ({ id } = await api.createClassroom({ name, subject: description || undefined }));
+      ({ id } = await api.createClassroom({ name, subject: description || undefined, level: level || undefined }));
     } catch {
       /* fall back to a local id; the app still works offline, it just cannot
          generate, which is exactly what the demo notice says */
     }
   }
-  const classroom: Classroom = { id, name, description, createdAt: Date.now() };
+  const classroom: Classroom = { id, name, description, level, createdAt: Date.now() };
   set({ ...state, classrooms: [...state.classrooms, classroom] });
   return classroom;
 }
@@ -260,7 +264,7 @@ export function deleteClassroom(id: string) {
  *  honest stand-in the review queue uses for "generation" (see
  *  lib/store.ts's submitProblem): there is no model in this stage, so a
  *  freshly created lesson still opens something real. */
-export async function createLesson(classroomId: string, title: string): Promise<Lesson> {
+export async function createLesson(classroomId: string, title: string, chapter?: string): Promise<Lesson> {
   const pool = PAGES.map((p) => p.file);
   const pageFiles: string[] = [];
   for (let i = 0; i < 5 && pool.length > 0; i++) {
@@ -270,7 +274,7 @@ export async function createLesson(classroomId: string, title: string): Promise<
   let id = genId("lesson");
   if (await isLive()) {
     try {
-      ({ id } = await api.createLesson(classroomId, { title }));
+      ({ id } = await api.createLesson(classroomId, { title, chapter: chapter || undefined }));
     } catch {
       /* same as above: local id, no live generation from this lesson */
     }

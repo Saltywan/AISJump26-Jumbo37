@@ -5,6 +5,7 @@
  *
  * The design's own component names are kept (Button, Input, Card, Tabs) so a
  * frame in Figma maps onto something with the same name here. */
+import { forwardRef } from "react";
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from "react";
 import { Link } from "react-router-dom";
 
@@ -63,17 +64,47 @@ export function ButtonLink({
 }
 
 /* Input — a SemiBold 18px label above a bordered field. The label is part of
-   the component in the design, not a separate thing screens assemble. */
-export function Input({
-  label,
-  hint,
-  className = "",
-  ...rest
-}: { label?: string; hint?: string } & InputHTMLAttributes<HTMLInputElement>) {
+   the component in the design, not a separate thing screens assemble.
+ *
+ * forwardRef exists for one reason: a creation form's "focus the field with
+ * the problem" after a failed validation, and the dialog's own "focus the
+ * first field on open" (see components/Modal.tsx) — neither is reachable
+ * from outside without a ref to the actual <input>. */
+export const Input = forwardRef<
+  HTMLInputElement,
+  { label?: string; hint?: string } & InputHTMLAttributes<HTMLInputElement>
+>(function Input({ label, hint, className = "", ...rest }, ref) {
   return (
     <label className={`ui-field ${className}`}>
       {label ? <span className="ui-field-label">{label}</span> : null}
-      <input className="ui-input" {...rest} />
+      <input ref={ref} className="ui-input" {...rest} />
+      {hint ? <span className="ui-field-hint">{hint}</span> : null}
+    </label>
+  );
+});
+
+/* Select — same label-above-field shape as Input, and the same `ui-input`
+   class, so a dropdown sitting next to a text field in a form doesn't look
+   like it wandered in from a different design. Native <select> chrome is left
+   alone (no Figma frame calls for a custom one), the same trade-off the rest
+   of the app makes for controls it has no frame for. */
+export function Select({
+  label,
+  hint,
+  className = "",
+  children,
+  ...rest
+}: {
+  label?: string;
+  hint?: string;
+  children?: ReactNode;
+} & React.SelectHTMLAttributes<HTMLSelectElement>) {
+  return (
+    <label className={`ui-field ${className}`}>
+      {label ? <span className="ui-field-label">{label}</span> : null}
+      <select className="ui-input" {...rest}>
+        {children}
+      </select>
       {hint ? <span className="ui-field-hint">{hint}</span> : null}
     </label>
   );

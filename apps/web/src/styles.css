@@ -1507,6 +1507,14 @@ button.chip {
 }
 .gen-card-replay:hover { border-color: var(--primary); color: var(--primary); }
 .gen-card-stage { position: relative; height: 500px; background: var(--card); }
+/* Student screen only (.gen-card-stage never appears on the teacher's ready
+   card — see the comment above .gen-card-review) — once chat-thread-fill has
+   let the surrounding column stretch to the viewport (see
+   StudentLessonChat.tsx), let the video stage grow into that space too,
+   instead of sitting at a fixed 500px regardless of how much room a wide
+   screen actually has. */
+.chat-thread-fill .gen-card { flex: 1 1 auto; min-height: 0; }
+.chat-thread-fill .gen-card-stage { flex: 1 1 auto; min-height: 0; height: auto; }
 .gen-card-frame { display: block; width: 100%; height: 100%; border: 0; }
 .gen-card-loading {
   position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
@@ -1565,6 +1573,13 @@ button.chip {
   display: flex; align-items: center; gap: var(--space-md);
   z-index: 5;
 }
+.chat-input-file { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0; }
+.chat-input-attach {
+  flex: 0 0 auto; width: 36px; height: 36px; border-radius: var(--space-sm);
+  border: 1px solid var(--rule); background: var(--card);
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.chat-input-attach:hover { border-color: var(--primary); }
 .chat-input-field { flex: 1 1 auto; border: none; outline: none; background: none; font: inherit; font-size: var(--text-body); color: var(--ink); }
 .chat-input-field::placeholder { color: var(--ink-2); }
 .chat-input-send {
@@ -1609,8 +1624,16 @@ button.chip {
   .chat-scroll { padding: var(--space-lg) var(--space-md) 130px; }
   .chat-empty h2 { font-size: 19px; }
   .gen-card-stage { height: 300px; }
+  /* Same specificity as the fill rules above (.chat-thread-fill .gen-card /
+     .gen-card-stage), placed later so it wins at this width: a phone has no
+     spare width to give back, so undo the fill and pin the stage back to a
+     fixed height, matching chat-thread-fill's own mobile override below. */
+  .chat-thread-fill .gen-card { flex: 0 0 auto; min-height: auto; }
+  .chat-thread-fill .gen-card-stage { flex: 0 0 auto; height: 300px; }
   .gen-card-head { padding: var(--space-sm) var(--space-md); flex-wrap: wrap; }
   .gen-card-publish-row { flex-direction: column; align-items: stretch; }
+  .gen-card-extracted { margin: 0 var(--space-md) var(--space-sm); flex-direction: column; }
+  .gen-card-extracted-thumb { width: 100%; height: 120px; }
   .chat-input-bar { width: calc(100% - 24px); padding: var(--space-sm) var(--space-md); }
 
   /* Stacking is correct on a phone — there's no width to split — but the
@@ -1671,13 +1694,37 @@ button.chip {
   border-radius: var(--radius); cursor: pointer;
 }
 .lesson-chat-chip:hover { background: var(--rule); }
+.lesson-chat-chip:disabled { opacity: 0.5; cursor: default; }
 
-.lesson-chat-demo-notice {
-  position: absolute; left: 50%; bottom: 115px; transform: translateX(-50%);
-  background: var(--sev-info-bg); color: var(--ink-2);
-  font-size: var(--text-body-sm); padding: var(--space-sm) var(--space-lg);
-  border-radius: var(--radius); z-index: 6;
-  box-shadow: var(--shadow-center);
+/* The student's own conversation for the current problem — POST
+   /pages/{page_id}/ask (see StudentLessonChat.tsx's sendQuestion). Sits below
+   the gen-card inside the same wide/fill thread, reusing chat-msg-user/
+   -assistant from the teacher's message bubbles so the two chat surfaces read
+   as one visual language rather than two different ones. */
+.lesson-chat-messages { display: flex; flex-direction: column; gap: var(--space-md); padding-top: var(--space-sm); width: 100%; }
+/* A demo-mode or failure notice, not a real answer — italic and quieter so it
+   never reads as if the model actually answered. */
+.chat-msg-notice { color: var(--ink-2); font-style: italic; display: flex; align-items: center; gap: var(--space-sm); }
+.chat-cite-row { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: var(--space-sm); }
+.chat-cite-label { font-size: var(--text-body-sm); color: var(--ink-2); }
+/* The whole safety story of this feature: the chat itself went through no
+   review, but the page it cites did. Clicking one is the "act on it" the
+   brief asks for — see jumpToStep, which scrolls the animation into view and
+   flags the step rather than reaching into the sandboxed frame. */
+.chat-cite-chip {
+  appearance: none; border: 1px solid var(--primary); background: var(--primary-bg); color: var(--primary);
+  font: inherit; font-size: var(--text-body-sm); font-weight: 500;
+  padding: 3px var(--space-sm); border-radius: 999px; cursor: pointer;
+}
+.chat-cite-chip:hover { background: var(--primary); color: var(--primary-ink); }
+
+.gen-card-stage-highlight { outline: 3px solid var(--primary); outline-offset: -3px; }
+.gen-card-stage-flag {
+  position: absolute; left: 50%; bottom: var(--space-md); transform: translateX(-50%);
+  background: var(--ink); color: var(--primary-ink);
+  font-size: var(--text-body-sm); padding: var(--space-xs) var(--space-md);
+  border-radius: 999px; box-shadow: var(--shadow-center); white-space: nowrap;
+  max-width: calc(100% - var(--space-lg) * 2); overflow: hidden; text-overflow: ellipsis;
 }
 
 @media (max-width: 900px) {
@@ -1687,7 +1734,7 @@ button.chip {
   .chat-shell-noside .chat-scroll { padding-bottom: 190px; }
   .lesson-chat-suggested { bottom: 100px; justify-content: flex-start; }
   .lesson-chat-chip { font-size: 13px; padding: 7px 12px; }
-  .lesson-chat-demo-notice { bottom: 100px; width: calc(100% - 32px); text-align: center; }
+  .gen-card-stage-flag { font-size: 12px; }
 }
 
 /* A lesson with generated-but-unconfirmed pages looks finished and is not, so
@@ -1717,3 +1764,27 @@ button.chip {
   line-height: var(--lh-body-sm);
 }
 .gen-card-stage-label { color: var(--ink-2); font-size: var(--text-body-sm); margin-left: var(--space-sm); }
+
+/* extracted_text, shown only for a photo-sourced thread (see
+   ThreadPanel/attachImageJob) — the one mitigation for a misread photo
+   producing a flawless page that solves the wrong problem. Sits directly
+   above .gen-card-publish-row so it's impossible to reach the confirm button
+   without passing it. */
+.gen-card-extracted {
+  margin: 0 var(--space-lg) var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  border: 1px solid var(--sev-warning);
+  border-radius: var(--radius);
+  background: var(--sev-warning-bg);
+  display: flex; gap: var(--space-md); align-items: flex-start;
+}
+.gen-card-extracted-thumb {
+  flex: 0 0 auto; width: 64px; height: 64px; object-fit: cover;
+  border-radius: var(--space-xs); border: 1px solid var(--rule);
+}
+.gen-card-extracted-body { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.gen-card-extracted-label {
+  display: flex; align-items: center; gap: 6px;
+  margin: 0; font-size: var(--text-body-sm); font-weight: 600; color: var(--sev-warning);
+}
+.gen-card-extracted-text { margin: 0; font-size: var(--text-body); line-height: var(--lh-body); color: var(--ink); }

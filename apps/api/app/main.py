@@ -5,17 +5,34 @@ served by the `pages` origin, so the app can embed them in an opaque-origin
 sandboxed iframe. That is the containment for model-written JavaScript, and it
 is why `checks_json` is stored and served from here — the app has no way to read
 anything out of a page.
+
+It also has no model dependency of its own — google-genai is only installed in
+the worker image (apps/worker/Dockerfile), and this file's owned surface for
+this change does not include apps/api/Dockerfile. So both model-backed
+features below hand off to a worker job and answer synchronously by polling
+that job's row rather than calling the model in this process:
+
+- POST /pages/{page_id}/ask  creates a `tutor_ask` job and waits on it
+  (see _poll_job below, and apps/worker/worker.py: handle_tutor_ask()).
+- POST /lessons/{id}/problems/image  saves the upload and queues an ordinary
+  `generate` job; the worker restates the photo into problem.extracted_text
+  before generating, from inside that same job (see
+  apps/worker/worker.py: restate_image()). This endpoint itself never talks
+  to the model, so it needs nothing beyond what's already installed here.
 """
 from __future__ import annotations
 
 import asyncio
 import datetime as dt
 import json
+import mimetypes
 import os
 import pathlib
+import re
+import time
 from typing import Optional
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, File, HTTPException, UploadFile, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -95,6 +112,61 @@ class ReviewIn(BaseModel):
     note: Optional[str] = None
     seconds_on_page: Optional[int] = None
     reviewer: Optional[str] = None
+
+
+class AskIn(BaseModel):
+    question: str
+
+
+# Accepted image types for POST /lessons/{id}/problems/image, mapped to the
+# extension the file is stored under (see add_problem_image()).
+ALLOWED_IMAGE_TYPES = {
+    "image/png": ".png",
+    "image/jpeg": ".jpg",
+    "image/jpg": ".jpg",
+    "image/webp": ".webp",
+    "image/heic": ".heic",
+    "image/heif": ".heif",
+}
+MAX_IMAGE_BYTES = 20 * 1024 * 1024
+
+# How long POST /pages/{id}/ask waits on its tutor_ask job before giving up.
+# Answering is one short JSON completion (see apps/worker/worker.py:
+# ask_tutor()), normally a few seconds; the ceiling is generous mainly to
+# cover the case where the single worker was already mid-generate when the
+# question arrived (claim_one() gives tutor_ask priority in the QUEUE, but
+# cannot interrupt a job already running).
+ASK_TIMEOUT_SECONDS = 60.0
+
+
+# The hand-rolled multipart reader that used to live here is gone. It existed
+# only because adding python-multipart meant touching the API Dockerfile, which
+# was outside one agent's file scope — a scoping artifact, not an engineering
+# reason. Parsing untrusted multipart bodies by hand is not something to own
+# when a maintained parser is one line of Dockerfile away.
+def _poll_job(job_id: str, timeout: float, interval: float = 0.3) -> Optional[Job]:
+    """Poll a job row to completion from a plain (non-async) request handler.
+
+    Uses its own short-lived session per poll instead of refreshing the
+    request's Depends-injected one: Session.get() on an object already in the
+    identity map can hand back the cached copy without a new SELECT, which
+    would never observe the worker's commit. A fresh session has no identity
+    map to be stale."""
+    deadline = time.time() + timeout
+    last: Optional[Job] = None
+    while True:
+        s = SessionLocal()
+        try:
+            last = s.get(Job, job_id)
+            if last is not None:
+                s.expunge(last)
+        finally:
+            s.close()
+        if last is None or last.state in ("done", "failed"):
+            return last
+        if time.time() >= deadline:
+            return last
+        time.sleep(interval)
 
 
 def page_out(p: Page) -> dict:
@@ -255,6 +327,60 @@ def add_problem(lesson_id: str, body: ProblemIn, db: Session = Depends(get_sessi
     return {"problem_id": prob.id, "job_id": job.id}
 
 
+@app.post("/lessons/{lesson_id}/problems/image", status_code=202)
+async def add_problem_image(
+    lesson_id: str,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_session),
+):
+    """Same shape and same queue as add_problem() above, for a problem that
+    arrives as a photo instead of typed text. There is no OCR step here or
+    anywhere in this process — the uploaded bytes are saved as-is and the
+    model reads them directly inside the `generate` job the worker already
+    runs (apps/worker/worker.py: restate_image(), called from
+    handle_generate()), which restates what it read into
+    problem.extracted_text BEFORE generation runs on that text. That
+    restatement is the only defence against a misread photo (see
+    docs/SCHEMA.md and docs/BUILD-PLAN.html §04): a flawless page can solve
+    the wrong problem and pass every automated check, and a teacher can only
+    catch that by comparing the restatement against the photo at confirmation
+    time.
+
+    The bytes are written under STORAGE_DIR, never into Postgres."""
+    if db.get(Lesson, lesson_id) is None:
+        raise HTTPException(404, "no such lesson")
+
+    data = await file.read()
+    if not data:
+        raise HTTPException(400, 'expected a file in the "file" field')
+    if len(data) > MAX_IMAGE_BYTES:
+        raise HTTPException(400, "file too large")
+
+    ctype = (file.content_type or "").split(";")[0].strip().lower()
+    ext = ALLOWED_IMAGE_TYPES.get(ctype)
+    if ext is None:
+        guessed, _ = mimetypes.guess_type(file.filename or "")
+        ext = ALLOWED_IMAGE_TYPES.get(guessed or "")
+    if ext is None:
+        raise HTTPException(400, "unsupported image type; use png, jpeg, webp or heic")
+
+    n = db.query(Problem).filter(Problem.lesson_id == lesson_id).count()
+    prob = Problem(lesson_id=lesson_id, position=n, source="image")
+    db.add(prob)
+    db.flush()  # need prob.id before naming the file on disk
+
+    rel_path = f"uploads/{prob.id}{ext}"
+    dest = STORAGE_DIR / rel_path
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_bytes(data)
+    prob.image_path = rel_path
+
+    job = Job(kind="generate", target_id=prob.id, state="queued")
+    db.add(job)
+    db.commit()
+    return {"problem_id": prob.id, "job_id": job.id}
+
+
 @app.get("/lessons/{lesson_id}/problems")
 def list_problems(lesson_id: str, approved_only: bool = False, db: Session = Depends(get_session)):
     lesson = db.get(Lesson, lesson_id)
@@ -302,6 +428,45 @@ def get_page(page_id: str, db: Session = Depends(get_session)):
     if p is None:
         raise HTTPException(404, "no such page")
     return page_out(p)
+
+
+@app.post("/pages/{page_id}/ask")
+def ask_page(page_id: str, body: AskIn, db: Session = Depends(get_session)):
+    """The student tutor chat. 409s if the page is not `approved` — a draft
+    has not been through review, and letting a student ask an unconstrained
+    model about it beside the review gate quietly defeats the point of that
+    gate. Context comes ONLY from the approved page itself (its steps, each
+    step's why, the answer and its sanity check) — never from a fresh solve —
+    which is exactly why this has to wait for the page to exist and be
+    approved before it can answer anything.
+
+    The model call happens in the worker (see the module docstring for why)
+    behind a `tutor_ask` job; this blocks on that job so the response stays
+    the single synchronous {"answer", "cites"} the frontend contract expects,
+    with no job/polling shape leaking out of this endpoint."""
+    page = db.get(Page, page_id)
+    if page is None:
+        raise HTTPException(404, "no such page")
+    if page.status != "approved":
+        raise HTTPException(409, {"error": "page is not approved"})
+    question = (body.question or "").strip()
+    if not question:
+        raise HTTPException(400, "question is required")
+
+    job = Job(kind="tutor_ask", target_id=page.id, state="queued",
+              progress_json={"question": question})
+    db.add(job)
+    db.commit()
+    job_id = job.id
+
+    result = _poll_job(job_id, timeout=ASK_TIMEOUT_SECONDS)
+    if result is None or result.state not in ("done", "failed"):
+        raise HTTPException(504, {"error": "tutor is taking too long to answer; try again"})
+    if result.state == "failed":
+        raise HTTPException(502, {"error": result.error or "tutor failed to answer"})
+
+    progress = result.progress_json or {}
+    return {"answer": progress.get("answer") or "", "cites": progress.get("cites") or []}
 
 
 def _publish_page_file(html_path: Optional[str]) -> None:
@@ -356,6 +521,20 @@ def review_page(page_id: str, body: ReviewIn, db: Session = Depends(get_session)
         )
     )
     p.status = body.action
+
+    # Rejecting a page inside a published lesson breaks the invariant publish
+    # was built to hold: every problem has an approved page. Left alone the
+    # lesson stays published and a student opens "3 จาก 3" to find one missing.
+    # Revoke the lesson's visibility and make a teacher confirm it again. The
+    # approvals on its other pages are untouched, so re-publishing is one click
+    # once the rejected page is replaced.
+    if body.action == "rejected":
+        prob = db.get(Problem, p.problem_id)
+        lesson = db.get(Lesson, prob.lesson_id) if prob else None
+        if lesson is not None and lesson.status == "published":
+            lesson.status = "draft"
+            lesson.published_at = None
+
     db.commit()
     if body.action == "approved":
         _publish_page_file(p.html_path)

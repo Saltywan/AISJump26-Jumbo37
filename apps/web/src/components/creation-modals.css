@@ -1,0 +1,45 @@
+/* Styling that's new for CreationModals.tsx and doesn't belong in
+ * src/styles.css (owned by another agent on this pass — see that file's own
+ * header comment). Everything else these modals use — modal-scrim/modal-card
+ * from the delete-confirmation dialog, ui-field/ui-input/ui-btn from the
+ * primitives, ui-stack for the field list, classroom-settings-actions for the
+ * cancel/submit row — already exists and is reused as-is, on purpose: two
+ * modals that use the app's real classes read as part of the same product,
+ * not a bolted-on dialog kit.
+ *
+ * Tokens (--ink, --space-*, --danger-text, --radius, --rule, --font) come
+ * from styles.css's own :root block; this file only ever reads them, never
+ * redefines them.
+ */
+
+/* modal-card is built for the centered delete-confirmation dialog (icon,
+ * short message, two same-size buttons). A form with three labeled fields
+ * needs the label text and inputs left-aligned and a little more room to sit
+ * in, not the centered layout — everything else about the shell (scrim,
+ * radius, padding scale, mobile shrink at 900px) is still exactly right, so
+ * this only overrides the two properties that don't fit a form. */
+.form-modal-card {
+  align-items: stretch;
+  text-align: left;
+  width: 520px;
+  gap: var(--space-lg);
+}
+
+.form-modal-title {
+  margin: 0;
+}
+
+.form-modal-subtitle {
+  margin: calc(-1 * var(--space-sm)) 0 0;
+  font-size: var(--text-body-sm);
+  color: var(--ink-2);
+}
+
+/* Validation message under the offending field — same red as the delete
+ * button's Danger/text, not the sev-critical red used for page-check flags,
+ * since this is a plain form error rather than something the checker found. */
+.form-field-error {
+  margin: calc(-1 * var(--space-sm)) 0 0;
+  font-size: var(--text-body-sm);
+  color: var(--danger-text);
+}

@@ -1,14 +1,16 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 /* Figma: Classroom (node 12:37) — teacher home. Greeting, a primary
    "สร้างห้องเรียน" button, and the list of the signed-in teacher's classrooms.
-   There is no "new classroom" screen in the five designed here, so creating
-   one is a prompt — the same shortcut the old teacher console uses for
-   submitting a problem without a dedicated compose screen. */
+   There is no "new classroom" screen in the five designed here, so this opens
+   the modal form in components/CreationModals.tsx — see that file for why a
+   modal and not a routed page. It replaces two window.prompt() calls that
+   used to sit in handleCreate() directly. */
 import { Navigate, useNavigate } from "react-router-dom";
 import { AppShell } from "../../components/AppShell";
 import { Button, Card, PageHeader, SectionTitle } from "../../components/ui";
+import { CreateClassroomModal } from "../../components/CreationModals";
 import { useSession } from "../../lib/session";
-import { createClassroom, syncSeedToServer, lessonsOf, useClassroomStore } from "../../lib/classroom";
+import { syncSeedToServer, lessonsOf, useClassroomStore } from "../../lib/classroom";
 import { useChatStore } from "../../lib/chat";
 import plusSmallUrl from "../../icons/plus-small.svg";
 import angleSmallRightUrl from "../../icons/angle-small-right.svg";
@@ -17,6 +19,7 @@ export default function ClassroomList() {
   const { user } = useSession();
   const navigate = useNavigate();
   const state = useClassroomStore();
+  const [showCreate, setShowCreate] = useState(false);
 
   if (!user) return <Navigate to="/login" replace />;
 
@@ -28,22 +31,13 @@ export default function ClassroomList() {
     void syncSeedToServer(threadCount > 0);
   }, [threadCount]);
 
-  async function handleCreate() {
-    const name = window.prompt("ชื่อห้องเรียนใหม่");
-    if (!name || !name.trim()) return;
-    const description = window.prompt("รายละเอียดห้องเรียน (ไม่บังคับ)") ?? "";
-    // awaits the backend so the classroom carries the id the API issued
-    const classroom = await createClassroom(name.trim(), description.trim());
-    navigate(`/t/c/${classroom.id}/lessons`);
-  }
-
   return (
     <AppShell>
       <PageHeader
         title={`สวัสดี, ${user.name}`}
         subtitle="จัดการห้องเรียนและสร้างสื่อการสอนด้วย AI"
         action={
-          <Button icon={<img src={plusSmallUrl} alt="" width={24} height={24} />} onClick={handleCreate}>
+          <Button icon={<img src={plusSmallUrl} alt="" width={24} height={24} />} onClick={() => setShowCreate(true)}>
             สร้างห้องเรียน
           </Button>
         }
@@ -70,6 +64,16 @@ export default function ClassroomList() {
           ))
         )}
       </div>
+
+      {showCreate ? (
+        <CreateClassroomModal
+          onClose={() => setShowCreate(false)}
+          onCreated={(id) => {
+            setShowCreate(false);
+            navigate(`/t/c/${id}/lessons`);
+          }}
+        />
+      ) : null}
     </AppShell>
   );
 }

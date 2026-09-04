@@ -70,6 +70,13 @@ export interface ChatThread {
   /** Why this thread is a stand-in, when it is one. Shown on the card rather
    *  than quietly pretending the model ran. */
   demoReason?: string;
+  /** Set only for a thread started from a photo (see attachImageJob): what the
+   *  model read the problem as, straight from the problem row's
+   *  extracted_text. A misread photo produces a flawless page solving the
+   *  wrong problem that every automated check passes — this string, next to
+   *  the confirm control, is the only thing that makes that catchable. Absent
+   *  for a text-typed thread, where the typed text already is the record. */
+  extractedText?: string;
 }
 
 interface State {
@@ -182,38 +189,7 @@ export async function attachLiveJob(
 
   try {
     const { job_id } = await api.addProblem(lessonId, { text });
-    patch(threadId, { jobId: job_id, stage: "queued", demoReason: undefined });
-
-    watchJob(
-      job_id,
-      (e) => patch(threadId, { stage: e.stage ?? e.state }),
-      async (e) => {
-        const pageId = (e.progress as { page_id?: string } | null)?.page_id;
-        if (e.state === "failed" || !pageId) {
-          patch(threadId, {
-            status: "draft",
-            stage: undefined,
-            demoReason:
-              e.error?.slice(0, 160) ?? "งานสร้างไม่สำเร็จ — แสดงตัวอย่างที่เตรียมไว้",
-          });
-          return;
-        }
-        try {
-          const page = await api.page(pageId);
-          patch(threadId, {
-            status: "draft",
-            stage: undefined,
-            pageId,
-            file: page.html_path ?? undefined,
-            kind: "generated",
-            demoReason: undefined,
-            readyForReviewAt: Date.now(),
-          });
-        } catch {
-          patch(threadId, { status: "draft", stage: undefined });
-        }
-      }
-    );
+    watchGeneration(threadId, job_id);
   } catch (err) {
     patch(threadId, {
       status: "draft",
@@ -222,11 +198,120 @@ export async function attachLiveJob(
   }
 }
 
+/** Everything past "a job_id exists" is identical whether that job came from
+ *  a typed problem (attachLiveJob) or a photo (attachImageJob below) — stream
+ *  progress, then land on a draft thread holding the resulting page. Split out
+ *  so the image path attaches to this exact same watcher instead of growing a
+ *  second, parallel way of following a job to its page (the brief is explicit
+ *  that it shouldn't). */
+function watchGeneration(threadId: string, jobId: string) {
+  patch(threadId, { jobId, stage: "queued", demoReason: undefined });
+
+  watchJob(
+    jobId,
+    (e) => patch(threadId, { stage: e.stage ?? e.state }),
+    async (e) => {
+      const pageId = (e.progress as { page_id?: string } | null)?.page_id;
+      if (e.state === "failed" || !pageId) {
+        patch(threadId, {
+          status: "draft",
+          stage: undefined,
+          demoReason: e.error?.slice(0, 160) ?? "งานสร้างไม่สำเร็จ — แสดงตัวอย่างที่เตรียมไว้",
+        });
+        return;
+      }
+      try {
+        const page = await api.page(pageId);
+        patch(threadId, {
+          status: "draft",
+          stage: undefined,
+          pageId,
+          file: page.html_path ?? undefined,
+          kind: "generated",
+          demoReason: undefined,
+          readyForReviewAt: Date.now(),
+        });
+      } catch {
+        patch(threadId, { status: "draft", stage: undefined });
+      }
+    }
+  );
+}
+
+/** Same product decision as attachLiveJob, for a photo instead of typed text:
+ *  the thread still starts as "generating" and lands on the exact same draft
+ *  review card once a page exists (see watchGeneration above). The one thing
+ *  a photo adds is extractedText: what the model read the problem as. Per
+ *  apps/api/app/main.py's add_problem_image docstring, that restatement is
+ *  written by the worker's restate_image() *inside* the same generate job,
+ *  before generation runs on the text it produces — so it can land anywhere
+ *  from "almost immediately" to "most of the way through the 30-90s job",
+ *  not at upload time. loadExtractedText below polls for it independently of
+ *  watchGeneration's own progress, since it comes from the problem row, not
+ *  the job's progress payload. See ChatThread.extractedText's docstring for
+ *  why that string matters more than it looks. */
+export async function attachImageJob(
+  threadId: string,
+  _classroomId: string,
+  lessonId: string,
+  file: File
+): Promise<void> {
+  patch(threadId, { readyAt: undefined });
+
+  if (!(await isLive())) {
+    patch(threadId, {
+      status: "draft",
+      demoReason: "เซิร์ฟเวอร์ไม่พร้อมใช้งาน — แสดงตัวอย่างที่เตรียมไว้",
+    });
+    return;
+  }
+
+  try {
+    const { problem_id, job_id } = await api.uploadProblemImage(lessonId, file);
+    watchGeneration(threadId, job_id);
+    void loadExtractedText(threadId, lessonId, problem_id);
+  } catch (err) {
+    patch(threadId, {
+      status: "draft",
+      demoReason: `อัปโหลดรูปไม่สำเร็จ (${String(err).slice(0, 60)}) — แสดงตัวอย่างที่เตรียมไว้`,
+    });
+  }
+}
+
+/** extracted_text lives on the problem row, not the job or the page, and
+ *  there is no single-problem endpoint — so this reads it off the same
+ *  GET /lessons/{id}/problems list_problems already returns (its `text` field
+ *  IS extracted_text: main.py fills it as `prob.extracted_text or
+ *  prob.raw_text`, and an image-sourced problem has neither until the worker
+ *  writes it — see restate_image() in the docstring above). That write
+ *  happens partway through the same generate job, at a point this module has
+ *  no other visibility into, so this polls on its own clock rather than
+ *  piggybacking on watchGeneration's job events — up to ~2 minutes, generously
+ *  past the 30-90s a generation normally takes, then gives up quietly.
+ *  Failures (network hiccups, a slow first request racing the DB write) are
+ *  swallowed the same way: the draft card simply omits the box rather than
+ *  showing something fabricated or stale. */
+async function loadExtractedText(threadId: string, lessonId: string, problemId: string, attempt = 0): Promise<void> {
+  try {
+    const rows = await api.problems(lessonId);
+    const row = rows.find((p) => p.id === problemId);
+    if (row?.text) {
+      patch(threadId, { extractedText: row.text });
+      return;
+    }
+  } catch {
+    /* retried below, up to the attempt limit */
+  }
+  if (attempt < 40) {
+    setTimeout(() => void loadExtractedText(threadId, lessonId, problemId, attempt + 1), 3000);
+  }
+}
+
 function patch(id: string, fields: Partial<ChatThread>) {
   set({ threads: state.threads.map((t) => (t.id === id ? { ...t, ...fields } : t)) });
 }
 
-export function submitPrompt(classroomId: string, lessonId: string, text: string): ChatThread {
+function createThread(classroomId: string, lessonId: string, title: string, bubbleText: string): ChatThread {
   const file = FIXTURE_FILES[Math.floor(Math.random() * FIXTURE_FILES.length)];
   const now = Date.now();
   const delayMs = 1400 + Math.random() * 1800;
@@ -234,16 +319,29 @@ export function submitPrompt(classroomId: string, lessonId: string, text: string
     id: genId("thread"),
     classroomId,
     lessonId,
-    title: text,
+    title,
     status: "generating",
     createdAt: now,
-    messages: [{ id: genId("msg"), role: "user", text, createdAt: now }],
+    messages: [{ id: genId("msg"), role: "user", text: bubbleText, createdAt: now }],
     file,
     kind: "fixture",
     readyAt: now + delayMs,
   };
   set({ threads: [thread, ...state.threads] });
   return thread;
+}
+
+export function submitPrompt(classroomId: string, lessonId: string, text: string): ChatThread {
+  return createThread(classroomId, lessonId, text, text);
+}
+
+/** The photo equivalent of submitPrompt — same synchronous "generating" thread
+ *  so the screen moves immediately, before attachImageJob (lib/chat.ts) even
+ *  knows whether the backend is reachable. The title is a placeholder until
+ *  extractedText (see attachImageJob) comes back with something more useful;
+ *  TeacherChat.tsx doesn't wait on it to navigate. */
+export function submitImagePrompt(classroomId: string, lessonId: string): ChatThread {
+  return createThread(classroomId, lessonId, "โจทย์จากรูปภาพ", "📷 แนบรูปโจทย์");
 }
 
 /** Flip any threads whose fake generation delay has elapsed. Call on a timer;

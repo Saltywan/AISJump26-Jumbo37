@@ -3,9 +3,10 @@
    destructive delete flow. The confirmation is a real dialog: it traps
    focus, Escape closes it, and the destructive action sits visually apart
    from Cancel (danger-tinted, on the right, per the design). */
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import { Button, Input } from "../../components/ui";
+import { ModalDialog } from "../../components/Modal";
 import type { Classroom } from "../../lib/classroom";
 import { deleteClassroom, updateClassroom } from "../../lib/classroom";
 import trashUrl from "../../icons/trash.svg";
@@ -81,74 +82,33 @@ function DeleteConfirmModal({
   onCancel: () => void;
   onConfirm: () => void;
 }) {
-  const dialogRef = useRef<HTMLDivElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
 
-  // Focus trap: remember what had focus, move focus into the dialog, cycle
-  // Tab/Shift+Tab inside it, close on Escape, and restore focus on unmount —
-  // the minimum a "real dialog" needs without pulling in a library.
-  useEffect(() => {
-    const previouslyFocused = document.activeElement as HTMLElement | null;
-    cancelRef.current?.focus();
-
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        onCancel();
-        return;
-      }
-      if (e.key !== "Tab" || !dialogRef.current) return;
-      const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-      );
-      if (focusable.length === 0) return;
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault();
-        last.focus();
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault();
-        first.focus();
-      }
-    }
-
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("keydown", onKeyDown);
-      previouslyFocused?.focus();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   return (
-    <div className="modal-scrim" onMouseDown={(e) => e.target === e.currentTarget && onCancel()}>
-      <div
-        className="modal-card"
-        ref={dialogRef}
-        role="alertdialog"
-        aria-modal="true"
-        aria-labelledby="delete-classroom-title"
-        aria-describedby="delete-classroom-desc"
-      >
-        <img src={exclamationUrl} alt="" width={30} height={30} />
-        <div className="modal-text">
-          <p id="delete-classroom-title" className="modal-title">
-            ลบ &ldquo;{classroomName}&rdquo; หรือไม่?
-          </p>
-          <p id="delete-classroom-desc" className="modal-desc">
-            ห้องเรียนนี้จะถูกลบและไม่สามารถกู้คืนได้
-          </p>
-        </div>
-        <div className="modal-actions">
-          <button type="button" ref={cancelRef} className="ui-btn ui-btn-outline modal-btn" onClick={onCancel}>
-            ยกเลิก
-          </button>
-          <button type="button" className="ui-btn ui-btn-danger-soft modal-btn" onClick={onConfirm}>
-            ลบห้องเรียน
-          </button>
-        </div>
+    <ModalDialog
+      onClose={onCancel}
+      initialFocusRef={cancelRef}
+      role="alertdialog"
+      labelledBy="delete-classroom-title"
+      describedBy="delete-classroom-desc"
+    >
+      <img src={exclamationUrl} alt="" width={30} height={30} />
+      <div className="modal-text">
+        <p id="delete-classroom-title" className="modal-title">
+          ลบ &ldquo;{classroomName}&rdquo; หรือไม่?
+        </p>
+        <p id="delete-classroom-desc" className="modal-desc">
+          ห้องเรียนนี้จะถูกลบและไม่สามารถกู้คืนได้
+        </p>
       </div>
-    </div>
+      <div className="modal-actions">
+        <button type="button" ref={cancelRef} className="ui-btn ui-btn-outline modal-btn" onClick={onCancel}>
+          ยกเลิก
+        </button>
+        <button type="button" className="ui-btn ui-btn-danger-soft modal-btn" onClick={onConfirm}>
+          ลบห้องเรียน
+        </button>
+      </div>
+    </ModalDialog>
   );
 }

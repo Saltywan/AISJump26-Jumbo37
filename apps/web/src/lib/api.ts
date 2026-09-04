@@ -65,6 +65,24 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
   return (await res.json()) as T;
 }
 
+/** Same contract as req(), for a multipart body — used only by
+ *  uploadProblemImage below. No Content-Type header: the browser has to set
+ *  the multipart boundary itself, which it only does when fetch is left to
+ *  pick the header on its own. */
+async function reqForm<T>(path: string, form: FormData): Promise<T> {
+  const res = await fetch(`${API}${path}`, { method: "POST", body: form });
+  if (!res.ok) {
+    let detail: unknown = await res.text();
+    try {
+      detail = JSON.parse(detail as string);
+    } catch {
+      /* a plain-text error is still an error */
+    }
+    throw new ApiError(res.status, detail);
+  }
+  return (await res.json()) as T;
+}
+
 export class ApiError extends Error {
   constructor(public status: number, public detail: unknown) {
     super(`API ${status}`);
@@ -133,6 +151,29 @@ export const api = {
    *  design's silent failure and it has to be visible from the first day. */
   review: (pageId: string, body: { action: "approved" | "rejected"; note?: string; seconds_on_page?: number }) =>
     req<ApiPage>(`/pages/${pageId}/review`, { method: "POST", body: JSON.stringify(body) }),
+
+  /** Ask a question about one page. Context is assembled server-side from the
+   *  *approved* page only — never a fresh solve — which is what makes the
+   *  returned `cites` (step numbers) meaningful: they point at steps a teacher
+   *  actually looked at, not at something the chat made up. 409 means the page
+   *  hasn't cleared review yet; callers should show that as "not available
+   *  yet", not retry it as a transient failure. */
+  askPage: (pageId: string, question: string) =>
+    req<{ answer: string; cites: number[] }>(`/pages/${pageId}/ask`, {
+      method: "POST",
+      body: JSON.stringify({ question }),
+    }),
+
+  /** A photo instead of typed text. The model reads the image directly rather
+   *  than this app OCRing it first — see Problem.extracted_text's docstring in
+   *  apps/api/app/models.py for why the response still needs to be checked
+   *  against what the model understood the problem to be before anyone trusts
+   *  the page it produces. */
+  uploadProblemImage: (lessonId: string, file: File) => {
+    const form = new FormData();
+    form.append("file", file);
+    return reqForm<{ problem_id: string; job_id: string }>(`/lessons/${lessonId}/problems/image`, form);
+  },
 };
 
 /** Stream one job's progress.

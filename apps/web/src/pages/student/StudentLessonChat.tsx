@@ -16,17 +16,24 @@
  * backend is down or this lesson id is unknown to it, the same isLive()
  * pattern used throughout lib/api.ts and lib/chat.ts.
  *
- * There is no real model behind the suggested questions or the input — they
- * are static demo copy (see the brief's instruction to be honest about that
- * rather than fabricate an answer), so both surface an explicit "demo mode"
- * notice instead of pretending to answer. */
-import { useEffect, useMemo, useState } from "react";
+ * The composer and the three suggested chips ask POST /pages/{page_id}/ask
+ * (see lib/api.ts's askPage) — context is assembled server-side from the
+ * *approved* page only, never a fresh solve, and the answer cites step
+ * numbers back. Those citations are the whole safety story of this feature:
+ * the chat itself went through no review, but the page it points at did — so
+ * every cite is rendered as something a student can act on (jumpToStep below
+ * scrolls the animation into view and flags the step to go check), not just
+ * printed as a number. Asking is only possible when the current item carries
+ * a real backend pageId (see Item below); otherwise, and on any failure, this
+ * says so in the conversation rather than fabricating an answer — never a
+ * silent fallback to canned copy. */
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { AppShell } from "../../components/AppShell";
 import { useSession } from "../../lib/session";
 import { classroomOf, lessonsOf, useClassroomStore } from "../../lib/classroom";
 import { useChatStore, studentVisibleFiles } from "../../lib/chat";
-import { api, isLive, pageSrc, type ApiProblem } from "../../lib/api";
+import { api, isLive, pageSrc, ApiError, type ApiProblem } from "../../lib/api";
 import { PAGES } from "../../manifest";
 import angleSmallLeftUrl from "../../icons/angle-small-left.svg";
 import angleSmallRightUrl from "../../icons/angle-small-right.svg";
@@ -41,6 +48,28 @@ const SUGGESTED_QUESTIONS = ["ทำไมต้องหาจุดตัด�
 interface Item {
   src: string;
   title: string;
+  /** The real backend page id, when this item has one — only then can
+   *  askPage() be called for it. Absent for a fixture stand-in (see
+   *  studentVisibleFiles's fallback path), which has no row in the API to ask
+   *  about at all. */
+  pageId?: string;
+}
+
+interface AskMessage {
+  id: string;
+  role: "user" | "assistant";
+  text: string;
+  /** Step numbers the answer cites, when it's a real answer. */
+  cites?: number[];
+  /** A demo-mode or failure notice rather than a real model answer — styled
+   *  differently so it never reads as if the model actually answered. */
+  notice?: boolean;
+}
+
+let askMsgCounter = 0;
+function nextAskMsgId(prefix: string): string {
+  askMsgCounter += 1;
+  return `${prefix}-${Date.now().toString(36)}-${askMsgCounter}`;
 }
 
 type LiveProblemsState = "loading" | ApiProblem[] | null;
@@ -132,7 +161,15 @@ export default function StudentLessonChat() {
   const [loaded, setLoaded] = useState(false);
   const [replayNonce, setReplayNonce] = useState(0);
   const [text, setText] = useState("");
-  const [demoNotice, setDemoNotice] = useState(false);
+  const [messages, setMessages] = useState<AskMessage[]>([]);
+  const [asking, setAsking] = useState(false);
+  // Set briefly when a citation chip is clicked (see jumpToStep) so the stage
+  // can flag which step to go check — the only "acting on a citation" this
+  // screen can offer without reaching into the sandboxed page itself (see
+  // module comment and docs/BUILD-PLAN.html: allow-scripts only, deliberately
+  // no allow-same-origin).
+  const [highlightStep, setHighlightStep] = useState<number | null>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
 
   // Hooks below run unconditionally, before either early-return guard, so this
   // component's hook count can't change from one render to the next.
@@ -152,6 +189,7 @@ export default function StudentLessonChat() {
         .map((p) => ({
           src: pageSrc(p.page!.html_path!, "generated"),
           title: p.text || `โจทย์ข้อที่ ${p.position + 1}`,
+          pageId: p.page!.id,
         }));
     }
     if (!lesson) return [];
@@ -162,9 +200,23 @@ export default function StudentLessonChat() {
         .sort((a, b) => b.createdAt - a.createdAt)[0];
       const title = thread ? thread.title : PAGES.find((p) => p.file === file)?.title ?? file;
       const src = thread ? pageSrc(file, thread.kind ?? "fixture") : `${PAGES_URL}/pages/${file}`;
-      return { src, title };
+      // A locally-published thread can still carry a real pageId (see
+      // lib/chat.ts's publishThread) even when this lesson didn't come from
+      // the live-problems path — asking should work there too, not only when
+      // liveData resolved.
+      return { src, title, pageId: thread?.pageId };
     });
   }, [liveData, lesson, chatState, classroomId, lessonId]);
+
+  // A new problem is a new context on the server (the ask endpoint assembles
+  // it from that page alone) — carrying a conversation about problem 1 over
+  // to problem 2's page would be actively misleading, so it resets whenever
+  // the item actually backing the conversation changes.
+  const currentKey = items.length ? items[Math.min(index, items.length - 1)].pageId ?? items[Math.min(index, items.length - 1)].src : undefined;
+  useEffect(() => {
+    setMessages([]);
+    setHighlightStep(null);
+  }, [currentKey]);
 
   if (!user) return <Navigate to="/login" replace />;
   // Only bail out once the live check has actually finished (or there was
@@ -188,10 +240,52 @@ export default function StudentLessonChat() {
   const classroomName = liveMeta?.classroomName ?? classroom?.name ?? "ห้องเรียน";
   const lessonTitle = liveMeta?.lessonTitle ?? lesson?.title ?? "บทเรียน";
 
-  function askDemo(_q: string) {
-    setDemoNotice(true);
+  async function sendQuestion(raw: string) {
+    const question = raw.trim();
+    if (!question || asking) return;
     setText("");
-    window.setTimeout(() => setDemoNotice(false), 4000);
+    setMessages((m) => [...m, { id: nextAskMsgId("u"), role: "user", text: question }]);
+
+    if (!item?.pageId) {
+      // No real page behind this item — a fixture stand-in, or a thread that
+      // never made it live (see attachLiveJob in lib/chat.ts). There is no
+      // approved page to assemble an answer from, so say that plainly instead
+      // of inventing one.
+      setMessages((m) => [
+        ...m,
+        {
+          id: nextAskMsgId("a"),
+          role: "assistant",
+          text: "โหมดสาธิต: โจทย์นี้ยังไม่เชื่อมกับระบบถาม-ตอบจริง (ต้องเป็นหน้าที่สร้างและอนุมัติจากเซิร์ฟเวอร์จริงเท่านั้น)",
+          notice: true,
+        },
+      ]);
+      return;
+    }
+
+    setAsking(true);
+    try {
+      const res = await api.askPage(item.pageId, question);
+      setMessages((m) => [...m, { id: nextAskMsgId("a"), role: "assistant", text: res.answer, cites: res.cites }]);
+    } catch (err) {
+      const status = err instanceof ApiError ? err.status : undefined;
+      const text =
+        status === 409
+          ? "หน้านี้ยังไม่ผ่านการตรวจจากครู จึงยังถามไม่ได้ในตอนนี้"
+          : "ระบบถาม-ตอบไม่พร้อมใช้งานตอนนี้ ลองใหม่อีกครั้งภายหลัง";
+      setMessages((m) => [...m, { id: nextAskMsgId("a"), role: "assistant", text, notice: true }]);
+    } finally {
+      setAsking(false);
+    }
+  }
+
+  /** The one thing a citation lets a student do without this screen reaching
+   *  into the sandboxed page (forbidden — see the module comment): point at
+   *  the animation and name the step to go check by hand. */
+  function jumpToStep(step: number) {
+    stageRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    setHighlightStep(step);
+    window.setTimeout(() => setHighlightStep((s) => (s === step ? null : s)), 2500);
   }
 
   return (
@@ -267,7 +361,12 @@ export default function StudentLessonChat() {
             {!item ? (
               <p className="classroom-empty">บทเรียนนี้ยังไม่มีโจทย์ที่เผยแพร่แล้ว</p>
             ) : (
-              <div className="chat-thread">
+              // Wide and fill, same pattern TeacherChat.tsx uses once it has a
+              // real page to show (see styles.css's chat-thread-wide/-fill):
+              // this screen has no sidebar at all (chat-shell-noside), so the
+              // plain 800px .chat-thread column was wasting the entire rest
+              // of the viewport for no reason.
+              <div className="chat-thread chat-thread-wide chat-thread-fill">
                 <div className="gen-card">
                   <div className="gen-card-head">
                     <span className="gen-card-title">{title}</span>
@@ -276,7 +375,10 @@ export default function StudentLessonChat() {
                       <span>เล่นอีกครั้ง</span>
                     </button>
                   </div>
-                  <div className="gen-card-stage">
+                  <div
+                    ref={stageRef}
+                    className={`gen-card-stage${highlightStep !== null ? " gen-card-stage-highlight" : ""}`}
+                  >
                     {!loaded && (
                       <div className="gen-card-loading">
                         <span className="spinner" /> กำลังโหลด…
@@ -291,8 +393,49 @@ export default function StudentLessonChat() {
                       referrerPolicy="no-referrer"
                       onLoad={() => setLoaded(true)}
                     />
+                    {/* Never reaches into the sandboxed frame (allow-scripts
+                        only, no allow-same-origin — see the module comment) —
+                        just tells the student which step of the animation
+                        above to go check by hand, which is the whole point of
+                        a citation. */}
+                    {highlightStep !== null && (
+                      <div className="gen-card-stage-flag">ตรวจสอบคำตอบกับขั้นตอนที่ {highlightStep} ในสื่อนี้</div>
+                    )}
                   </div>
                 </div>
+
+                {/* The conversation itself — a real answer from
+                    POST /pages/{'{'}page_id{'}'}/ask when item.pageId exists,
+                    a visible notice otherwise. Never a fabricated answer. */}
+                {messages.length > 0 && (
+                  <div className="lesson-chat-messages">
+                    {messages.map((m) => (
+                      <div
+                        key={m.id}
+                        className={
+                          m.role === "user" ? "chat-msg-user" : `chat-msg-assistant${m.notice ? " chat-msg-notice" : ""}`
+                        }
+                      >
+                        {m.text}
+                        {!!m.cites?.length && (
+                          <div className="chat-cite-row">
+                            <span className="chat-cite-label">อ้างอิง:</span>
+                            {m.cites.map((n) => (
+                              <button key={n} type="button" className="chat-cite-chip" onClick={() => jumpToStep(n)}>
+                                ขั้นตอนที่ {n}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                    {asking && (
+                      <div className="chat-msg-assistant chat-msg-notice">
+                        <span className="spinner" /> กำลังค้นคำตอบจากหน้านี้…
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -300,14 +443,12 @@ export default function StudentLessonChat() {
           {item && (
             <div className="lesson-chat-suggested">
               {SUGGESTED_QUESTIONS.map((q) => (
-                <button key={q} type="button" className="lesson-chat-chip" onClick={() => askDemo(q)}>
+                <button key={q} type="button" className="lesson-chat-chip" disabled={asking} onClick={() => sendQuestion(q)}>
                   {q}
                 </button>
               ))}
             </div>
           )}
-
-          {demoNotice && <div className="lesson-chat-demo-notice">โหมดสาธิต: ระบบถาม-ตอบยังไม่เชื่อมกับ AI จริงในสเตจนี้</div>}
 
           <div className="chat-input-bar">
             <input
@@ -317,16 +458,17 @@ export default function StudentLessonChat() {
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
-                  if (text.trim()) askDemo(text.trim());
+                  if (text.trim()) void sendQuestion(text);
                 }
               }}
-              placeholder="พิมพ์โจทย์ที่นี่"
+              placeholder="พิมพ์คำถามเกี่ยวกับโจทย์นี้"
+              disabled={asking}
             />
             <button
               type="button"
               className="chat-input-send"
-              onClick={() => text.trim() && askDemo(text.trim())}
-              disabled={!text.trim()}
+              onClick={() => text.trim() && sendQuestion(text)}
+              disabled={!text.trim() || asking}
               aria-label="ส่ง"
             >
               <img src={sendUrl} alt="" width={20} height={20} />

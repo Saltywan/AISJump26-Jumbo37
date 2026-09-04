@@ -12,7 +12,7 @@
  * lib/chat.ts's studentVisibleFiles() for where that gate is actually
  * enforced, and docs/BUILD-PLAN.html section 04 for why a report full of
  * green checks is not, by itself, grounds to skip looking at the page. */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { AppShell } from "../../components/AppShell";
 import { useSession } from "../../lib/session";
@@ -22,7 +22,9 @@ import {
   threadsOf,
   threadOf,
   submitPrompt,
+  submitImagePrompt,
   attachLiveJob,
+  attachImageJob,
   tickThreads,
   publishThread,
   unpublishThread,
@@ -43,6 +45,8 @@ import globeOnPrimaryUrl from "../../icons/globe-on-primary.svg";
 import lockUrl from "../../icons/lock.svg";
 import menuDotsVerticalUrl from "../../icons/menu-dots-vertical.svg";
 import sendUrl from "../../icons/send.svg";
+import imageUrl from "../../icons/image.svg";
+import exclamationUrl from "../../icons/exclamation.svg";
 
 import { pageSrc } from "../../lib/api";
 
@@ -81,6 +85,13 @@ export default function TeacherChat() {
   const chatState = useChatStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [text, setText] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  // Local-only, keyed by thread id: an object URL for the photo a teacher just
+  // attached, so the draft card can show it next to extractedText (see
+  // ThreadPanel). Deliberately not part of lib/chat.ts's persisted state —
+  // blob: URLs don't survive a reload, and there's nothing useful to persist
+  // here beyond this tab's current session anyway.
+  const [imagePreviews, setImagePreviews] = useState<Record<string, string>>({});
 
   // Fake generation: poll for threads whose simulated delay has elapsed.
   useEffect(() => {
@@ -132,6 +143,21 @@ export default function TeacherChat() {
     setText("");
     navigate(`/t/c/${classroomId}/lessons/${lessonId}/chat/${created.id}`);
     void attachLiveJob(created.id, classroomId, lessonId, t);
+  }
+
+  // A photo always starts a new thread — like typing a new problem, it's a
+  // new generation, not a follow-up in whatever thread happens to be open.
+  function submitImage(file: File) {
+    const created = submitImagePrompt(classroomId, lessonId);
+    setImagePreviews((m) => ({ ...m, [created.id]: URL.createObjectURL(file) }));
+    navigate(`/t/c/${classroomId}/lessons/${lessonId}/chat/${created.id}`);
+    void attachImageJob(created.id, classroomId, lessonId, file);
+  }
+
+  function onFileChosen(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow choosing the same file again later
+    if (file) submitImage(file);
   }
 
   return (
@@ -242,11 +268,27 @@ export default function TeacherChat() {
                 <p>พิมพ์โจทย์คณิตศาสตร์หรือฟิสิกส์ แล้ว AI จะช่วยสร้าง Animation เพื่อให้นักเรียนเข้าใจได้ง่ายขึ้น</p>
               </div>
             ) : (
-              <ThreadPanel thread={thread} />
+              <ThreadPanel thread={thread} imagePreviewUrl={imagePreviews[thread.id]} />
             )}
           </div>
 
           <div className="chat-input-bar">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="chat-input-file"
+              onChange={onFileChosen}
+            />
+            <button
+              type="button"
+              className="chat-input-attach"
+              onClick={() => fileInputRef.current?.click()}
+              aria-label="แนบรูปโจทย์"
+              title="แนบรูปโจทย์"
+            >
+              <img src={imageUrl} alt="" width={20} height={20} />
+            </button>
             <input
               className="chat-input-field"
               value={text}
@@ -257,7 +299,7 @@ export default function TeacherChat() {
                   submit();
                 }
               }}
-              placeholder="พิมพ์โจทย์ที่นี่"
+              placeholder="พิมพ์โจทย์ที่นี่ หรือแนบรูปโจทย์"
             />
             <button type="button" className="chat-input-send" onClick={submit} disabled={!text.trim()} aria-label="ส่ง">
               <img src={sendUrl} alt="" width={20} height={20} />
@@ -287,7 +329,7 @@ function PublishBar({ thread }: { thread: ChatThread }) {
   );
 }
 
-function ThreadPanel({ thread }: { thread: ChatThread }) {
+function ThreadPanel({ thread, imagePreviewUrl }: { thread: ChatThread; imagePreviewUrl?: string }) {
   const [loaded, setLoaded] = useState(false);
   const [replayNonce, setReplayNonce] = useState(0);
   // A worker-generated page is served from /generated/, a fixture from /pages/.
@@ -363,6 +405,28 @@ function ThreadPanel({ thread }: { thread: ChatThread }) {
               </div>
             )}
           </div>
+
+          {/* Only ever set for a thread started from a photo (attachImageJob,
+              lib/chat.ts) — what the model read the problem as, straight from
+              the problem row. This sits right above the confirm control on
+              purpose: a misread photo produces a flawless page solving the
+              wrong problem that every automated check passes, and a teacher
+              comparing this line to the photo they took is the only defence
+              that exists for that (see docs/BUILD-PLAN.html §06). */}
+          {thread.extractedText ? (
+            <div className="gen-card-extracted">
+              {imagePreviewUrl && (
+                <img className="gen-card-extracted-thumb" src={imagePreviewUrl} alt="รูปโจทย์ที่แนบ" />
+              )}
+              <div className="gen-card-extracted-body">
+                <p className="gen-card-extracted-label">
+                  <img src={exclamationUrl} alt="" width={14} height={14} />
+                  โจทย์ที่ระบบอ่านได้จากรูป — ตรวจให้ตรงกับภาพก่อนเผยแพร่
+                </p>
+                <p className="gen-card-extracted-text">{thread.extractedText}</p>
+              </div>
+            </div>
+          ) : null}
 
           <div className="gen-card-publish-row">
             {thread.status === "published" ? (

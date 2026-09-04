@@ -6,7 +6,7 @@ ENV PYTHONUNBUFFERED=1
 WORKDIR /app
 
 RUN pip install --no-cache-dir \
-      fastapi "uvicorn[standard]" sqlalchemy psycopg[binary]
+      fastapi "uvicorn[standard]" sqlalchemy psycopg[binary] python-multipart
 
 COPY apps/api/app /app/app
 
