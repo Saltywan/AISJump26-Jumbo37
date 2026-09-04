@@ -1,0 +1,131 @@
+# JumpAIS — the service
+
+A teacher submits a Thai maths or physics problem; a model writes a
+self-contained HTML page that draws the solution step by step; **a teacher
+confirms it before any student sees it**; a student steps through it and can ask
+about it.
+
+The generator lives in `~/Dev/JumpAIS` and has its own CLAUDE.md. Read it before
+touching anything under `packages/kit/` — that directory is **vendored, not
+source**.
+
+## Run it
+
+```bash
+docker compose up --build                    # web :5173, pages :8080
+docker compose --profile backend up --build  # + db, api :8000, worker
+```
+
+`db`, `api` and `worker` sit behind the `backend` profile so the frontend can be
+demonstrated on fixtures alone. `.env` needs `GOOGLE_CLOUD_API_KEY` (and
+`OPENROUTER_API_KEY` only if you point the worker at a non-Gemini model).
+
+```
+/login   →  /t  teacher: classrooms → lessons / students / settings → chat
+         →  /s  student: classrooms → lessons → lesson chat
+/legacy  the stage-1 and stage-2 screens, kept for reference
+```
+
+## The shape
+
+```
+apps/web      React 18 + TS + Vite. Plain CSS custom properties — no Tailwind,
+              no UI library. Tokens at the top of styles.css come from the Figma
+              file: --primary #3ebad0, IBM Plex Sans Thai, a 5px spacing step.
+apps/api      FastAPI + SQLAlchemy + Postgres. Owns classrooms, lessons,
+              problems, pages, reviews, jobs. Never serves page HTML.
+apps/worker   Polls the job table and shells out to the vendored kit's
+              generate.py and check.mjs. Does not reimplement either.
+apps/pages    nginx on its own origin. Serves fixtures at /pages/ and approved
+              generated pages at /generated/.
+packages/kit  vendored copy of the kit. Produced by kit/sync-to-app.sh in the
+              research repo; verified by packages/kit/check-version.sh. Do not
+              edit by hand — changes belong upstream.
+```
+
+## The two rules that shape everything
+
+**1. A generated page runs model-written JavaScript.** It is served from a
+different origin and embedded with `sandbox="allow-scripts"` and **no**
+`allow-same-origin`. The app therefore cannot read anything out of a page — which
+is exactly why the check report is stored in Postgres and fetched from the API.
+Do not weaken the sandbox, do not inline a page into the app document, and do not
+add a route to the API that returns page bytes.
+
+**2. A page a teacher has not approved is not merely hidden — it is unservable.**
+The worker writes drafts to the `storage` volume. On approval the API copies the
+file into the `published` volume, and nginx mounts **only** that. Rejection
+removes it again. The pages origin has no path to a draft's bytes. A secret URL
+is not a defence, which is why this is a volume boundary and not a naming
+convention.
+
+The gate is enforced server-side too: `?published_only=true` and
+`?approved_only=true` do not return unconfirmed rows, and `approved_only` also
+requires the lesson to be published, so unpublishing cannot be walked around with
+a remembered lesson id.
+
+## The thing that matters most, and the reason for the review screen
+
+**Every automated check is blind to a wrong diagram.** A geometry construction
+came through with its compass arcs clipped to fragments and a stray filled sector
+and scored perfectly clean on collisions, animation density, LaTeX and board
+health. Another drew both compass circles and no perpendicular while asserting
+`PH ⊥ AB` in its answer card.
+
+So the review screen is built so the **fast path is looking at the page**. The
+numbers are annotation. If you change that screen, keep the page large, keep the
+report beside it rather than under it, and keep the decision reachable without
+scrolling. `seconds_on_page` is recorded on every review because rubber-stamping
+is this design's silent failure and has to be visible from the first day.
+
+## State: where things actually live
+
+Server is the source of truth when it is up. `lib/api.ts` is the client;
+`isLive()` is what a screen asks before promising anything, and every call
+degrades to the local fixtures **with a visible notice** rather than failing —
+`demoReason` on a chat thread exists to say "this is a stand-in", and a canned
+page must never be passed off as a freshly generated one.
+
+`lib/classroom.ts`, `lib/chat.ts`, `lib/store.ts` and `lib/session.ts` are
+localStorage. They predate the backend and are being migrated; classrooms,
+lessons, pages and reviews are already server-owned. **Ids must come from the
+server** — locally minted ids posted to the API 404, and that silently broke real
+generation for an entire session while the UI showed a fixture and looked fine.
+
+## Traps this repo has already fallen into
+
+- **A guard written after an `await` is not a guard.** `syncSeedToServer` checked
+  a flag only set at the end, so React's dev double-invoke and every storage
+  clear created another full set of rows — 41 classrooms, 14 of them identical.
+- **Verify through the UI, not with curl.** The backend was "verified end to end"
+  with API-issued ids while every request the actual UI made returned 404.
+- **Test two devices, not two roles in one browser.** localStorage makes a broken
+  cross-device gate look like it works.
+- **A fake delay can beat a real one.** The demo pipeline's 1.4–3.2s stand-in
+  raced a real 30–90s generation and silently won.
+- **`tsc -b` failing may be another agent's file.** Check `git status` before
+  chasing it.
+- **The worker needs the kit re-synced** after any change upstream, or it runs an
+  old copy. It has already run without `generate.py` at all, and with a
+  `check.mjs` that predated the `--json` flag it depends on.
+- **Checkers can disagree by browser build.** The contrast check reported six
+  unreadable labels under one Chromium and none under another; an SVG shape with
+  no authored fill computes to black by spec.
+
+## Not built, and deliberately so
+
+No authentication. `lib/session.ts` is a seam that says plainly it is not a
+security boundary; the role picker on the login screen is a demo control.
+
+No CAS — the model computes its own arithmetic. This is the largest correctness
+gap in the product and nothing in the UI mitigates it.
+
+Chat transcripts stay in localStorage. Lessons and pages are server-owned, so
+publishing works across devices; conversation history does not follow a teacher
+to another browser.
+
+## Docs
+
+`docs/BUILD-PLAN.html` — the five-stage build order and the review rationale.
+`docs/SCHEMA.md` — the data model, and why a lesson holds several problems.
+`docs/PLAN.md` — superseded, kept for its API notes.
