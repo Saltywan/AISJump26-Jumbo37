@@ -104,7 +104,7 @@ export default function Teacher() {
   const idx = Math.min(focusIdx, Math.max(0, filtered.length - 1));
 
   function openRow(id: string) {
-    navigate(`/teacher/review/${encodeURIComponent(id)}`);
+    navigate(`/legacy/teacher/review/${encodeURIComponent(id)}`);
   }
 
   function onListKeyDown(e: React.KeyboardEvent) {
@@ -139,7 +139,7 @@ export default function Teacher() {
               placeholder="ชื่อผู้ตรวจ"
               aria-label="ชื่อผู้ตรวจ"
             />
-            <Link to="/" className="ghost-btn">
+            <Link to="/legacy" className="ghost-btn">
               มุมมองนักเรียน
             </Link>
             <button

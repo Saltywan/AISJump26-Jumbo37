@@ -19,7 +19,7 @@ export default function Home() {
       </div>
       <div className="grid">
         {PAGES.map((p) => (
-          <Link key={p.file} className="card" to={`/p/${encodeURIComponent(p.file)}`}>
+          <Link key={p.file} className="card" to={`/legacy/p/${encodeURIComponent(p.file)}`}>
             <p className="card-title">{p.title}</p>
             {p.level && <span className="card-level">{p.level}</span>}
           </Link>

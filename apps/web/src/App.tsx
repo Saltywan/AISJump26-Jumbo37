@@ -61,11 +61,25 @@ export default function App() {
         element={user ? <StudentLessonChat /> : <Navigate to="/login" replace />}
       />
 
-      {/* the existing, working screens */}
-      <Route path="/" element={<Home />} />
-      <Route path="/p/:file" element={<Viewer />} />
-      <Route path="/teacher" element={<Teacher />} />
-      <Route path="/teacher/review/:id" element={<Review />} />
+      {/* The root sends you where your session belongs. It used to render the
+          pre-Figma student view with no session guard at all, so opening the app
+          skipped login and landed on a screen from a different information
+          architecture — an easy thing to stumble into mid-demo with a stale
+          bookmark or the back button. */}
+      <Route
+        path="/"
+        element={<Navigate to={user ? (user.role === "teacher" ? "/t" : "/s") : "/login"} replace />}
+      />
+
+      {/* The stage-1 and stage-2 screens, kept and walled off rather than
+          deleted: they are a second, self-consistent generate-review-approve
+          flow over the fixtures, with their own store, and ReportSummary still
+          reuses Review.tsx's severity markup. Useful to compare against, wrong
+          to leave sitting on the paths a visitor reaches first. */}
+      <Route path="/legacy" element={<Home />} />
+      <Route path="/legacy/p/:file" element={<Viewer />} />
+      <Route path="/legacy/teacher" element={<Teacher />} />
+      <Route path="/legacy/teacher/review/:id" element={<Review />} />
     </Routes>
   );
 }

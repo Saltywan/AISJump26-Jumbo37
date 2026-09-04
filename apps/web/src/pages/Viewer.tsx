@@ -19,7 +19,7 @@ export default function Viewer() {
     return (
       <div className="not-found">
         <p>ไม่พบโจทย์นี้</p>
-        <Link to="/">กลับไปหน้ารายการ</Link>
+        <Link to="/legacy">กลับไปหน้ารายการ</Link>
       </div>
     );
   }
@@ -29,7 +29,7 @@ export default function Viewer() {
   return (
     <div className="viewer">
       <div className="viewer-bar">
-        <Link to="/" className="back-btn" aria-label="กลับ">
+        <Link to="/legacy" className="back-btn" aria-label="กลับ">
           ‹
         </Link>
         <span className="viewer-title">{entry.title}</span>

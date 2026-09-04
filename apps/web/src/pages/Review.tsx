@@ -78,7 +78,7 @@ export default function Review() {
     }
     const seconds = (Date.now() - mountedAt.current) / 1000;
     recordReview(item.id, action, note.trim(), seconds);
-    if (nextPendingId) navigate(`/teacher/review/${encodeURIComponent(nextPendingId)}`);
+    if (nextPendingId) navigate(`/legacy/teacher/review/${encodeURIComponent(nextPendingId)}`);
     else navigate("/teacher");
   }
 
