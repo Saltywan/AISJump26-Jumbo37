@@ -243,7 +243,14 @@ export async function createClassroom(name: string, description: string, level?:
   return classroom;
 }
 
-export function updateClassroom(id: string, fields: Partial<Pick<Classroom, "name" | "description">>) {
+export async function updateClassroom(id: string, fields: Partial<Pick<Classroom, "name" | "description">>) {
+  if (await isLive()) {
+    try {
+      await api.updateClassroom(id, { name: fields.name, subject: fields.description });
+    } catch {
+      /* fall back to local update */
+    }
+  }
   set({
     ...state,
     classrooms: state.classrooms.map((c) => (c.id === id ? { ...c, ...fields } : c)),
@@ -252,7 +259,14 @@ export function updateClassroom(id: string, fields: Partial<Pick<Classroom, "nam
 
 /** Deletes the classroom and cascades to its lessons and students — the
  *  shape a real API's ON DELETE CASCADE would give for free. */
-export function deleteClassroom(id: string) {
+export async function deleteClassroom(id: string) {
+  if (await isLive()) {
+    try {
+      await api.deleteClassroom(id);
+    } catch {
+      /* fall back to local delete */
+    }
+  }
   set({
     classrooms: state.classrooms.filter((c) => c.id !== id),
     lessons: state.lessons.filter((l) => l.classroomId !== id),
@@ -260,23 +274,36 @@ export function deleteClassroom(id: string) {
   });
 }
 
-/** New lessons borrow a handful of real generated pages at random, the same
- *  honest stand-in the review queue uses for "generation" (see
- *  lib/store.ts's submitProblem): there is no model in this stage, so a
- *  freshly created lesson still opens something real. */
-export async function createLesson(classroomId: string, title: string, chapter?: string): Promise<Lesson> {
-  const pool = PAGES.map((p) => p.file);
-  const pageFiles: string[] = [];
-  for (let i = 0; i < 5 && pool.length > 0; i++) {
-    const idx = Math.floor(Math.random() * pool.length);
-    pageFiles.push(pool.splice(idx, 1)[0]);
+export async function deleteLesson(id: string) {
+  if (await isLive()) {
+    try {
+      await api.deleteLesson(id);
+    } catch {
+      /* fall back to local delete */
+    }
   }
+  set({
+    ...state,
+    lessons: state.lessons.filter((l) => l.id !== id),
+  });
+}
+
+/** New lessons start with 0 problems when live. When offline, borrow 5 fixture
+ *  pages as a demo stand-in so the demo still opens something real. */
+export async function createLesson(classroomId: string, title: string, chapter?: string): Promise<Lesson> {
+  let pageFiles: string[] = [];
   let id = genId("lesson");
   if (await isLive()) {
     try {
       ({ id } = await api.createLesson(classroomId, { title, chapter: chapter || undefined }));
     } catch {
       /* same as above: local id, no live generation from this lesson */
+    }
+  } else {
+    const pool = PAGES.map((p) => p.file);
+    for (let i = 0; i < 5 && pool.length > 0; i++) {
+      const idx = Math.floor(Math.random() * pool.length);
+      pageFiles.push(pool.splice(idx, 1)[0]);
     }
   }
   const lesson: Lesson = { id, classroomId, title, pageFiles, createdAt: Date.now() };

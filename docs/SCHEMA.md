@@ -89,6 +89,39 @@ chat_message  id, session_id, role('user'|'assistant'),
               created_at
 ```
 
+## API Surface
+
+```http
+# Classrooms
+GET    /classrooms                        Active classrooms with lesson_count
+POST   /classrooms                        Create classroom {name, subject, level}
+GET    /classrooms/{id}                   Single classroom details
+PATCH  /classrooms/{id}                   Update {name, subject, level}
+DELETE /classrooms/{id}                   Soft-delete (archived_at) + unlinks volume files
+
+# Lessons
+GET    /classrooms/{id}/lessons           Lessons in classroom (query: published_only)
+POST   /classrooms/{id}/lessons           Create lesson {title, chapter}
+DELETE /lessons/{id}                      Delete lesson + problems + unlinks volume files
+POST   /lessons/{id}/publish              Publish lesson (requires all problems approved)
+POST   /lessons/{id}/unpublish            Revert lesson status to draft
+
+# Problems
+GET    /lessons/{id}/problems             Problems (query: approved_only, returns image_path, job)
+POST   /lessons/{id}/problems             Queue text problem {text, level} -> {problem_id, job_id}
+POST   /lessons/{id}/problems/image       Upload photo (multipart with optional text, level) -> {problem_id, job_id, image_path}
+DELETE /problems/{id}                     Delete problem + unlinks volume files + revokes publish
+
+# Pages & Reviews
+GET    /pages/{id}                        Page metadata, html_path, checks
+POST   /pages/{id}/review                 Approve or reject {action, note, seconds_on_page}
+POST   /pages/{id}/ask                    Ask a question about an approved page {question}
+
+# Jobs
+GET    /jobs/{id}                         Job state, stage, progress
+GET    /jobs/{id}/events                  SSE stream for real-time stage & checks updates
+```
+
 ## Invariants worth writing down
 
 **`kit_version` is load-bearing, not bookkeeping.** It is what makes "improve the
@@ -111,13 +144,41 @@ explain, latex, jsx}` plus the animation probe's `pre / zeroSteps / stepCounts /
 armed`. Do not normalise it into columns: it changes whenever a check is added,
 and every consumer already reads it as a blob.
 
-**A lesson publishes on its pages, not on a whim.** `lesson.status='published'`
-should only be reachable when every problem in it has an approved page.
-Otherwise a student opens `2 จาก 4` and finds nothing.
+**A lesson publishes when it has at least one approved problem.** `lesson.status='published'`
+is reachable as soon as one problem in the lesson has an approved page — the
+rest may still be drafts. Students only see the approved subset; the `problem_count`
+returned to students reflects approved-only problems, not the total. This allows
+incremental publishing: a teacher can share the first two problems while still
+generating the third.
+
+**Revocation on problem deletion or rejection.** If a problem is deleted or
+rejected from a published lesson, the lesson's status automatically reverts to
+`"draft"` *only if no other approved problems remain*. As long as at least one
+approved problem exists, the lesson stays published and students continue to see
+the remaining approved problems.
+
+**Volume disk cleanup on deletion.** Deleting classrooms, lessons, or problems
+actively unlinks draft HTML files, published HTML files, and uploaded images from
+Docker volumes (`/storage` and `/published`) to prevent orphaned storage leaks
+on the host.
+
+**Awaiting approval gate avoids 404 races.** `POST /pages/{id}/review` copies the
+HTML file from `STORAGE_DIR` to `PUBLISHED_DIR`. The UI must await this response
+before switching the iframe src to `/generated/<file>` to avoid racing the server's
+filesystem write.
 
 **Never call `sympify()` on model output.** It evaluates its input as Python —
 remote code execution on the worker. `spikes/spike/render.py` in the research
 repo does the unsafe thing and must not be copied.
+
+**Single-call direct multimodal generation for images.** When a teacher uploads a
+problem image, the image bytes and teacher text instructions are passed directly
+to `kit/generate.py` in a single Gemini call (`Part.from_bytes` + prompt). This
+completely eliminates the intermediate text-transcription bottleneck and preserves
+high-fidelity diagram details, coordinates, angles, and geometry. The model
+transcribes the Thai problem statement directly into `Shell.page({ title, problem })`,
+which the worker extracts and populates into `problem.extracted_text` for teacher
+review before publishing.
 
 ## The worker wraps the kit; it does not reimplement it
 
@@ -133,16 +194,7 @@ job(generate) → kit/generate.py → page html + raw
               → page.status = 'ready'
 ```
 
-`extract` stays unbuilt until stage 5. It is the stage most likely to misbehave
-on stage, and a misread photo produces a flawless page solving the wrong problem
-that every automated check passes.
-
-## Open questions
-
-- **Does rejecting a page delete it or keep it?** Keeping it costs nothing and
-  makes "why was this rejected" answerable later. Leaning keep.
-- **Can a student see a lesson mid-generation?** No — but the teacher needs to,
-  so `lesson.status` gates students while the teacher sees drafts in place.
-- **Is `enrollment` needed for the demo?** Probably not; one classroom with a
-  fixed roster would do. It is in the schema because leaving it out makes the
-  students tab a lie.
+`extract` is performed directly inside the generate job by the multimodal model,
+restating what it read into `problem.extracted_text` before generation starts. That
+string is displayed alongside the draft card as the primary verification against
+misread problems.

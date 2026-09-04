@@ -33,12 +33,34 @@ export interface ApiPage {
   checks: unknown | null;
 }
 
+export interface ApiClassroom {
+  id: string;
+  name: string;
+  subject: string | null;
+  level: string | null;
+  lesson_count: number;
+}
+
+export interface ApiLesson {
+  id: string;
+  title: string;
+  chapter: string | null;
+  status: string;
+  problem_count: number;
+  waiting_count?: number;
+}
+
 export interface ApiProblem {
   id: string;
   position: number;
   text: string | null;
+  raw_text?: string | null;
+  extracted_text?: string | null;
   source: string;
+  image_path?: string | null;
+  created_at?: string | null;
   page: ApiPage | null;
+  job?: { id: string; state: string; stage: string | null } | null;
 }
 
 export interface JobEvent {
@@ -107,16 +129,24 @@ export async function isLive(maxAgeMs = 5000): Promise<boolean> {
 }
 
 export const api = {
-  classrooms: () => req<{ id: string; name: string; subject: string | null; level: string | null; lesson_count: number }[]>("/classrooms"),
+  classrooms: () => req<ApiClassroom[]>("/classrooms"),
+
+  classroom: (classroomId: string) => req<ApiClassroom>(`/classrooms/${classroomId}`),
 
   createClassroom: (body: { name: string; subject?: string; level?: string }) =>
     req<{ id: string }>("/classrooms", { method: "POST", body: JSON.stringify(body) }),
+
+  updateClassroom: (classroomId: string, body: { name?: string; subject?: string; level?: string }) =>
+    req<ApiClassroom>(`/classrooms/${classroomId}`, { method: "PATCH", body: JSON.stringify(body) }),
+
+  deleteClassroom: (classroomId: string) =>
+    req<{ ok: boolean }>(`/classrooms/${classroomId}`, { method: "DELETE" }),
 
   /** `publishedOnly` is the confirmation gate as the API sees it. The student
    *  app asks with it set, and an unconfirmed lesson is not returned at all —
    *  not hidden in the UI, absent from the response. */
   lessons: (classroomId: string, publishedOnly = false) =>
-    req<{ id: string; title: string; chapter: string | null; status: string; problem_count: number }[]>(
+    req<ApiLesson[]>(
       `/classrooms/${classroomId}/lessons${publishedOnly ? "?published_only=true" : ""}`
     ),
 
@@ -125,6 +155,9 @@ export const api = {
       method: "POST",
       body: JSON.stringify(body),
     }),
+
+  deleteLesson: (lessonId: string) =>
+    req<{ ok: boolean }>(`/lessons/${lessonId}`, { method: "DELETE" }),
 
   publishLesson: (lessonId: string) =>
     req<{ id: string; status: string }>(`/lessons/${lessonId}/publish`, { method: "POST" }),
@@ -144,6 +177,9 @@ export const api = {
       method: "POST",
       body: JSON.stringify(body),
     }),
+
+  deleteProblem: (problemId: string) =>
+    req<{ ok: boolean }>(`/problems/${problemId}`, { method: "DELETE" }),
 
   page: (pageId: string) => req<ApiPage>(`/pages/${pageId}`),
 
@@ -169,10 +205,13 @@ export const api = {
    *  apps/api/app/models.py for why the response still needs to be checked
    *  against what the model understood the problem to be before anyone trusts
    *  the page it produces. */
-  uploadProblemImage: (lessonId: string, file: File) => {
+  uploadProblemImage: (lessonId: string, file: File, text?: string) => {
     const form = new FormData();
     form.append("file", file);
-    return reqForm<{ problem_id: string; job_id: string }>(`/lessons/${lessonId}/problems/image`, form);
+    if (text && text.trim()) {
+      form.append("text", text.trim());
+    }
+    return reqForm<{ problem_id: string; job_id: string; image_path?: string }>(`/lessons/${lessonId}/problems/image`, form);
   },
 };
 

@@ -19,6 +19,7 @@
  */
 import { useEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { MathText } from "./Math";
 import caretRightUrl from "../icons/caret-right.svg";
 import angleSmallRightUrl from "../icons/angle-small-right.svg";
 
@@ -59,7 +60,7 @@ export function ArtifactCard({
       </span>
       <span className="artifact-card-body">
         <span className="artifact-card-kicker">{kicker}</span>
-        <span className="artifact-card-title">{title}</span>
+        <span className="artifact-card-title"><MathText text={title} inline /></span>
         {status ? <span className="artifact-card-status">{status}</span> : null}
       </span>
       <span className="artifact-card-open">
@@ -125,7 +126,7 @@ export function ArtifactViewer({
           ✕
         </button>
         <div className="artifact-view-titles">
-          <span className="artifact-view-title">{title}</span>
+          <span className="artifact-view-title"><MathText text={title} inline /></span>
           {subtitle ? <span className="artifact-view-subtitle">{subtitle}</span> : null}
         </div>
         <div className="artifact-view-actions">

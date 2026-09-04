@@ -25,15 +25,15 @@ export default function ClassroomSettings() {
   // (the route key changes with :classroomId) so this doesn't need to react
   // to classroom changing under it.
 
-  function handleSave(e: React.FormEvent) {
+  async function handleSave(e: React.FormEvent) {
     e.preventDefault();
-    updateClassroom(classroom.id, { name: name.trim() || classroom.name, description: description.trim() });
+    await updateClassroom(classroom.id, { name: name.trim() || classroom.name, description: description.trim() });
     setSaved(true);
     window.setTimeout(() => setSaved(false), 1800);
   }
 
-  function handleConfirmDelete() {
-    deleteClassroom(classroom.id);
+  async function handleConfirmDelete() {
+    await deleteClassroom(classroom.id);
     navigate("/t");
   }
 

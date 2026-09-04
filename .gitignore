@@ -13,3 +13,8 @@ dist/
 
 # TypeScript incremental build state — regenerated on every build
 apps/web/tsconfig.tsbuildinfo
+
+# Scratch images dropped in while testing the photo-upload path. Generation
+# runs worth keeping belong in the research repo's spikes/boardtest/runs/,
+# which is where the two that were sitting here have gone.
+tmpimages/

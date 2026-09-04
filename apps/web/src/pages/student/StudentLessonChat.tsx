@@ -337,7 +337,9 @@ export default function StudentLessonChat() {
                 >
                   <img src={angleSmallLeftUrl} alt="" width={20} height={20} />
                 </button>
-                <span className="lesson-chat-nav-title">{title}</span>
+                <span className="lesson-chat-nav-title">
+                  <MathText text={title} inline />
+                </span>
                 <span className="lesson-chat-nav-count">
                   {clampedIndex + 1} จาก {items.length} โจทย์
                 </span>
@@ -432,39 +434,43 @@ export default function StudentLessonChat() {
             />
           ) : null}
 
-          {item && (
-            <div className="lesson-chat-suggested">
-              {SUGGESTED_QUESTIONS.map((q) => (
-                <button key={q} type="button" className="lesson-chat-chip" disabled={asking} onClick={() => sendQuestion(q)}>
-                  {q}
-                </button>
-              ))}
-            </div>
-          )}
+          <div className="student-chat-input-dock">
+            {item && (
+              <div className="lesson-chat-suggested">
+                {SUGGESTED_QUESTIONS.map((q) => (
+                  <button key={q} type="button" className="lesson-chat-chip" disabled={asking} onClick={() => sendQuestion(q)}>
+                    {q}
+                  </button>
+                ))}
+              </div>
+            )}
 
-          <div className="chat-input-bar">
-            <input
-              className="chat-input-field"
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  if (text.trim()) void sendQuestion(text);
-                }
-              }}
-              placeholder="พิมพ์คำถามเกี่ยวกับโจทย์นี้"
-              disabled={asking}
-            />
-            <button
-              type="button"
-              className="chat-input-send"
-              onClick={() => text.trim() && sendQuestion(text)}
-              disabled={!text.trim() || asking}
-              aria-label="ส่ง"
-            >
-              <img src={sendUrl} alt="" width={20} height={20} />
-            </button>
+            <div className="chat-input-bar">
+              <div className="chat-input-row">
+                <input
+                  className="chat-input-field"
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      if (text.trim()) void sendQuestion(text);
+                    }
+                  }}
+                  placeholder="พิมพ์คำถามเกี่ยวกับโจทย์นี้"
+                  disabled={asking}
+                />
+                <button
+                  type="button"
+                  className="chat-input-send"
+                  onClick={() => text.trim() && sendQuestion(text)}
+                  disabled={!text.trim() || asking}
+                  aria-label="ส่ง"
+                >
+                  <img src={sendUrl} alt="" width={20} height={20} />
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>

@@ -12,7 +12,7 @@
  * lib/chat.ts's studentVisibleFiles() for where that gate is actually
  * enforced, and docs/BUILD-PLAN.html section 04 for why a report full of
  * green checks is not, by itself, grounds to skip looking at the page. */
-import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { AppShell } from "../../components/AppShell";
 import { useSession } from "../../lib/session";
@@ -30,13 +30,15 @@ import {
   publishThread,
   unpublishThread,
   deleteThread,
+  syncLessonProblems,
   addUserMessage,
   addAssistantMessage,
   type ChatThread,
 } from "../../lib/chat";
-import { CHECKS } from "../../checks";
+import { CHECKS, type CheckRow } from "../../checks";
 import { checkIdOf } from "../../lib/format";
 import { ReportSummary } from "./ReportSummary";
+import { MathText } from "../../components/Math";
 import { ArtifactCard, ArtifactViewer } from "../../components/Artifact";
 import angleSmallLeftUrl from "../../icons/angle-small-left.svg";
 import caretDownUrl from "../../icons/caret-down.svg";
@@ -48,10 +50,53 @@ import lockUrl from "../../icons/lock.svg";
 // placeholder and never swapped — a send button showing three dots is wrong
 // whatever the file says, so icons/send.svg is a real send mark.
 import sendUrl from "../../icons/send.svg";
+import trashUrl from "../../icons/trash.svg";
 import imageUrl from "../../icons/image.svg";
 import exclamationUrl from "../../icons/exclamation.svg";
 
-import { pageSrc } from "../../lib/api";
+import { api, isLive, pageSrc } from "../../lib/api";
+
+interface LiveChatMeta {
+  classroom: { id: string; name: string } | null;
+  lessons: { id: string; title: string }[];
+}
+
+function useLiveTeacherChatMeta(classroomId: string): { state: "loading" | "ready" | "error"; data: LiveChatMeta | null } {
+  const [meta, setMeta] = useState<{ state: "loading" | "ready" | "error"; data: LiveChatMeta | null }>({
+    state: "loading",
+    data: null,
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      if (await isLive()) {
+        try {
+          const [c, ls] = await Promise.all([api.classroom(classroomId), api.lessons(classroomId, false)]);
+          if (!cancelled) {
+            setMeta({
+              state: "ready",
+              data: {
+                classroom: { id: c.id, name: c.name },
+                lessons: ls.map((l) => ({ id: l.id, title: l.title })),
+              },
+            });
+            return;
+          }
+        } catch {
+          /* fall through to error / local fallback */
+        }
+      }
+      if (!cancelled) setMeta({ state: "error", data: null });
+    }
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [classroomId]);
+
+  return meta;
+}
 
 /* "บทที่ 1: การเคลื่อนที่แบบโปรเจกไทล์" -> ("บทที่ 1", "การเคลื่อนที่แบบโปรเจกไทล์"),
    matching the two-line eyebrow/title the sidebar and topbar both use. Falls
@@ -95,6 +140,8 @@ export default function TeacherChat() {
   // blob: URLs don't survive a reload, and there's nothing useful to persist
   // here beyond this tab's current session anyway.
   const [imagePreviews, setImagePreviews] = useState<Record<string, string>>({});
+  const [stagedImage, setStagedImage] = useState<File | null>(null);
+  const [stagedPreviewUrl, setStagedPreviewUrl] = useState<string | null>(null);
   // Which threads the teacher has actually opened the page for, this session.
   // Publishing is gated on it (see PublishBar): a confirm button reachable
   // without opening the page is a button pressed without opening the page. Not
@@ -104,28 +151,46 @@ export default function TeacherChat() {
   // bar's "open it first" button drives the same viewer.
   const [openRequest, setOpenRequest] = useState(0);
 
-  // Fake generation: poll for threads whose simulated delay has elapsed.
-  useEffect(() => {
-    // A generation started on a previous visit is still running on the server;
-    // re-attach to it, or the thread sits on "generating" with nobody watching.
-    resumeWatchers();
-    const t = setInterval(tickThreads, 400);
-    return () => clearInterval(t);
-  }, []);
+  const liveMeta = useLiveTeacherChatMeta(classroomId);
 
-  const classroom = classroomOf(classroomState, classroomId);
-  const lessons = useMemo(() => lessonsOf(classroomState, classroomId), [classroomState, classroomId]);
-  const lesson = lessons.find((l: Lesson) => l.id === lessonId);
+  const localClassroom = classroomOf(classroomState, classroomId);
+  const localLessons = useMemo(() => lessonsOf(classroomState, classroomId), [classroomState, classroomId]);
+
+  const classroom = liveMeta.data?.classroom ?? localClassroom;
+  const lessons = liveMeta.data?.lessons ?? localLessons;
+  const lesson = lessons.find((l: { id: string; title: string }) => l.id === lessonId);
   const history = useMemo(() => threadsOf(chatState, classroomId, lessonId), [chatState, classroomId, lessonId]);
   const thread = threadId ? threadOf(chatState, threadId) : undefined;
 
+  useEffect(() => {
+    resumeWatchers();
+    void syncLessonProblems(classroomId, lessonId);
+    const t = setInterval(() => {
+      tickThreads();
+      void syncLessonProblems(classroomId, lessonId);
+    }, 2000);
+    return () => clearInterval(t);
+  }, [classroomId, lessonId]);
+
   if (!user) return <Navigate to="/login" replace />;
+
+  if (liveMeta.state === "loading" && (!localClassroom || !localLessons.some((l: Lesson) => l.id === lessonId))) {
+    return (
+      <AppShell wide>
+        <div className="chat-shell" style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "60vh" }}>
+          <span className="spinner" />
+        </div>
+      </AppShell>
+    );
+  }
+
   if (!classroom || !lesson) return <Navigate to={`/t/c/${classroomId}/lessons`} replace />;
 
   const [eyebrow, lessonTitle] = splitLessonTitle(lesson.title);
 
   function goNewChat() {
     setText("");
+    handleClearStagedImage();
     navigate(`/t/c/${classroomId}/lessons/${lessonId}/chat`);
     setSidebarOpen(false);
   }
@@ -135,12 +200,51 @@ export default function TeacherChat() {
     setSidebarOpen(false);
   }
 
+  function handleSelectImage(file: File) {
+    if (!file.type.startsWith("image/")) return;
+    setStagedImage(file);
+    const url = URL.createObjectURL(file);
+    setStagedPreviewUrl(url);
+  }
+
+  function handleClearStagedImage() {
+    if (stagedPreviewUrl) URL.revokeObjectURL(stagedPreviewUrl);
+    setStagedImage(null);
+    setStagedPreviewUrl(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
+  function handlePaste(e: React.ClipboardEvent) {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.startsWith("image/")) {
+        const file = items[i].getAsFile();
+        if (file) {
+          e.preventDefault();
+          handleSelectImage(file);
+          return;
+        }
+      }
+    }
+  }
+
   function submit() {
     const t = text.trim();
-    if (!t) return;
+    if (!t && !stagedImage) return;
+
     if (thread) {
-      // Following up inside an existing thread — no second generation, this
-      // screen only ever generates one page per thread (see lib/chat.ts).
+      if (stagedImage) {
+        const file = stagedImage;
+        const preview = URL.createObjectURL(file);
+        handleClearStagedImage();
+        const created = submitImagePrompt(classroomId, lessonId, t, preview);
+        setImagePreviews((m) => ({ ...m, [created.id]: preview }));
+        setText("");
+        navigate(`/t/c/${classroomId}/lessons/${lessonId}/chat/${created.id}`);
+        void attachImageJob(created.id, classroomId, lessonId, file, t);
+        return;
+      }
       addUserMessage(thread.id, t);
       setText("");
       window.setTimeout(
@@ -149,29 +253,23 @@ export default function TeacherChat() {
       );
       return;
     }
-    // Create the thread synchronously so the screen moves immediately, then let
-    // the real job attach to it. Generation takes 30-90s; making the teacher
-    // stare at a frozen input for that long is the thing the streamed stage
-    // exists to avoid.
+
+    if (stagedImage) {
+      const file = stagedImage;
+      const preview = URL.createObjectURL(file);
+      handleClearStagedImage();
+      const created = submitImagePrompt(classroomId, lessonId, t, preview);
+      setImagePreviews((m) => ({ ...m, [created.id]: preview }));
+      setText("");
+      navigate(`/t/c/${classroomId}/lessons/${lessonId}/chat/${created.id}`);
+      void attachImageJob(created.id, classroomId, lessonId, file, t);
+      return;
+    }
+
     const created = submitPrompt(classroomId, lessonId, t);
     setText("");
     navigate(`/t/c/${classroomId}/lessons/${lessonId}/chat/${created.id}`);
     void attachLiveJob(created.id, classroomId, lessonId, t);
-  }
-
-  // A photo always starts a new thread — like typing a new problem, it's a
-  // new generation, not a follow-up in whatever thread happens to be open.
-  function submitImage(file: File) {
-    const created = submitImagePrompt(classroomId, lessonId);
-    setImagePreviews((m) => ({ ...m, [created.id]: URL.createObjectURL(file) }));
-    navigate(`/t/c/${classroomId}/lessons/${lessonId}/chat/${created.id}`);
-    void attachImageJob(created.id, classroomId, lessonId, file);
-  }
-
-  function onFileChosen(e: ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    e.target.value = ""; // allow choosing the same file again later
-    if (file) submitImage(file);
   }
 
   return (
@@ -230,7 +328,9 @@ export default function TeacherChat() {
                       tabIndex={0}
                     >
                       <div className="chat-history-text">
-                        <span className="chat-history-title-row">{h.title}</span>
+                        <span className="chat-history-title-row">
+                          <MathText text={h.title} inline />
+                        </span>
                         <span className={`chat-history-status ${meta.cls}`}>
                           {meta.icon ? (
                             <img src={meta.icon} alt="" width={16} height={16} />
@@ -243,16 +343,16 @@ export default function TeacherChat() {
                       <button
                         type="button"
                         className="chat-history-menu"
-                        aria-label="ตัวเลือกเพิ่มเติม"
-                        onClick={(e) => {
+                        aria-label="ลบการสนทนา"
+                        onClick={async (e) => {
                           e.stopPropagation();
                           if (confirm(`ลบ “${h.title}” ออกจากประวัติการสนทนา?`)) {
-                            deleteThread(h.id);
+                            await deleteThread(h.id);
                             if (h.id === threadId) goNewChat();
                           }
                         }}
                       >
-                        <img src={sendUrl} alt="" width={18} height={18} />
+                        <img src={trashUrl} alt="" width={16} height={16} />
                       </button>
                     </div>
                   );
@@ -291,7 +391,7 @@ export default function TeacherChat() {
               <ThreadPanel
                 key={thread.id}
                 thread={thread}
-                imagePreviewUrl={imagePreviews[thread.id]}
+                imagePreviewUrl={imagePreviews[thread.id] || (thread.imagePath ? pageSrc(thread.imagePath, "draft") : undefined)}
                 opened={!!opened[thread.id]}
                 onOpened={() => setOpened((m) => ({ ...m, [thread.id]: true }))}
                 openNonce={openRequest}
@@ -300,37 +400,66 @@ export default function TeacherChat() {
           </div>
 
           <div className="chat-input-bar">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="chat-input-file"
-              onChange={onFileChosen}
-            />
-            <button
-              type="button"
-              className="chat-input-attach"
-              onClick={() => fileInputRef.current?.click()}
-              aria-label="แนบรูปโจทย์"
-              title="แนบรูปโจทย์"
-            >
-              <img src={imageUrl} alt="" width={20} height={20} />
-            </button>
-            <input
-              className="chat-input-field"
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  submit();
-                }
-              }}
-              placeholder="พิมพ์โจทย์ที่นี่ หรือแนบรูปโจทย์"
-            />
-            <button type="button" className="chat-input-send" onClick={submit} disabled={!text.trim()} aria-label="ส่ง">
-              <img src={sendUrl} alt="" width={20} height={20} />
-            </button>
+            {stagedPreviewUrl && (
+              <div className="chat-staged-attachment">
+                <div className="chat-staged-thumb-wrap">
+                  <img src={stagedPreviewUrl} alt="รูปที่เลือก" className="chat-staged-thumb" />
+                  <button
+                    type="button"
+                    className="chat-staged-remove"
+                    onClick={handleClearStagedImage}
+                    title="ลบรูปภาพ"
+                    aria-label="ลบรูปภาพ"
+                  >
+                    ×
+                  </button>
+                </div>
+                <span className="chat-staged-hint">แนบรูปภาพแล้ว — สามารถพิมพ์ข้อความเพิ่มเติมประกอบโจทย์ได้</span>
+              </div>
+            )}
+            <div className="chat-input-row">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="chat-input-file"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleSelectImage(file);
+                }}
+              />
+              <button
+                type="button"
+                className={`chat-input-attach${stagedImage ? " chat-input-attach-active" : ""}`}
+                onClick={() => fileInputRef.current?.click()}
+                aria-label="แนบรูปโจทย์"
+                title="แนบรูปโจทย์"
+              >
+                <img src={imageUrl} alt="" width={20} height={20} />
+              </button>
+              <input
+                className="chat-input-field"
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                onPaste={handlePaste}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    submit();
+                  }
+                }}
+                placeholder={stagedImage ? "พิมพ์ข้อความหรือคำแนะนำเพิ่มเติม (หรือไม่พิมพ์ก็ได้)..." : "พิมพ์โจทย์ที่นี่ หรือวางรูปภาพ (Ctrl+V / Cmd+V)"}
+              />
+              <button
+                type="button"
+                className="chat-input-send"
+                onClick={submit}
+                disabled={!text.trim() && !stagedImage}
+                aria-label="ส่ง"
+              >
+                <img src={sendUrl} alt="" width={20} height={20} />
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -346,7 +475,9 @@ function PublishBar({ thread, opened, onOpen }: { thread: ChatThread; opened: bo
   const ready = thread.status !== "generating" && !!thread.file;
   return (
     <div className="chat-topbar">
-      <span className="chat-topbar-title">{thread.title}</span>
+      <span className="chat-topbar-title">
+        <MathText text={thread.title} inline />
+      </span>
       {!ready ? null : thread.status === "published" ? (
         <span className="chat-published-row">
           <span className="chat-published-note">
@@ -362,9 +493,14 @@ function PublishBar({ thread, opened, onOpen }: { thread: ChatThread; opened: bo
             <img src={lockUrl} alt="" width={16} height={16} /> ฉบับร่าง — นักเรียนยังไม่เห็นหน้านี้
           </span>
           {opened ? (
-            <button type="button" className="chat-publish-btn" onClick={() => publishThread(thread.id)}>
+            <button
+              type="button"
+              className="chat-publish-btn"
+              disabled={thread.publishing}
+              onClick={() => publishThread(thread.id)}
+            >
               <img src={globeOnPrimaryUrl} alt="" width={16} height={16} />
-              <span>เผยแพร่ให้นักเรียน</span>
+              <span>{thread.publishing ? "กำลังเผยแพร่…" : "เผยแพร่ให้นักเรียน"}</span>
             </button>
           ) : (
             <button type="button" className="chat-publish-btn chat-publish-btn-locked" onClick={onOpen}>
@@ -402,7 +538,7 @@ function ThreadPanel({
     ? (thread.status === "published" ? "generated" : "draft")
     : (thread.kind ?? "fixture");
   const src = thread.file ? pageSrc(thread.file, kind) : undefined;
-  const check = thread.file ? CHECKS[checkIdOf(thread.file)] : undefined;
+  const check = (thread.checks as CheckRow | undefined) ?? (thread.file ? CHECKS[checkIdOf(thread.file)] : undefined);
   const ready = thread.status !== "generating" && !!src;
 
   // Only a *change* since this panel mounted counts. Comparing against zero
@@ -429,26 +565,34 @@ function ThreadPanel({
      produces a flawless page solving the wrong problem, every automated check
      passes it, and a teacher comparing this line against their photo is the
      only defence that exists (docs/BUILD-PLAN.html §06). */
-  const extracted = thread.extractedText ? (
+  const extracted = (thread.extractedText || imagePreviewUrl) ? (
     <div className="gen-card-extracted">
       {imagePreviewUrl && <img className="gen-card-extracted-thumb" src={imagePreviewUrl} alt="รูปโจทย์ที่แนบ" />}
       <div className="gen-card-extracted-body">
         <p className="gen-card-extracted-label">
           <img src={exclamationUrl} alt="" width={14} height={14} />
-          โจทย์ที่ระบบอ่านได้จากรูป — ตรวจให้ตรงกับภาพก่อนเผยแพร่
+          {thread.extractedText ? "โจทย์ที่ระบบอ่านได้จากรูป — ตรวจให้ตรงกับภาพก่อนเผยแพร่" : "รูปโจทย์ที่แนบ"}
         </p>
-        <p className="gen-card-extracted-text">{thread.extractedText}</p>
+        {thread.extractedText && <MathText text={thread.extractedText} className="gen-card-extracted-text" />}
       </div>
     </div>
   ) : null;
 
   return (
     <div className="chat-thread">
-      {thread.messages.map((m) => (
-        <div key={m.id} className={m.role === "user" ? "chat-msg-user" : "chat-msg-assistant"}>
-          {m.text}
-        </div>
-      ))}
+      {thread.messages.map((m, idx) => {
+        const img = m.imageUrl || (m.role === "user" && idx === 0 && (imagePreviewUrl || (thread.imagePath ? pageSrc(thread.imagePath, "draft") : undefined)));
+        return (
+          <div key={m.id} className={m.role === "user" ? "chat-msg-user" : "chat-msg-assistant"}>
+            {img && (
+              <div className="chat-msg-image-wrap">
+                <img src={img} alt="รูปโจทย์" className="chat-msg-image" />
+              </div>
+            )}
+            {m.text ? <MathText text={m.text} /> : null}
+          </div>
+        );
+      })}
 
       {!ready ? (
         <div className="gen-card">
@@ -505,12 +649,18 @@ function ThreadPanel({
               <button
                 type="button"
                 className="chat-publish-btn"
-                disabled={!loaded}
-                title={!loaded ? "รอโหลดหน้าให้เสร็จก่อน เพื่อให้ดูภาพจริงก่อนเผยแพร่" : undefined}
+                disabled={!loaded || thread.publishing}
+                title={
+                  thread.publishing
+                    ? "กำลังบันทึกการเผยแพร่…"
+                    : !loaded
+                    ? "รอโหลดหน้าให้เสร็จก่อน เพื่อให้ดูภาพจริงก่อนเผยแพร่"
+                    : undefined
+                }
                 onClick={() => publishThread(thread.id)}
               >
                 <img src={globeOnPrimaryUrl} alt="" width={16} height={16} />
-                <span>เผยแพร่ให้นักเรียน</span>
+                <span>{thread.publishing ? "กำลังเผยแพร่…" : "เผยแพร่ให้นักเรียน"}</span>
               </button>
             )
           }

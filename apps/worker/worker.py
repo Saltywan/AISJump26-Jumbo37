@@ -23,10 +23,18 @@ Two more job kinds live here, both added for the student/teacher-facing
 features below, and both call the model directly with google-genai rather than
 shelling out — there is nothing in kit/ for either of them to wrap:
 
-`generate` on an image-sourced problem now restates the photo into text before
-doing anything else (see restate_image()) — the model reads the image
-directly, no OCR step, and what it read back is stored as
-problem.extracted_text for a teacher to catch a misread against.
+`generate` on an image-sourced problem hands the photograph straight to
+kit/generate.py via --image. There is no OCR step and no separate restatement
+call: the model reads the picture and writes the page in one pass, which keeps
+the diagram it saw and the diagram it draws in the same head. What it understood
+the problem to be is recovered afterwards from the page's own
+Shell.page({problem}) call (extract_problem_statement below) and stored as
+problem.extracted_text, which is what a teacher compares against the photo
+before publishing.
+
+An earlier design restated the photo to text first and generated from that
+text. It is gone — going through text lost every diagram — and so is
+restate_image(), which implemented it.
 
 `tutor_ask` answers a student's question about one already-approved page (see
 handle_tutor_ask() / ask_tutor()). It is routed through this worker rather than
@@ -41,9 +49,9 @@ sequential worker.
 """
 from __future__ import annotations
 
+import concurrent.futures
 import datetime as dt
 import json
-import mimetypes
 import os
 import pathlib
 import re
@@ -67,6 +75,7 @@ KIT = pathlib.Path(os.environ.get("KIT_DIR", "/kit"))
 STORAGE = pathlib.Path(os.environ.get("STORAGE_DIR", "/storage"))
 MODEL = os.environ.get("GEN_MODEL", "gemini-3.8-flash")
 EFFORT = os.environ.get("GEN_EFFORT", "high")
+MAX_WORKERS = int(os.environ.get("WORKER_CONCURRENCY", "3"))
 POLL_SECONDS = 2
 
 
@@ -94,10 +103,9 @@ def set_stage(db, job: Job, stage: str, **progress) -> None:
 
 
 # --------------------------------------------------------------- model calls
-# Both restate_image() and ask_tutor() call google-genai directly. Neither is
-# "generation" in the kit's sense — one turns a photo into text, the other
-# turns an approved page into a chat answer — so routing them through
-# kit/generate.py would mean teaching that script inputs it was never built
+# ask_tutor() calls google-genai directly. It is not "generation" in the kit's
+# sense — it turns an approved page into a chat answer — so routing it through
+# kit/generate.py would mean teaching that script an input it was never built
 # for. GOOGLE_CLOUD_API_KEY is the same key generate.py itself reads.
 
 _client = None
@@ -144,63 +152,6 @@ def _retry_transient(fn, tries: int = 4, base_delay: float = 2.0):
                 raise
             time.sleep(base_delay * (attempt + 1))
     raise last  # pragma: no cover
-
-
-def _strip_fences(text: str) -> str:
-    """The model occasionally wraps a plain-text answer in a markdown fence
-    (see generate.py's own strip_fences, which this mirrors in miniature for
-    the same reason: a leading fence line has broken output before)."""
-    return "\n".join(l for l in text.splitlines() if not l.strip().startswith("```"))
-
-
-RESTATE_PROMPT = (
-    "รูปภาพนี้เป็นภาพถ่ายโจทย์คณิตศาสตร์หรือฟิสิกส์ระดับมัธยมปลาย "
-    "อ่านโจทย์ในรูปอย่างละเอียดแล้วเขียนโจทย์นั้นขึ้นใหม่เป็นข้อความล้วน "
-    "ห้ามแก้ไข ห้ามเพิ่มเติม ห้ามตัดทอน และห้ามแก้โจทย์ให้ดูสมเหตุสมผลขึ้นถ้าโจทย์ในรูปดูผิดปกติ "
-    "คงตัวเลข ตัวแปร และหน่วยทุกตัวไว้ตรงกับต้นฉบับที่เห็นในรูป ใช้ $...$ ล้อมสัญลักษณ์คณิตศาสตร์ "
-    "ห้ามแก้โจทย์ ห้ามเฉลย ห้ามอธิบายวิธีทำ และห้ามมีคำนำหรือคำลงท้าย "
-    "ตอบกลับเฉพาะข้อความโจทย์ที่ถอดได้จากรูปเท่านั้น"
-)
-
-
-def restate_image(problem: Problem, db, job: Job) -> str:
-    """The model reads the uploaded photo directly — there is no separate OCR
-    step — and this is what it says the photo shows, BEFORE anything tries to
-    solve it. It is stored on problem.extracted_text and is the only defence
-    against a misread photo: a flawless page solving the wrong problem passes
-    every automated check, and a teacher can only catch that by comparing this
-    restatement against the photo at confirmation time (see docs/SCHEMA.md and
-    docs/BUILD-PLAN.html §04 wanting the review screen to surface exactly the
-    things automated checks cannot see)."""
-    if not problem.image_path:
-        raise RuntimeError(f"problem {problem.id} has source=image but no image_path")
-    img_path = STORAGE / problem.image_path
-    if not img_path.exists():
-        raise RuntimeError(f"problem {problem.id} image missing on disk: {img_path}")
-
-    set_stage(db, job, "extracting")
-    mime = mimetypes.guess_type(img_path.name)[0] or "image/jpeg"
-    data = img_path.read_bytes()
-    client = genai_client()
-    config = types.GenerateContentConfig(
-        max_output_tokens=4096,
-        safety_settings=_safety_off(),
-        automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
-        thinking_config=types.ThinkingConfig(thinking_level="LOW"),
-    )
-    contents = [types.Content(role="user", parts=[
-        types.Part.from_bytes(data=data, mime_type=mime),
-        types.Part.from_text(text=RESTATE_PROMPT),
-    ])]
-
-    def call():
-        resp = client.models.generate_content(model=MODEL, contents=contents, config=config)
-        text = _strip_fences((resp.text or "").strip())
-        if not text.strip():
-            raise RuntimeError("empty restatement from model")
-        return text.strip()
-
-    return _retry_transient(call)
 
 
 # ------------------------------------------------------- page-context lookup
@@ -353,6 +304,17 @@ def _int_list_field(obj_src: str, key: str) -> list[int]:
     return out
 
 
+def extract_problem_statement(html: str) -> str | None:
+    """Extract the Thai problem statement passed to Shell.page({ problem: ... })
+    in the generated page. Uses _decode_js_string() directly without _clean_text()
+    so LaTeX math formulas, newlines, and formatting are preserved identically to JS."""
+    for arglist in _iter_calls(html, "Shell.page"):
+        problem_str = _string_field(arglist, "problem")
+        if problem_str and problem_str.strip():
+            return problem_str.strip()
+    return None
+
+
 def extract_page_context(html: str) -> dict:
     """Pull setup / steps (text, why, uses) / answers (label, value, sanity)
     out of a generated page's source. Best-effort: a call this cannot parse is
@@ -466,31 +428,44 @@ def ask_tutor(problem_text: str, ctx: dict, question: str) -> dict:
 
 
 def run_generate(problem: Problem, out_dir: pathlib.Path, db, job: Job) -> pathlib.Path | None:
-    """One problem through generate.py. Its batch file format is id|โจทย์|ระดับ."""
-    text = (problem.extracted_text or problem.raw_text or "").strip()
-    if not text:
-        raise RuntimeError("problem has no text")
+    """One problem through generate.py. Passed directly as CLI arguments so multiline
+    text statements never get split by batch line parsers. For image problems,
+    the image path is passed via --image to allow direct single-call multimodal
+    generation with zero diagram loss."""
+    text = (problem.raw_text or problem.extracted_text or "").strip()
+    image_args: list[str] = []
+    if problem.source == "image" and problem.image_path:
+        img_p = STORAGE / problem.image_path
+        if img_p.is_file():
+            image_args = ["--image", str(img_p)]
+        else:
+            raise RuntimeError(f"problem image missing on disk: {img_p}")
 
-    with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False, encoding="utf-8") as fh:
-        fh.write(f"{problem.id}|{text}|{problem.level or ''}\n")
-        batch = fh.name
+    if not text and not image_args:
+        raise RuntimeError("problem has neither text nor image")
 
     set_stage(db, job, "generating", model=MODEL, effort=EFFORT)
     cmd = [
         "python3", str(KIT / "generate.py"),
-        "-f", batch,
+        text,
+        "--id", problem.id,
         "--out", str(out_dir),
         "--model", MODEL,
         "--effort", EFFORT,
         "--jobs", "1",
     ]
+    if problem.level:
+        cmd += ["--level", problem.level]
+    if image_args:
+        cmd += image_args
+
     proc = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
     log(proc.stdout[-2000:])
     if proc.returncode != 0:
         raise RuntimeError((proc.stderr or proc.stdout)[-500:])
 
-    pages = sorted((out_dir / "pages").glob("*.html"))
-    return pages[0] if pages else None
+    page_file = out_dir / "pages" / f"{problem.id}.html"
+    return page_file if page_file.is_file() else None
 
 
 def run_check(page_file: pathlib.Path, db, job: Job) -> dict | None:
@@ -514,14 +489,6 @@ def handle_generate(db, job: Job) -> None:
     if problem is None:
         raise RuntimeError(f"problem {job.target_id} is gone")
 
-    # Image-sourced problems arrive with no text at all — see
-    # apps/api/app/main.py: add_problem_image(). Restate before anything else
-    # so run_generate() below sees exactly the same shape of input it already
-    # gets from the text endpoint (problem.extracted_text or .raw_text).
-    if problem.source == "image" and not (problem.extracted_text or "").strip():
-        problem.extracted_text = restate_image(problem, db, job)
-        db.commit()
-
     work = STORAGE / "runs" / job.id
     work.mkdir(parents=True, exist_ok=True)
 
@@ -529,14 +496,21 @@ def handle_generate(db, job: Job) -> None:
     if page_file is None:
         raise RuntimeError("generate produced no page")
 
-    # Check it where generate.py left it, NOT after copying to storage.
-    # generate.py writes a relative pages/lib symlink beside the page, which
-    # resolves to the kit here in the worker. The storage/lib symlink points at
-    # ../lib, which only resolves inside the pages nginx container — so checking
-    # the copied file made every page load its shell from nowhere and report
-    # itself as zero steps and six console errors, a broken page that was fine.
     checks = run_check(page_file, db, job)
     html = page_file.read_text(encoding="utf-8", errors="replace")
+
+    # If this problem was image-sourced, extract the problem statement written
+    # by the generator directly from the page's Shell.page({problem}) call,
+    # and save it to problem.extracted_text so the teacher review card and tutor
+    # have the exact problem text without a separate OCR call.
+    if problem.source == "image":
+        extracted = extract_problem_statement(html)
+        if extracted:
+            problem.extracted_text = extracted
+            db.commit()
+        elif problem.raw_text:
+            problem.extracted_text = problem.raw_text
+            db.commit()
 
     # Land the finished draft at the storage root. Nothing serves this volume —
     # see the module docstring — so this is not "publishing" it anywhere; it is
@@ -601,19 +575,15 @@ def handle_tutor_ask(db, job: Job) -> None:
 
 
 def claim_one(db) -> Job | None:
-    """Single worker, so a plain SELECT is honest. With more than one this
-    wants SKIP LOCKED — noted here rather than pretended.
-
-    tutor_ask jumps the queue ahead of generate/recheck: the API answers a
-    chat question synchronously from inside one HTTP request (see
-    apps/api/app/main.py: ask_page()), and a generate job already queued
-    ahead of it can take 30-90 seconds — long enough to blow past any
-    reasonable answer timeout if chat waited its ordinary turn. This only
-    reorders the QUEUE; a job already RUNNING still has to finish first."""
+    """Claim the next queued job.
+    Uses SELECT ... FOR UPDATE SKIP LOCKED so concurrent worker threads and scaled
+    worker replicas never race or double-claim the same job row.
+    tutor_ask jumps ahead of generate so chat questions are answered immediately."""
     job = (
         db.query(Job)
         .filter(Job.state == "queued")
         .order_by((Job.kind != "tutor_ask"), Job.created_at.asc())
+        .with_for_update(skip_locked=True)
         .first()
     )
     if job is None:
@@ -625,34 +595,88 @@ def claim_one(db) -> Job | None:
     return job
 
 
+def process_job(job_id: str) -> None:
+    """Execute one claimed job in its own isolated database session."""
+    db = SessionLocal()
+    try:
+        job = db.get(Job, job_id)
+        if job is None:
+            return
+        log(f"worker: job {job.id} {job.kind} -> {job.target_id}")
+        try:
+            if job.kind == "generate":
+                handle_generate(db, job)
+            elif job.kind == "tutor_ask":
+                handle_tutor_ask(db, job)
+            else:
+                raise RuntimeError(f"unknown job kind {job.kind}")
+            job.state = "done"
+        except Exception as e:  # noqa: BLE001 - a failed job must not kill the worker
+            log(f"worker: job {job.id} failed: {e}")
+            job.state = "failed"
+            job.error = str(e)[:2000]
+            set_stage(db, job, "failed", error=str(e)[:500])
+        job.finished_at = dt.datetime.now(dt.timezone.utc)
+        db.commit()
+    finally:
+        db.close()
+
+
+def recover_orphaned_jobs(db) -> None:
+    """Jobs that were marked 'running' when the worker previously crashed or
+    was restarted will never finish unless reset. Re-queue them on startup if
+    they haven't exceeded max retries, or mark them failed."""
+    orphans = db.query(Job).filter(Job.state == "running").all()
+    for job in orphans:
+        if job.attempts < 3:
+            log(f"worker: recovering interrupted job {job.id} (attempt {job.attempts}) -> queued")
+            job.state = "queued"
+            job.stage = "queued"
+        else:
+            log(f"worker: failing exhausted job {job.id}")
+            job.state = "failed"
+            job.stage = "failed"
+            job.error = "worker restarted while job was running"
+            job.finished_at = dt.datetime.now(dt.timezone.utc)
+    if orphans:
+        db.commit()
+
+
 def main() -> None:
     init_db()
-    log(f"worker: up. kit={kit_version()} model={MODEL} effort={EFFORT}")
+    log(f"worker: up. kit={kit_version()} model={MODEL} effort={EFFORT} concurrency={MAX_WORKERS}")
+    db_init = SessionLocal()
+    try:
+        recover_orphaned_jobs(db_init)
+    finally:
+        db_init.close()
+
+    executor = concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS)
+    active_futures: set[concurrent.futures.Future] = set()
+
     while True:
-        db = SessionLocal()
-        try:
-            job = claim_one(db)
-            if job is None:
-                time.sleep(POLL_SECONDS)
-                continue
-            log(f"worker: job {job.id} {job.kind} -> {job.target_id}")
+        done_futures = {f for f in active_futures if f.done()}
+        for f in done_futures:
             try:
-                if job.kind == "generate":
-                    handle_generate(db, job)
-                elif job.kind == "tutor_ask":
-                    handle_tutor_ask(db, job)
-                else:
-                    raise RuntimeError(f"unknown job kind {job.kind}")
-                job.state = "done"
-            except Exception as e:  # noqa: BLE001 - a failed job must not kill the loop
-                log(f"worker: job {job.id} failed: {e}")
-                job.state = "failed"
-                job.error = str(e)[:2000]
-                set_stage(db, job, "failed", error=str(e)[:500])
-            job.finished_at = dt.datetime.now(dt.timezone.utc)
-            db.commit()
-        finally:
-            db.close()
+                f.result()
+            except Exception as exc:
+                log(f"worker: unexpected error in worker thread: {exc}")
+        active_futures -= done_futures
+
+        claimed = False
+        if len(active_futures) < MAX_WORKERS:
+            db = SessionLocal()
+            try:
+                job = claim_one(db)
+                if job:
+                    fut = executor.submit(process_job, job.id)
+                    active_futures.add(fut)
+                    claimed = True
+            finally:
+                db.close()
+
+        if not claimed or len(active_futures) >= MAX_WORKERS:
+            time.sleep(POLL_SECONDS)
 
 
 if __name__ == "__main__":

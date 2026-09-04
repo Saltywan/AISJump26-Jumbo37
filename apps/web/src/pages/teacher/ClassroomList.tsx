@@ -15,21 +15,58 @@ import { useChatStore } from "../../lib/chat";
 import plusSmallUrl from "../../icons/plus-small.svg";
 import angleSmallRightUrl from "../../icons/angle-small-right.svg";
 
+import { api, isLive, type ApiClassroom } from "../../lib/api";
+
+function useLiveTeacherClassrooms(): ApiClassroom[] | null {
+  const [rows, setRows] = useState<ApiClassroom[] | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      if (await isLive()) {
+        try {
+          const classrooms = await api.classrooms();
+          if (!cancelled) setRows(classrooms);
+          return;
+        } catch {
+          /* fall through to offline */
+        }
+      }
+      if (!cancelled) setRows(null);
+    }
+    void load();
+    const t = setInterval(load, 3000);
+    return () => {
+      cancelled = true;
+      clearInterval(t);
+    };
+  }, []);
+
+  return rows;
+}
+
 export default function ClassroomList() {
   const { user } = useSession();
   const navigate = useNavigate();
   const state = useClassroomStore();
+  const live = useLiveTeacherClassrooms();
   const [showCreate, setShowCreate] = useState(false);
 
   if (!user) return <Navigate to="/login" replace />;
 
-  // First run against a live backend: give the seeded demo rows real ids, or
-  // every generation from them 404s and silently falls back to a fixture.
   const threadCount = useChatStore().threads.length;
 
   useEffect(() => {
     void syncSeedToServer(threadCount > 0);
   }, [threadCount]);
+
+  const classrooms: ApiClassroom[] = live ?? state.classrooms.map((c) => ({
+    id: c.id,
+    name: c.name,
+    subject: c.description || null,
+    level: c.level || null,
+    lesson_count: lessonsOf(state, c.id).length,
+  }));
 
   return (
     <AppShell>
@@ -45,15 +82,15 @@ export default function ClassroomList() {
 
       <div className="ui-stack">
         <SectionTitle>ห้องเรียนของฉัน</SectionTitle>
-        {state.classrooms.length === 0 ? (
+        {classrooms.length === 0 ? (
           <p className="classroom-empty">ยังไม่มีห้องเรียน กด “สร้างห้องเรียน” เพื่อเริ่มต้น</p>
         ) : (
-          state.classrooms.map((c) => (
+          classrooms.map((c) => (
             <Card
               key={c.id}
               to={`/t/c/${c.id}/lessons`}
               title={c.name}
-              meta={`${lessonsOf(state, c.id).length} บทเรียน`}
+              meta={`${c.lesson_count} บทเรียน`}
               action={
                 <span className="ui-btn ui-btn-quiet">
                   ดูบทเรียน

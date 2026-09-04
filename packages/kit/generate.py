@@ -7,6 +7,8 @@
     uv run kit/generate.py "จงหาพื้นที่ของบริเวณที่ปิดล้อมด้วย $y=4-x^2$ และ $y=x+2$"
     uv run kit/generate.py -f problems.txt --check
     uv run kit/generate.py "โจทย์..." --level ม.6 --effort high --label my-run
+    uv run kit/generate.py --image photo.jpg            # a photographed problem
+    uv run kit/generate.py --image photo.jpg "หามุม ABC" # plus a note from the teacher
 
 Assembles exactly the same prompt as `checks/run.sh` — the one-line role header
 from prompts/poc-original.th.txt, the problem, then prompts/shell-rules.th.txt
@@ -20,13 +22,25 @@ Needs GOOGLE_CLOUD_API_KEY, read from the project's .env (or the environment).
 --model can also name an OpenRouter slug (anything containing "/", e.g.
 openai/gpt-5.6-terra) to route through OpenRouter instead of Gemini; that
 path needs OPENROUTER_API_KEY, read the same way.
+
+--image sends a photograph of the problem to the model instead of (or as well
+as) typed text. There is no OCR step here and there deliberately isn't one: the
+model reads the picture and writes the page in one pass, which is why the prompt
+insists it restate the whole problem into Shell.page({problem}). That restated
+line is the only record of what it thought the photo said, and everything
+downstream — the teacher's review card, the tutor's context — reads it from
+there. A misread photo produces a page that solves the wrong problem flawlessly
+and passes every check in checks/check.mjs, so that line is the one place the
+mistake is visible. Do not remove it from the prompt.
 """
 from __future__ import annotations
 
 import argparse
+import base64
 import concurrent.futures
 import datetime as dt
 import json
+import mimetypes
 import os
 import random
 import re
@@ -84,13 +98,41 @@ def load_env() -> None:
             os.environ.setdefault(key.strip(), value.strip().strip("'\""))
 
 
+def read_image(image_path: str) -> tuple[bytes, str]:
+    """The bytes and MIME type of a problem photograph.
+
+    Raises rather than returning None when the file is not there. Both call
+    sites used to skip a missing image silently, which is the worst available
+    outcome: build_prompt() has already told the model to read a photograph, so
+    it gets that instruction with nothing attached and answers anyway — a
+    confidently wrong page, produced by a run that reported success."""
+    p = Path(image_path)
+    if not p.is_file():
+        raise FileNotFoundError(f"--image: no such file: {image_path}")
+    return p.read_bytes(), mimetypes.guess_type(p.name)[0] or "image/jpeg"
+
+
 # ------------------------------------------------------------------------ prompt
-def build_prompt(problem: str, level: str | None) -> str:
+def build_prompt(problem: str, level: str | None, has_image: bool = False) -> str:
     header = (HERE / "prompts" / "poc-original.th.txt").read_text(
         encoding="utf-8"
     ).splitlines()[0]
     rules = (HERE / "prompts" / "shell-rules.th.txt").read_text(encoding="utf-8")
-    parts = [header, "", "โจทย์:", problem.strip()]
+    parts = [header, ""]
+    # A photographed problem gets a different opening: there is no problem text
+    # to paste, the teacher's typed words (if any) are a note *about* the photo
+    # rather than the problem itself, and the model is told to restate what it
+    # read into Shell.page({problem}) — see the module docstring for why that
+    # restatement is the only thing standing between a misread photo and a
+    # flawless page solving the wrong question.
+    if has_image:
+        parts.append("โจทย์: (อ้างอิงและพิจารณาจากรูปภาพที่แนบมาอย่างละเอียด ไม่ว่าจะเป็นกราฟ แผนภาพ เวกเตอร์ ตัวเลข หรือข้อความทั้งหมดในภาพ)")
+        if problem.strip():
+            parts.append(f"ข้อความหรือคำสั่งเพิ่มเติมจากผู้สอน: {problem.strip()}")
+        parts.append("หมายเหตุสำคัญ: ในคำสั่ง Shell.page({title, problem}) คุณต้องถอดข้อความโจทย์ภาษาไทยฉบับสมบูรณ์จากรูปภาพใส่ลงในฟิลด์ problem ให้ครบถ้วน ชัดเจน และถูกต้อง")
+    else:
+        parts.append("โจทย์:")
+        parts.append(problem.strip())
     if level:
         parts.append(f"ระดับชั้น: {level}")
     return "\n".join(parts) + "\n" + rules
@@ -140,13 +182,26 @@ def is_openrouter_model(model: str) -> bool:
 
 
 def generate_one_openrouter(client: "OpenRouterClient", model: str, prompt: str,
-                            effort: str) -> str:
+                            effort: str, image_path: str | None = None) -> str:
     # OpenRouter's unified `reasoning.effort` accepts low/medium/high directly
     # and is documented to be ignored by models that don't support reasoning
     # controls, so it is safe to send unconditionally across a mixed roster.
+
+    # A photographed problem rides in the OpenAI-compatible content array as a
+    # data: URI — OpenRouter has no upload endpoint, and a page is generated
+    # once from a file on this machine, so there is nothing to host.
+    content_payload: list[dict] = []
+    if image_path:
+        data, mime = read_image(image_path)
+        b64 = base64.b64encode(data).decode("ascii")
+        content_payload.append(
+            {"type": "image_url", "image_url": {"url": f"data:{mime};base64,{b64}"}}
+        )
+    content_payload.append({"type": "text", "text": prompt})
+
     body = {
         "model": model,
-        "messages": [{"role": "user", "content": prompt}],
+        "messages": [{"role": "user", "content": content_payload}],
         "max_tokens": 65535,
         "reasoning": {"effort": effort},
         # Most of these slugs are served by several upstreams — minimax-m3 by
@@ -196,9 +251,9 @@ def generate_one_openrouter(client: "OpenRouterClient", model: str, prompt: str,
 
 
 # --------------------------------------------------------------------------- call
-def generate_one(client, model: str, prompt: str, effort: str) -> str:
+def generate_one(client, model: str, prompt: str, effort: str, image_path: str | None = None) -> str:
     if isinstance(client, OpenRouterClient):
-        return generate_one_openrouter(client, model, prompt, effort)
+        return generate_one_openrouter(client, model, prompt, effort, image_path)
     config = types.GenerateContentConfig(
         max_output_tokens=65535,
         # Thai physics problems talk about collisions, projectiles and falling
@@ -221,7 +276,21 @@ def generate_one(client, model: str, prompt: str, effort: str) -> str:
         automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
         thinking_config=types.ThinkingConfig(thinking_level=EFFORT[effort]),
     )
-    contents = [types.Content(role="user", parts=[types.Part(text=prompt)])]
+
+    # Image before text: the rules that follow are 54KB, and the instruction to
+    # read the photograph should not arrive after all of them.
+    parts = []
+    if image_path:
+        data, mime = read_image(image_path)
+        parts.append(types.Part.from_bytes(data=data, mime_type=mime))
+    # from_text() is the current spelling; older google-genai builds only have
+    # the constructor, and this script is run with whatever uv resolves.
+    if hasattr(types.Part, "from_text"):
+        parts.append(types.Part.from_text(text=prompt))
+    else:
+        parts.append(types.Part(text=prompt))
+
+    contents = [types.Content(role="user", parts=parts)]
     chunks: list[str] = []
     for chunk in client.models.generate_content_stream(
         model=model, contents=contents, config=config
@@ -236,14 +305,14 @@ def generate_one(client, model: str, prompt: str, effort: str) -> str:
     return "".join(chunks)
 
 
-def call_with_backoff(client, model, prompt, effort, tries: int = 7) -> str:
+def call_with_backoff(client, model, prompt, effort, image_path: str | None = None, tries: int = 7) -> str:
     """Retry on rate limiting. A batch of six lost two problems to 429s, which is
     not a model failure — it is the pipeline declining to wait its turn. Real
     workers will meet this constantly, so the retry belongs here rather than in
     the caller."""
     for attempt in range(tries):
         try:
-            out = generate_one(client, model, prompt, effort)
+            out = generate_one(client, model, prompt, effort, image_path)
             # An empty completion is transient, not a verdict on the model. It
             # used to raise outside this loop, so one blank response under load
             # permanently labelled a model as failed: a 13-model comparison
@@ -277,11 +346,11 @@ def call_with_backoff(client, model, prompt, effort, tries: int = 7) -> str:
 
 
 def run_problem(client, model, effort, out: Path, pid: str,
-                problem: str, level: str | None) -> dict:
-    prompt = build_prompt(problem, level)
+                problem: str, level: str | None, image_path: str | None = None) -> dict:
+    prompt = build_prompt(problem, level, has_image=bool(image_path))
     (out / "prompts" / f"p_{pid}.txt").write_text(prompt, encoding="utf-8")
 
-    raw = call_with_backoff(client, model, prompt, effort)
+    raw = call_with_backoff(client, model, prompt, effort, image_path)
     retried = False
     if not raw.strip():
         raise RuntimeError("model returned nothing")
@@ -290,7 +359,7 @@ def run_problem(client, model, effort, out: Path, pid: str,
         # One retry. A truncated page is not a model failure worth reporting as
         # a result — it is a page that never got to say its answer.
         retried = True
-        raw = call_with_backoff(client, model, prompt, effort)
+        raw = call_with_backoff(client, model, prompt, effort, image_path)
         html = strip_fences(raw)
 
     (out / "raw" / f"{pid}.raw").write_text(raw, encoding="utf-8")
@@ -307,7 +376,7 @@ def run_problem(client, model, effort, out: Path, pid: str,
 
 
 # --------------------------------------------------------------------------- main
-def read_problems(args) -> list[tuple[str, str, str | None]]:
+def read_problems(args) -> list[tuple[str, str, str | None, str | None]]:
     if args.file:
         rows = []
         for line in Path(args.file).read_text(encoding="utf-8").splitlines():
@@ -318,21 +387,24 @@ def read_problems(args) -> list[tuple[str, str, str | None]]:
             pid = bits[0].strip()
             problem = bits[1].strip() if len(bits) > 1 else ""
             level = bits[2].strip() if len(bits) > 2 else args.level
-            rows.append((pid, problem, level))
+            image_path = bits[3].strip() if len(bits) > 3 and bits[3].strip() else getattr(args, "image", None)
+            rows.append((pid, problem, level, image_path))
         return rows
-    problem = args.problem or sys.stdin.read()
-    if not problem.strip():
-        sys.exit("no problem given: pass it as an argument, with -f, or on stdin")
+    problem = args.problem if args.problem is not None else (sys.stdin.read() if not sys.stdin.isatty() else "")
+    image_arg = getattr(args, "image", None)
+    if not problem.strip() and not image_arg:
+        sys.exit("no problem given: pass it as an argument, with -f, --image, or on stdin")
     pid = args.id or re.sub(r"[^a-z0-9]+", "-", problem.strip()[:28].lower()).strip("-") or "page"
-    return [(pid, problem, args.level)]
+    return [(pid, problem, args.level, image_arg)]
 
 
 def main() -> None:
     ap = argparse.ArgumentParser(description="Generate JumpAIS solution pages.")
     ap.add_argument("problem", nargs="?", help="the problem statement (Thai)")
-    ap.add_argument("-f", "--file", help="batch file, one per line: id|โจทย์|ระดับชั้น")
+    ap.add_argument("-f", "--file", help="batch file, one per line: id|โจทย์|ระดับชั้น|image_path")
     ap.add_argument("--id", help="page id for a single problem")
     ap.add_argument("--level", help="ระดับชั้น to pitch the explanation at, e.g. ม.4")
+    ap.add_argument("--image", help="path to a problem image file")
     ap.add_argument("--model", default="gemini-3.8-flash",
                     help="a Gemini model name, or an OpenRouter slug "
                          "(anything containing '/', e.g. openai/gpt-5.6-terra) "
@@ -387,8 +459,9 @@ def main() -> None:
         (out / "problems.txt").write_text(
             Path(args.file).read_text(encoding="utf-8"), encoding="utf-8")
     else:
+        img_col = f"|{problems[0][3]}" if len(problems[0]) > 3 and problems[0][3] else ""
         (out / "problems.txt").write_text(
-            f"{problems[0][0]}|{problems[0][1]}|{problems[0][2] or ''}\n", encoding="utf-8")
+            f"{problems[0][0]}|{problems[0][1]}|{problems[0][2] or ''}{img_col}\n", encoding="utf-8")
 
     # Every page loads ./lib/ — point it at the one copy in the kit. Relative,
     # not absolute: these run directories are committed, and an absolute link
@@ -413,8 +486,8 @@ def main() -> None:
     results = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, args.jobs)) as pool:
         futures = {
-            pool.submit(run_problem, client, args.model, args.effort, out, pid, prob, lvl): pid
-            for pid, prob, lvl in problems
+            pool.submit(run_problem, client, args.model, args.effort, out, pid, prob, lvl, img): pid
+            for pid, prob, lvl, img in problems
         }
         for fut in concurrent.futures.as_completed(futures):
             pid = futures[fut]

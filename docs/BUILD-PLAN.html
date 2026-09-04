@@ -196,14 +196,45 @@ footer{margin-top:60px;padding-top:20px;border-top:1px solid var(--rule);color:v
 
     <li class="stage">
       <div class="num">5</div>
-      <h3>Photo upload and extraction</h3>
+      <h3>Photo upload — direct multimodal generation</h3>
       <p>Last on purpose. It is the stage most likely to misbehave on stage, and putting it last
       means it cannot destabilise anything else. The editable extracted-text field is not a nicety;
       it is the only mitigation that exists.</p>
+      <p><b>Implemented as a single Gemini call.</b> Image bytes are passed directly to
+      <code>kit/generate.py</code> as a multimodal <code>Part</code> alongside the generation prompt.
+      There is no separate extraction step — the model reads the problem image and emits the
+      interactive HTML page in one pass. The model transcribes the Thai problem statement directly
+      into <code>Shell.page({ title, problem })</code>, which the worker extracts into
+      <code>problem.extracted_text</code> and displays alongside the draft card for teacher
+      verification before publishing.</p>
+      <p>The worker processes up to three jobs concurrently using <code>ThreadPoolExecutor</code>
+      with <code>FOR UPDATE SKIP LOCKED</code> row-level locking so multiple workers or threads
+      never race on the same job.</p>
       <p class="gate"><b>Demoable</b><span>A photo of a textbook problem becoming a solution
-      page.</span></p>
+      page — in one model call, geometry intact.</span></p>
     </li>
   </ol>
+</section>
+
+<section class="sec">
+  <p class="sec-no">02b &nbsp;Implementation notes</p>
+  <h2>Decisions made during build</h2>
+
+  <div class="note">
+    <p><b>KaTeX is bundled, not injected at runtime.</b> The web app (<code>apps/web</code>)
+    imports <code>katex</code> and <code>katex/contrib/auto-render</code> as npm packages
+    (<code>katex@^0.18.5</code>). Math in problem titles, chat history entries, and nav bars
+    is rendered by the <code>&lt;MathText&gt;</code> component which calls
+    <code>renderMathInElement</code> on a DOM ref. The <em>generated pages</em> themselves
+    (served from the pages origin on :8080) continue to load KaTeX from their own bundled
+    <code>lib/katex.min.js</code> — these are two independent consumers.</p>
+    <p><b>Incremental lesson publishing.</b> <code>POST /lessons/{id}/publish</code> now
+    requires <em>at least one</em> approved problem, not all of them. Students see only the
+    approved subset; <code>problem_count</code> in the lesson list reflects approved-only
+    problems when <code>published_only=true</code> is requested. Rejecting or deleting a
+    problem only reverts the lesson to draft if no other approved problems remain.</p>
+  </div>
+
 </section>
 
 <section class="sec">

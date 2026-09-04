@@ -59,7 +59,10 @@ services:
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
       GEN_MODEL: ${GEN_MODEL:-gemini-3.8-flash}
       GEN_EFFORT: ${GEN_EFFORT:-high}
-    volumes: ["storage:/storage", "./packages/kit:/kit:ro"]
+    volumes:
+      - "storage:/storage"
+      - "./packages/kit:/kit:ro"
+      - "./apps/worker/worker.py:/app/worker.py:ro"
     depends_on: { db: { condition: service_healthy } }
 
   # separate origin, static only, no API surface at all

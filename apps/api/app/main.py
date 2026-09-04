@@ -32,7 +32,7 @@ import re
 import time
 from typing import Optional
 
-from fastapi import Depends, FastAPI, File, HTTPException, UploadFile, Request
+from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -90,6 +90,12 @@ def _startup() -> None:
 
 class ClassroomIn(BaseModel):
     name: str
+    subject: Optional[str] = None
+    level: Optional[str] = None
+
+
+class ClassroomUpdateIn(BaseModel):
+    name: Optional[str] = None
     subject: Optional[str] = None
     level: Optional[str] = None
 
@@ -210,6 +216,59 @@ def create_classroom(body: ClassroomIn, db: Session = Depends(get_session)):
     return {"id": c.id}
 
 
+@app.get("/classrooms/{classroom_id}")
+def get_classroom(classroom_id: str, db: Session = Depends(get_session)):
+    c = db.get(Classroom, classroom_id)
+    if c is None or c.archived_at is not None:
+        raise HTTPException(404, "no such classroom")
+    return {
+        "id": c.id,
+        "name": c.name,
+        "subject": c.subject,
+        "level": c.level,
+        "lesson_count": len(c.lessons),
+    }
+
+
+@app.patch("/classrooms/{classroom_id}")
+def update_classroom(classroom_id: str, body: ClassroomUpdateIn, db: Session = Depends(get_session)):
+    c = db.get(Classroom, classroom_id)
+    if c is None or c.archived_at is not None:
+        raise HTTPException(404, "no such classroom")
+    if body.name is not None and body.name.strip():
+        c.name = body.name.strip()
+    if body.subject is not None:
+        c.subject = body.subject.strip() or None
+    if body.level is not None:
+        c.level = body.level.strip() or None
+    db.commit()
+    return {
+        "id": c.id,
+        "name": c.name,
+        "subject": c.subject,
+        "level": c.level,
+        "lesson_count": len(c.lessons),
+    }
+
+
+@app.delete("/classrooms/{classroom_id}")
+def delete_classroom(classroom_id: str, db: Session = Depends(get_session)):
+    c = db.get(Classroom, classroom_id)
+    if c is None or c.archived_at is not None:
+        raise HTTPException(404, "no such classroom")
+    c.archived_at = dt.datetime.now(dt.timezone.utc)
+    for lesson in c.lessons:
+        lesson.status = "draft"
+        for prob in lesson.problems:
+            for page in prob.pages:
+                _unpublish_page_file(page.html_path)
+                _delete_storage_file(page.html_path)
+            if prob.image_path:
+                _delete_storage_file(prob.image_path)
+    db.commit()
+    return {"ok": True}
+
+
 @app.get("/classrooms/{classroom_id}/lessons")
 def list_lessons(
     classroom_id: str,
@@ -219,19 +278,35 @@ def list_lessons(
     """`published_only` is the confirmation gate as the API sees it. The student
     app asks with it set; a lesson that has not been confirmed is not merely
     hidden in the UI, it is not returned."""
+    c = db.get(Classroom, classroom_id)
+    if c is None or c.archived_at is not None:
+        raise HTTPException(404, "no such classroom")
     q = db.query(Lesson).filter(Lesson.classroom_id == classroom_id)
     if published_only:
         q = q.filter(Lesson.status == "published")
-    return [
-        {
-            "id": l.id,
-            "title": l.title,
-            "chapter": l.chapter,
-            "status": l.status,
-            "problem_count": len(l.problems),
-        }
-        for l in q.order_by(Lesson.position).all()
-    ]
+    rows = q.order_by(Lesson.position).all()
+    out = []
+    for l in rows:
+        waiting = 0
+        approved_count = 0
+        for prob in l.problems:
+            current = [p for p in prob.pages if p.superseded_by is None]
+            page = current[-1] if current else None
+            if page is None or page.status != "approved":
+                waiting += 1
+            else:
+                approved_count += 1
+        out.append(
+            {
+                "id": l.id,
+                "title": l.title,
+                "chapter": l.chapter,
+                "status": l.status,
+                "problem_count": approved_count if published_only else len(l.problems),
+                "waiting_count": waiting,
+            }
+        )
+    return out
 
 
 @app.post("/classrooms/{classroom_id}/lessons", status_code=201)
@@ -245,33 +320,39 @@ def create_lesson(classroom_id: str, body: LessonIn, db: Session = Depends(get_s
     return {"id": l.id}
 
 
+@app.delete("/lessons/{lesson_id}")
+def delete_lesson(lesson_id: str, db: Session = Depends(get_session)):
+    lesson = db.get(Lesson, lesson_id)
+    if lesson is None:
+        raise HTTPException(404, "no such lesson")
+    for prob in lesson.problems:
+        for page in prob.pages:
+            _unpublish_page_file(page.html_path)
+            _delete_storage_file(page.html_path)
+        if prob.image_path:
+            _delete_storage_file(prob.image_path)
+    db.delete(lesson)
+    db.commit()
+    return {"ok": True}
+
+
 @app.post("/lessons/{lesson_id}/publish")
 def publish_lesson(lesson_id: str, db: Session = Depends(get_session)):
-    """A lesson may only be published when every problem in it has an approved
-    page. Otherwise a student opens "2 จาก 4" and finds nothing there."""
+    """A lesson may be published when at least one problem in it has an approved page."""
     lesson = db.get(Lesson, lesson_id)
     if lesson is None:
         raise HTTPException(404, "no such lesson")
 
-    # An empty lesson is the degenerate case of the same rule and it slipped
-    # through the first time: with no problems, "every problem has an approved
-    # page" is vacuously true, so a lesson containing nothing published happily
-    # and students saw an empty shell.
-    if not lesson.problems:
-        raise HTTPException(409, {"error": "lesson has no problems yet"})
-
-    unapproved = []
+    has_approved = False
     for prob in lesson.problems:
         current = [p for p in prob.pages if p.superseded_by is None]
-        if not any(p.status == "approved" for p in current):
-            unapproved.append(prob.id)
-    if unapproved:
+        if any(p.status == "approved" for p in current):
+            has_approved = True
+            break
+    if not has_approved:
         raise HTTPException(
             409,
-            {
-                "error": "lesson has problems with no approved page",
-                "problems": unapproved,
-            },
+            {"error": "lesson has no approved problems to publish"},
         )
 
     lesson.status = "published"
@@ -316,7 +397,6 @@ def add_problem(lesson_id: str, body: ProblemIn, db: Session = Depends(get_sessi
         position=n,
         source="text",
         raw_text=body.text,
-        extracted_text=body.text,
         level=body.level,
     )
     db.add(prob)
@@ -331,22 +411,18 @@ def add_problem(lesson_id: str, body: ProblemIn, db: Session = Depends(get_sessi
 async def add_problem_image(
     lesson_id: str,
     file: UploadFile = File(...),
+    text: Optional[str] = Form(None),
+    level: Optional[str] = Form(None),
     db: Session = Depends(get_session),
 ):
     """Same shape and same queue as add_problem() above, for a problem that
-    arrives as a photo instead of typed text. There is no OCR step here or
-    anywhere in this process — the uploaded bytes are saved as-is and the
-    model reads them directly inside the `generate` job the worker already
-    runs (apps/worker/worker.py: restate_image(), called from
-    handle_generate()), which restates what it read into
-    problem.extracted_text BEFORE generation runs on that text. That
-    restatement is the only defence against a misread photo (see
-    docs/SCHEMA.md and docs/BUILD-PLAN.html §04): a flawless page can solve
-    the wrong problem and pass every automated check, and a teacher can only
-    catch that by comparing the restatement against the photo at confirmation
-    time.
-
-    The bytes are written under STORAGE_DIR, never into Postgres."""
+    arrives as a photo instead of typed text. Direct multimodal generation is
+    used: uploaded bytes are saved under STORAGE_DIR, and the generator model
+    reads the image bytes directly along with instructions in a single call,
+    eliminating intermediate text transcription loss. The problem statement
+    synthesized in Shell.page() is then saved into problem.extracted_text so a
+    teacher can review what the model understood against the photo before
+    publishing."""
     if db.get(Lesson, lesson_id) is None:
         raise HTTPException(404, "no such lesson")
 
@@ -365,7 +441,13 @@ async def add_problem_image(
         raise HTTPException(400, "unsupported image type; use png, jpeg, webp or heic")
 
     n = db.query(Problem).filter(Problem.lesson_id == lesson_id).count()
-    prob = Problem(lesson_id=lesson_id, position=n, source="image")
+    prob = Problem(
+        lesson_id=lesson_id,
+        position=n,
+        source="image",
+        raw_text=text.strip() if text and text.strip() else None,
+        level=level.strip() if level and level.strip() else None,
+    )
     db.add(prob)
     db.flush()  # need prob.id before naming the file on disk
 
@@ -378,7 +460,7 @@ async def add_problem_image(
     job = Job(kind="generate", target_id=prob.id, state="queued")
     db.add(job)
     db.commit()
-    return {"problem_id": prob.id, "job_id": job.id}
+    return {"problem_id": prob.id, "job_id": job.id, "image_path": rel_path}
 
 
 @app.get("/lessons/{lesson_id}/problems")
@@ -407,16 +489,68 @@ def list_problems(lesson_id: str, approved_only: bool = False, db: Session = Dep
         page = current[-1] if current else None
         if approved_only and (page is None or page.status != "approved"):
             continue
+
+        job_info = None
+        if page is None:
+            active_job = (
+                db.query(Job)
+                .filter(Job.target_id == prob.id, Job.kind == "generate")
+                .order_by(Job.created_at.desc())
+                .first()
+            )
+            if active_job:
+                job_info = {
+                    "id": active_job.id,
+                    "state": active_job.state,
+                    "stage": active_job.stage,
+                }
+
         out.append(
             {
                 "id": prob.id,
                 "position": prob.position,
                 "text": prob.extracted_text or prob.raw_text,
+                "raw_text": prob.raw_text,
+                "extracted_text": prob.extracted_text,
                 "source": prob.source,
+                "image_path": prob.image_path,
+                "created_at": prob.created_at.isoformat() if prob.created_at else None,
                 "page": page_out(page) if page else None,
+                "job": job_info,
             }
         )
     return out
+
+
+@app.delete("/problems/{problem_id}")
+def delete_problem(problem_id: str, db: Session = Depends(get_session)):
+    prob = db.get(Problem, problem_id)
+    if prob is None:
+        raise HTTPException(404, "no such problem")
+    lesson = db.get(Lesson, prob.lesson_id)
+
+    for page in prob.pages:
+        _unpublish_page_file(page.html_path)
+        _delete_storage_file(page.html_path)
+    if prob.image_path:
+        _delete_storage_file(prob.image_path)
+
+    if lesson is not None and lesson.status == "published":
+        has_other_approved = False
+        for other_prob in lesson.problems:
+            if other_prob.id == prob.id:
+                continue
+            current = [pg for pg in other_prob.pages if pg.superseded_by is None]
+            if any(pg.status == "approved" for pg in current):
+                has_other_approved = True
+                break
+        if not has_other_approved:
+            lesson.status = "draft"
+            lesson.published_at = None
+
+    db.delete(prob)
+    db.commit()
+    return {"ok": True}
 
 
 # ----------------------------------------------------------------- pages ----
@@ -496,6 +630,18 @@ def _unpublish_page_file(html_path: Optional[str]) -> None:
         dst.unlink()
 
 
+def _delete_storage_file(rel_path: Optional[str]) -> None:
+    """Deletes a file from STORAGE_DIR (drafts, uploads) when an entity is deleted."""
+    if not rel_path:
+        return
+    dst = STORAGE_DIR / rel_path
+    if dst.exists() and not dst.is_dir():
+        try:
+            dst.unlink()
+        except OSError:
+            pass
+
+
 @app.post("/pages/{page_id}/review")
 def review_page(page_id: str, body: ReviewIn, db: Session = Depends(get_session)):
     """The confirmation. seconds_on_page is recorded because rubber-stamping is
@@ -532,8 +678,15 @@ def review_page(page_id: str, body: ReviewIn, db: Session = Depends(get_session)
         prob = db.get(Problem, p.problem_id)
         lesson = db.get(Lesson, prob.lesson_id) if prob else None
         if lesson is not None and lesson.status == "published":
-            lesson.status = "draft"
-            lesson.published_at = None
+            has_other_approved = False
+            for other_prob in lesson.problems:
+                current = [pg for pg in other_prob.pages if pg.superseded_by is None]
+                if any(pg.id != p.id and pg.status == "approved" for pg in current):
+                    has_other_approved = True
+                    break
+            if not has_other_approved:
+                lesson.status = "draft"
+                lesson.published_at = None
 
     db.commit()
     if body.action == "approved":

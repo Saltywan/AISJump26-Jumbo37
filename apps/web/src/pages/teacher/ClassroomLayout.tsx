@@ -7,15 +7,16 @@
  * "สร้างบทเรียน" opens components/CreationModals.tsx's CreateLessonModal —
  * see that file for why a modal, not a route — in place of the
  * window.prompt() this used to call directly. */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Navigate, Outlet, useLocation, useNavigate, useParams } from "react-router-dom";
 import { AppShell } from "../../components/AppShell";
 import { Button, Tabs } from "../../components/ui";
 import { CreateLessonModal } from "../../components/CreationModals";
 import { useSession } from "../../lib/session";
-import { classroomOf, useClassroomStore } from "../../lib/classroom";
+import { classroomOf, useClassroomStore, type Classroom } from "../../lib/classroom";
 import angleSmallLeftUrl from "../../icons/angle-small-left.svg";
 import plusSmallUrl from "../../icons/plus-small.svg";
+import { api, isLive } from "../../lib/api";
 
 export type ClassroomTab = "lessons" | "students" | "settings";
 
@@ -25,13 +26,53 @@ const TAB_ITEMS: { key: ClassroomTab; label: string }[] = [
   { key: "settings", label: "การตั้งค่า" },
 ];
 
+function useLiveClassroom(classroomId: string): { state: "loading" | "ready" | "error"; data: Classroom | null } {
+  const [data, setData] = useState<{ state: "loading" | "ready" | "error"; data: Classroom | null }>({
+    state: "loading",
+    data: null,
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      if (await isLive()) {
+        try {
+          const c = await api.classroom(classroomId);
+          if (!cancelled) {
+            setData({
+              state: "ready",
+              data: {
+                id: c.id,
+                name: c.name,
+                description: c.subject || "",
+                level: c.level || undefined,
+                createdAt: Date.now(),
+              },
+            });
+            return;
+          }
+        } catch {
+          /* fall through to error / local fallback */
+        }
+      }
+      if (!cancelled) setData({ state: "error", data: null });
+    }
+    void load();
+  }, [classroomId]);
+
+  return data;
+}
+
 export default function ClassroomLayout() {
   const { user } = useSession();
   const { classroomId = "" } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const state = useClassroomStore();
-  const classroom = classroomOf(state, classroomId);
+  const localClassroom = classroomOf(state, classroomId);
+  const live = useLiveClassroom(classroomId);
+  const classroom = live.data ?? localClassroom;
+
   const [showCreateLesson, setShowCreateLesson] = useState(false);
   const active: ClassroomTab = location.pathname.endsWith("/students")
     ? "students"
@@ -40,6 +81,13 @@ export default function ClassroomLayout() {
       : "lessons";
 
   if (!user) return <Navigate to="/login" replace />;
+  if (live.state === "loading" && !localClassroom) {
+    return (
+      <AppShell>
+        <p className="classroom-empty">กำลังโหลด…</p>
+      </AppShell>
+    );
+  }
   if (!classroom) return <Navigate to="/t" replace />;
 
   return (

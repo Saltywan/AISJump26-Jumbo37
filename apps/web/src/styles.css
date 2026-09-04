@@ -1471,6 +1471,16 @@ button.chip {
   border-radius: var(--radius); padding: var(--space-sm) var(--space-lg);
   font-size: var(--text-body); line-height: var(--lh-body);
 }
+.chat-msg-image-wrap {
+  margin-bottom: var(--space-xs);
+}
+.chat-msg-image {
+  max-width: 100%;
+  max-height: 260px;
+  border-radius: var(--radius-sm);
+  display: block;
+  object-fit: contain;
+}
 .chat-msg-assistant { align-self: flex-start; max-width: 640px; font-size: var(--text-body); line-height: var(--lh-body); color: var(--ink); }
 
 /* Generated-lesson card — the animation plus, for the teacher, the check
@@ -1529,8 +1539,31 @@ button.chip {
   background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius-card);
   box-shadow: var(--shadow-center);
   padding: var(--space-md) var(--space-lg);
-  display: flex; align-items: center; gap: var(--space-md);
+  display: flex; flex-direction: column; gap: var(--space-sm);
   z-index: 5;
+}
+.chat-input-row {
+  display: flex; align-items: center; gap: var(--space-md); width: 100%;
+}
+.chat-staged-attachment {
+  display: flex; align-items: center; gap: var(--space-md);
+  padding-bottom: var(--space-xs); border-bottom: 1px solid var(--rule);
+}
+.chat-staged-thumb-wrap {
+  position: relative; display: inline-flex;
+}
+.chat-staged-thumb {
+  width: 52px; height: 52px; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid var(--rule);
+}
+.chat-staged-remove {
+  position: absolute; top: -6px; right: -6px; width: 18px; height: 18px;
+  border-radius: 50%; background: var(--ink); color: #fff; border: none;
+  font-size: 13px; line-height: 1; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; padding: 0;
+}
+.chat-staged-remove:hover { background: #d32f2f; }
+.chat-staged-hint {
+  font-size: 12.5px; color: var(--ink-2);
 }
 .chat-input-file { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0; }
 .chat-input-attach {
@@ -1539,6 +1572,7 @@ button.chip {
   display: flex; align-items: center; justify-content: center; cursor: pointer;
 }
 .chat-input-attach:hover { border-color: var(--primary); }
+.chat-input-attach-active { border-color: var(--primary); background: #e0f2f5; }
 .chat-input-field { flex: 1 1 auto; border: none; outline: none; background: none; font: inherit; font-size: var(--text-body); color: var(--ink); }
 .chat-input-field::placeholder { color: var(--ink-2); }
 .chat-input-send {
@@ -1615,11 +1649,27 @@ button.chip {
 
 .chat-shell-noside .chat-scroll { padding-bottom: 210px; }
 
-.lesson-chat-suggested {
-  position: absolute; left: 50%; bottom: 115px; transform: translateX(-50%);
+.student-chat-input-dock {
+  position: absolute; left: 50%; bottom: 30px; transform: translateX(-50%);
   width: 850px; max-width: calc(100% - 32px);
+  display: flex; flex-direction: column; gap: var(--space-sm);
+  z-index: 5;
+  pointer-events: none;
+}
+.student-chat-input-dock > * {
+  pointer-events: auto;
+}
+.student-chat-input-dock .chat-input-bar {
+  position: static; left: auto; bottom: auto; transform: none;
+  width: 100%; max-width: 100%;
+}
+.student-chat-input-dock .lesson-chat-suggested {
+  position: static; left: auto; bottom: auto; transform: none;
+  width: 100%; max-width: 100%;
+}
+
+.lesson-chat-suggested {
   display: flex; gap: var(--space-sm); justify-content: flex-end; flex-wrap: wrap;
-  z-index: 4;
 }
 .lesson-chat-chip {
   appearance: none; border: none; background: var(--sunk); color: var(--ink);
@@ -1664,7 +1714,8 @@ button.chip {
   .lesson-chat-lesson { display: none; }
   .lesson-chat-nav-title { max-width: 45vw; font-size: var(--text-body); }
   .chat-shell-noside .chat-scroll { padding-bottom: 190px; }
-  .lesson-chat-suggested { bottom: 100px; justify-content: flex-start; }
+  .student-chat-input-dock { width: calc(100% - 24px); }
+  .lesson-chat-suggested { justify-content: flex-start; }
   .lesson-chat-chip { font-size: 13px; padding: 7px 12px; }
   .gen-card-stage-flag { font-size: 12px; }
 }
@@ -1719,7 +1770,13 @@ button.chip {
   display: flex; align-items: center; gap: 6px;
   margin: 0; font-size: var(--text-body-sm); font-weight: 600; color: var(--sev-warning);
 }
-.gen-card-extracted-text { margin: 0; font-size: var(--text-body); line-height: var(--lh-body); color: var(--ink); }
+.gen-card-extracted-text {
+  margin: 0;
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
+  color: var(--ink);
+  white-space: pre-wrap;
+}
 
 /* The send control reads as an action, not a menu: filled primary, the glyph
    centred, and disabled while there is nothing to send. */
@@ -1817,8 +1874,48 @@ button.chip {
 .artifact-view-actions { flex: 0 0 auto; display: flex; align-items: center; gap: var(--space-sm); flex-wrap: wrap; justify-content: flex-end; }
 .gen-card-replay-on { border-color: var(--primary); color: var(--primary); background: var(--primary-bg); }
 
-.artifact-view-banner { flex: 0 0 auto; background: var(--card); border-bottom: 1px solid var(--rule); padding: var(--space-sm) 0; }
-.artifact-view-banner .gen-card-extracted { margin-bottom: 0; }
+.artifact-view-banner {
+  flex: 0 0 auto;
+  background: var(--sev-warning-bg);
+  border-bottom: 1px solid var(--sev-warning);
+  padding: var(--space-sm) var(--space-xl);
+}
+.artifact-view-banner .gen-card-extracted {
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  gap: var(--space-md);
+  align-items: flex-start;
+}
+.artifact-view-banner .gen-card-extracted-thumb {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-xs);
+  flex-shrink: 0;
+  object-fit: cover;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+}
+.artifact-view-banner .gen-card-extracted-body {
+  gap: 3px;
+  flex: 1 1 auto;
+}
+.artifact-view-banner .gen-card-extracted-label {
+  font-size: var(--text-label-sm);
+  font-weight: 600;
+  color: var(--sev-warning);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.artifact-view-banner .gen-card-extracted-text {
+  font-size: var(--text-body-sm);
+  line-height: var(--lh-body);
+  color: var(--ink);
+  white-space: pre-wrap;
+}
 
 .artifact-view-body { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr); }
 .artifact-view-body-split { grid-template-columns: minmax(0, 1fr) 380px; }
