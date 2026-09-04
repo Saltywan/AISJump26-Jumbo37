@@ -1788,3 +1788,66 @@ button.chip {
   margin: 0; font-size: var(--text-body-sm); font-weight: 600; color: var(--sev-warning);
 }
 .gen-card-extracted-text { margin: 0; font-size: var(--text-body); line-height: var(--lh-body); color: var(--ink); }
+
+/* ---------------------------------------------------------------------------
+   Student lesson view: the solution is the content, the chat is the aside.
+
+   It was the other way round. The animation sat in an 800px column with a
+   fixed-height stage, and every question pushed it further up until roughly a
+   tenth of the screen showed the thing the student came to look at. A tutor
+   answer is about the page; it cannot be allowed to evict it.
+
+   So on a wide screen the two sit side by side and neither can shrink the
+   other, and on a phone the page keeps a fixed share at the top while only the
+   conversation scrolls.
+   --------------------------------------------------------------------------- */
+
+.lesson-split {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: var(--space-lg) var(--space-lg) 0;
+  display: grid;
+  /* the page gets the larger share; the chat is wide enough to read */
+  grid-template-columns: minmax(0, 1.45fr) minmax(340px, 0.85fr);
+  gap: var(--space-lg);
+  align-items: stretch;
+}
+.lesson-split > .lesson-split-page,
+.lesson-split > .lesson-split-chat {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+/* The stage fills its column instead of a fixed height, so a taller window
+   shows more of the diagram rather than more empty card. */
+.lesson-split .gen-card { flex: 1 1 auto; min-height: 0; }
+.lesson-split .gen-card-stage { flex: 1 1 auto; min-height: 0; }
+.lesson-split .gen-card-stage iframe { width: 100%; height: 100%; border: 0; display: block; }
+
+.lesson-split-chat { background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius-card); overflow: hidden; }
+.lesson-split-chat .chat-scroll {
+  padding: var(--space-lg);
+  align-items: stretch;
+  gap: var(--space-md);
+}
+.lesson-split-chat .chat-msg-user,
+.lesson-split-chat .chat-msg-assistant { max-width: 100%; }
+
+@media (max-width: 1100px) {
+  .lesson-split {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(46vh, 46vh) minmax(0, 1fr);
+    padding: var(--space-md) var(--space-md) 0;
+  }
+  /* On a phone the page keeps its share at the top and only the conversation
+     scrolls under it — the failure being fixed is the page shrinking away. */
+  .lesson-split-page { position: sticky; top: 0; }
+}
+
+/* The send control reads as an action, not a menu: filled primary, the glyph
+   centred, and disabled while there is nothing to send. */
+.chat-send-btn { color: var(--primary-ink); }
+.chat-send-btn img { display: block; margin: auto; }

@@ -24,6 +24,7 @@ import {
   submitPrompt,
   submitImagePrompt,
   attachLiveJob,
+  resumeWatchers,
   attachImageJob,
   tickThreads,
   publishThread,
@@ -43,7 +44,9 @@ import plusSmallUrl from "../../icons/plus-small.svg";
 import globeUrl from "../../icons/globe.svg";
 import globeOnPrimaryUrl from "../../icons/globe-on-primary.svg";
 import lockUrl from "../../icons/lock.svg";
-import menuDotsVerticalUrl from "../../icons/menu-dots-vertical.svg";
+// The Figma "send" asset is a kebab-menu glyph the designer left as a
+// placeholder and never swapped — a send button showing three dots is wrong
+// whatever the file says, so icons/send.svg is a real send mark.
 import sendUrl from "../../icons/send.svg";
 import imageUrl from "../../icons/image.svg";
 import exclamationUrl from "../../icons/exclamation.svg";
@@ -95,6 +98,9 @@ export default function TeacherChat() {
 
   // Fake generation: poll for threads whose simulated delay has elapsed.
   useEffect(() => {
+    // A generation started on a previous visit is still running on the server;
+    // re-attach to it, or the thread sits on "generating" with nobody watching.
+    resumeWatchers();
     const t = setInterval(tickThreads, 400);
     return () => clearInterval(t);
   }, []);
@@ -238,7 +244,7 @@ export default function TeacherChat() {
                           }
                         }}
                       >
-                        <img src={menuDotsVerticalUrl} alt="" width={16} height={16} />
+                        <img src={sendUrl} alt="" width={18} height={18} />
                       </button>
                     </div>
                   );
@@ -334,7 +340,13 @@ function ThreadPanel({ thread, imagePreviewUrl }: { thread: ChatThread; imagePre
   const [replayNonce, setReplayNonce] = useState(0);
   // A worker-generated page is served from /generated/, a fixture from /pages/.
   // Only pageSrc knows that split.
-  const src = thread.file ? pageSrc(thread.file, thread.kind ?? "fixture") : undefined;
+  // A generated page is a DRAFT until it is published, and drafts live on a
+  // different path — see pageSrc. Using "generated" here 404'd every page the
+  // teacher was meant to review.
+  const kind = thread.kind === "generated"
+    ? (thread.status === "published" ? "generated" : "draft")
+    : (thread.kind ?? "fixture");
+  const src = thread.file ? pageSrc(thread.file, kind) : undefined;
   const check = thread.file ? CHECKS[checkIdOf(thread.file)] : undefined;
   // Once there's a real page to look at, this stops being a chat bubble and
   // becomes the review screen the page and report have to share (see

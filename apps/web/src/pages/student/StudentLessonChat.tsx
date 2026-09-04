@@ -30,6 +30,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { AppShell } from "../../components/AppShell";
+import { MathText } from "../../components/Math";
 import { useSession } from "../../lib/session";
 import { classroomOf, lessonsOf, useClassroomStore } from "../../lib/classroom";
 import { useChatStore, studentVisibleFiles } from "../../lib/chat";
@@ -357,16 +358,17 @@ export default function StudentLessonChat() {
             )}
           </div>
 
-          <div className="chat-scroll">
-            {!item ? (
+          {!item ? (
+            <div className="chat-scroll">
               <p className="classroom-empty">บทเรียนนี้ยังไม่มีโจทย์ที่เผยแพร่แล้ว</p>
-            ) : (
-              // Wide and fill, same pattern TeacherChat.tsx uses once it has a
-              // real page to show (see styles.css's chat-thread-wide/-fill):
-              // this screen has no sidebar at all (chat-shell-noside), so the
-              // plain 800px .chat-thread column was wasting the entire rest
-              // of the viewport for no reason.
-              <div className="chat-thread chat-thread-wide chat-thread-fill">
+            </div>
+          ) : (
+            /* Page and conversation side by side, neither able to shrink the
+               other. Stacked in one scrolling column, every question pushed
+               the animation further up until it was a sliver — and the
+               animation is what the student came for. */
+            <div className="lesson-split">
+              <div className="lesson-split-page">
                 <div className="gen-card">
                   <div className="gen-card-head">
                     <span className="gen-card-title">{title}</span>
@@ -404,6 +406,10 @@ export default function StudentLessonChat() {
                   </div>
                 </div>
 
+              </div>
+
+              <div className="lesson-split-chat">
+                <div className="chat-scroll">
                 {/* The conversation itself — a real answer from
                     POST /pages/{'{'}page_id{'}'}/ask when item.pageId exists,
                     a visible notice otherwise. Never a fabricated answer. */}
@@ -416,7 +422,11 @@ export default function StudentLessonChat() {
                           m.role === "user" ? "chat-msg-user" : `chat-msg-assistant${m.notice ? " chat-msg-notice" : ""}`
                         }
                       >
-                        {m.text}
+                        {/* The tutor answers in LaTeX, the same notation the page
+                            uses. Rendering it as raw "$v_y^2 = u_y^2 - 2gH$" put
+                            the notation a student is trying to learn on screen as
+                            noise. A notice is plain prose and needs no renderer. */}
+                        {m.notice ? m.text : <MathText text={m.text} />}
                         {!!m.cites?.length && (
                           <div className="chat-cite-row">
                             <span className="chat-cite-label">อ้างอิง:</span>
@@ -436,9 +446,10 @@ export default function StudentLessonChat() {
                     )}
                   </div>
                 )}
+                </div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
           {item && (
             <div className="lesson-chat-suggested">

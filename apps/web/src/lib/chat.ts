@@ -204,7 +204,28 @@ export async function attachLiveJob(
  *  so the image path attaches to this exact same watcher instead of growing a
  *  second, parallel way of following a job to its page (the brief is explicit
  *  that it shouldn't). */
+/** Re-attach to jobs still running from a previous visit.
+ *
+ * The job lives in Postgres, so generation genuinely continues while nobody is
+ * looking — but the SSE watcher is a component's, and it dies when the screen
+ * unmounts. Come back to a thread and it would sit on "กำลังสร้าง…" forever
+ * with nothing listening, even though the page had finished minutes ago.
+ *
+ * Call this on mount. It is safe to call repeatedly: a thread already being
+ * watched in this tab is skipped. */
+const watching = new Set<string>();
+
+export function resumeWatchers() {
+  for (const t of state.threads) {
+    if (t.status !== "generating" || !t.jobId) continue;
+    if (watching.has(t.id)) continue;
+    watching.add(t.id);
+    watchGeneration(t.id, t.jobId);
+  }
+}
+
 function watchGeneration(threadId: string, jobId: string) {
+  watching.add(threadId);
   patch(threadId, { jobId, stage: "queued", demoReason: undefined });
 
   watchJob(

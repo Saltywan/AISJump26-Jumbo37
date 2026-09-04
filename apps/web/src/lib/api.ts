@@ -229,8 +229,27 @@ export const PAGES_URL = import.meta.env.VITE_PAGES_URL ?? "http://localhost:808
 
 /** Worker output is served from /generated/, the fixtures from /pages/. Both
  *  live on the pages origin; only this function should know which is which. */
-export function pageSrc(htmlPath: string, kind: "generated" | "fixture" = "generated") {
-  return kind === "generated"
-    ? `${PAGES_URL}/generated/${htmlPath}`
-    : `${PAGES_URL}/pages/${htmlPath}`;
+export type PageKind = "draft" | "generated" | "fixture";
+
+/* Three paths on the pages origin, one per source:
+ *
+ *   /pages/      fixtures that ship in this repo
+ *   /drafts/     the storage volume — a generated page awaiting review
+ *   /generated/  the published volume — a page a teacher approved
+ *
+ * The draft path exists because hardening the gate removed it and took teacher
+ * review with it: only approved pages were served, so the page a teacher is
+ * supposed to look at before approving returned 404. A reviewer who cannot see
+ * the page cannot review it, and the whole product rests on that step.
+ *
+ * Being explicit about what this is: with no authentication anywhere in this
+ * system, /drafts/ is a product boundary, not a security one. The student app
+ * never links it and the API never returns an unapproved page's path — but a
+ * guessed URL would serve it. The separation that does hold is /generated/,
+ * which physically contains only approved pages, so nothing can leak one by
+ * accident. Real protection here needs auth on the pages origin. */
+export function pageSrc(htmlPath: string, kind: PageKind = "generated") {
+  if (kind === "fixture") return `${PAGES_URL}/pages/${htmlPath}`;
+  if (kind === "draft") return `${PAGES_URL}/drafts/${htmlPath}`;
+  return `${PAGES_URL}/generated/${htmlPath}`;
 }

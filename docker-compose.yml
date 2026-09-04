@@ -87,6 +87,12 @@ services:
       # by the API on startup) lands directly on the lib mount below.
       - "./apps/pages/static/pages:/usr/share/nginx/html/pages:ro"
       - "published:/usr/share/nginx/html/generated:ro"
+      # Drafts, so a teacher can see the page they are reviewing. Serving only
+      # approved pages made review impossible: the page under review 404'd.
+      # Without auth this is a product boundary, not a security one — but
+      # /generated/ still physically holds approved pages only, so nothing can
+      # leak an unapproved one by accident.
+      - "storage:/usr/share/nginx/html/drafts:ro"
       - "./packages/kit/lib:/usr/share/nginx/html/lib:ro"
       - "./apps/pages/nginx.conf:/etc/nginx/conf.d/default.conf:ro"
 
