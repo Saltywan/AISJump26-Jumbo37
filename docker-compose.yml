@@ -65,6 +65,35 @@ services:
       - "./apps/worker/worker.py:/app/worker.py:ro"
     depends_on: { db: { condition: service_healthy } }
 
+  # Runs once and exits. Fills an empty database with the three classrooms,
+  # five chapters and 68 real fixture pages the app is meant to be seen with,
+  # so a first `docker compose --profile backend up` lands on a populated
+  # system instead of an empty one that looks broken.
+  #
+  # Safe to leave in: the script is idempotent by construction (deterministic
+  # sha1 ids + ON CONFLICT DO NOTHING for rows it inserts, GET-then-match for
+  # rows the API mints). Restarting the stack re-runs it and changes nothing.
+  # It waits for the API itself rather than relying on depends_on, since it
+  # starts in the same breath as the thing it is waiting for.
+  seed:
+    build: { context: ., dockerfile: apps/seed/Dockerfile }
+    profiles: ["backend"]
+    environment:
+      API_URL: http://api:8000
+      SEED_IN_CONTAINER: "1"
+      STORAGE_DIR: /storage
+      PGHOST: db
+      PGPASSWORD: jumpais
+    volumes:
+      # the same volume the worker drops a real generated draft into; the
+      # seeder puts a fixture's HTML there under the same naming rule, then
+      # approves it through the real review endpoint so the API performs the
+      # copy into `published` itself. Nothing here bypasses the gate.
+      - "storage:/storage"
+    depends_on:
+      db: { condition: service_healthy }
+    restart: "no"
+
   # separate origin, static only, no API surface at all
   pages:
     image: nginx:alpine

@@ -89,6 +89,25 @@ const CHECKS_JSON = path.join(REPO_ROOT, "apps/pages/static/checks.json");
 const KIT_VERSION_FILE = path.join(REPO_ROOT, "packages/kit/VERSION");
 
 const API_URL = process.env.API_URL ?? "http://localhost:8000";
+
+/* Two ways to run this, and they differ only in how the two functions under
+ * "http/db i/o" reach the database and the storage volume.
+ *
+ * On the HOST (the original, and still what `node scripts/seed-samples.mjs`
+ * does): shell out to `docker compose exec db psql` and `docker compose cp`,
+ * because STORAGE_DIR is a volume no host process can see.
+ *
+ * INSIDE the compose network (SEED_IN_CONTAINER=1, how the `seed` service in
+ * docker-compose.yml runs it): talk to psql over the network and copy files
+ * straight into the mounted volume. `docker compose` is not available in
+ * there, and would be the wrong tool anyway.
+ *
+ * The container path exists so that `docker compose --profile backend up`
+ * alone produces a populated system. A first run that leaves every lesson
+ * empty looks exactly like a broken install to someone who has never seen
+ * this app, and "now run this second command" is a step a demo will skip. */
+const IN_CONTAINER = process.env.SEED_IN_CONTAINER === "1";
+const STORAGE_DIR = process.env.STORAGE_DIR ?? "/storage";
 const MODEL = process.env.GEN_MODEL ?? "gemini-3.8-flash";
 const EFFORT = process.env.GEN_EFFORT ?? "high";
 
@@ -194,11 +213,11 @@ async function apiPost(pathname, body) {
  *  one `docker compose exec` per row for ~70 problems + pages. */
 function runSql(sql) {
   if (!sql.trim()) return;
-  execFileSync(
-    "docker",
-    ["compose", "exec", "-T", "db", "psql", "-U", "jumpais", "-d", "jumpais", "-v", "ON_ERROR_STOP=1"],
-    { cwd: REPO_ROOT, input: sql, stdio: ["pipe", "inherit", "inherit"] }
-  );
+  const psql = ["psql", "-U", "jumpais", "-d", "jumpais", "-v", "ON_ERROR_STOP=1"];
+  const [cmd, args] = IN_CONTAINER
+    ? [psql[0], ["-h", process.env.PGHOST ?? "db", ...psql.slice(1)]]
+    : ["docker", ["compose", "exec", "-T", "db", ...psql]];
+  execFileSync(cmd, args, { cwd: REPO_ROOT, input: sql, stdio: ["pipe", "inherit", "inherit"] });
 }
 
 /** Copies a fixture's HTML into the api container's STORAGE_DIR at the exact
@@ -208,6 +227,10 @@ function runSql(sql) {
  *  file at STORAGE_DIR/<html_path> the moment a teacher approves it, so it
  *  has to already be sitting there under exactly this name. */
 function copyIntoStorage(localFile, problemId) {
+  if (IN_CONTAINER) {
+    fs.copyFileSync(path.join(PAGES_DIR, localFile), path.join(STORAGE_DIR, `${problemId}.html`));
+    return;
+  }
   execFileSync("docker", ["compose", "cp", path.join(PAGES_DIR, localFile), `api:/storage/${problemId}.html`], {
     cwd: REPO_ROOT,
     stdio: ["ignore", "ignore", "inherit"],
@@ -327,10 +350,30 @@ ON CONFLICT (id) DO NOTHING;
 
 // ----------------------------------------------------------------- main() --
 
+/** Wait for the API to answer /healthz.
+ *
+ * On the host this is one attempt and a clear error, as before — if you ran
+ * this by hand and the stack is down, saying so immediately is the useful
+ * behaviour. In the container it retries, because the seed service starts at
+ * the same moment as the API and losing that race is the normal case, not a
+ * failure. */
+async function waitForApi() {
+  const attempts = IN_CONTAINER ? 60 : 1;
+  for (let i = 0; i < attempts; i += 1) {
+    try {
+      await apiGet("/healthz");
+      return true;
+    } catch {
+      if (i === attempts - 1) return false;
+      if (i === 0) console.log(`waiting for ${API_URL} …`);
+      await new Promise((r) => setTimeout(r, 2000));
+    }
+  }
+  return false;
+}
+
 async function main() {
-  try {
-    await apiGet("/healthz");
-  } catch {
+  if (!(await waitForApi())) {
     console.error(`API not reachable at ${API_URL} — is \`docker compose --profile backend up\` running?`);
     process.exitCode = 1;
     return;

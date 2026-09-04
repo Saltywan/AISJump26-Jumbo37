@@ -16,6 +16,17 @@ docker compose --profile backend up --build  # web :5173, pages :8080, api :8000
 # or 'docker compose up --build' to run frontend + pages on local fixtures only
 ```
 
+That is the whole thing — the `seed` service fills an empty database on first
+boot with three classrooms, five chapters and the 68 fixture pages, most
+approved and fourteen left as drafts so the review screen has something real in
+it. It runs once, exits, and is idempotent, so restarting changes nothing.
+(`node scripts/seed-samples.mjs` still does the same job from the host if you
+want to run it by hand.)
+
+**The API key is only needed to generate something new.** Without it the seeded
+pages, the teacher review flow and the student view all work; generating a page
+and the student's chat about a page are the two things that call the model.
+
 | | | |
 |---|---|---|
 | web | http://localhost:5173 | teacher console + student view |
