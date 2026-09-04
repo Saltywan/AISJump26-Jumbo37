@@ -1655,3 +1655,17 @@ button.chip {
   font-weight: 600;
   white-space: nowrap;
 }
+
+/* A fixture standing in for real generation announces itself; the field for
+   this existed from the start and was never shown, so a fallback was
+   indistinguishable from a live page. */
+.gen-card-demo {
+  margin: 0 0 var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius);
+  background: var(--sev-warning-bg);
+  color: var(--sev-warning);
+  font-size: var(--text-body-sm);
+  line-height: var(--lh-body-sm);
+}
+.gen-card-stage-label { color: var(--ink-2); font-size: var(--text-body-sm); margin-left: var(--space-sm); }

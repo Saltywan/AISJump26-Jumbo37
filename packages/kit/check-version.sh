@@ -96,11 +96,13 @@ if SRC=$(cd "$SRC_ARG" 2>/dev/null && pwd) && [ -d "$SRC/kit" ]; then
   for pair in "${VENDORED[@]}"; do
     relpath=${pair%%:*}
     key=${pair##*:}
-    case "$relpath" in
-      lib/*) srcpath="$SRC/kit/$relpath" ;;
-      prompts/*) srcpath="$SRC/kit/$relpath" ;;
-      checks/*) srcpath="$SRC/kit/$relpath" ;;
-    esac
+    # Every vendored path maps the same way, so map it once. The previous
+    # version listed lib/, prompts/ and checks/ explicitly and had no branch
+    # for generate.py: srcpath kept whatever the last iteration set, so
+    # generate.py was compared against check.mjs's file and reported as
+    # differing forever, even when the two copies were byte-identical. A
+    # staleness check that cries wolf is one people learn to ignore.
+    srcpath="$SRC/kit/$relpath"
     if [ -f "$srcpath" ]; then
       src_hash=$(sha256_of "$srcpath")
       vendored_hash=$(hash_field "$key")

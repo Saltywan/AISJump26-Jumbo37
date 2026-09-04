@@ -38,7 +38,7 @@ export default function ClassroomLayout() {
   function handleCreateLesson() {
     const title = window.prompt("ชื่อบทเรียนใหม่");
     if (!title || !title.trim()) return;
-    createLesson(classroom!.id, title.trim());
+    void createLesson(classroom!.id, title.trim());
   }
 
   return (

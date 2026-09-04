@@ -6,17 +6,17 @@ Produced by kit/sync-to-app.sh in the research repo — do not hand-edit this
 file or the files beside it; re-run that script instead. Verify with
 packages/kit/check-version.sh in this repo.
 
-source-commit: c8c91b65c258550d8cc2c13b2bfe652870e772a4
-source-date:   2026-09-03
-synced:        2026-09-03 17:17:06 UTC
-tree:          DIRTY - vendored from uncommitted changes in kit/lib, kit/prompts or kit/checks/check.mjs
+source-commit: 0bbb65e63ab90dd7c32b01f072cff7ec601d5605
+source-date:   2026-09-04
+synced:        2026-09-04 03:18:46 UTC
+tree:          clean
 
 shell.js:            sha256:31c0463f9e94bcfa056c1e9049d37b8fd19f247b2c6cdd09b99bbbb6ed5b9212
 shell.css:           sha256:a633e7aea292ec9561b85daa9b334edc678797b646bedce772cfddbc9e5f12e4
 shell-rules.th.txt:  sha256:0795455125268c3950e76e3cc3c38f08a317cb4f58a76f69522daa0498d5d46d
 poc-original.th.txt: sha256:e06ecaef250bd63bee48f1e216a3c1256b4b8f0c0280b129a2e2743a83e5a305
 check.mjs:           sha256:941b6af3d57d0c88a6e535becf76fa11fd9d086cb960a360340841a76ce0ba4c
-generate.py:         sha256:bb0519b0455a383c5873290bb65c3dd679459205b704c524e4210950cd2f65af
+generate.py:         sha256:b6a1db1872d723ba1ba61e0c9b2335c6d77caf9384d12b7b8029b13854542caa
 
 jsxgraph:      1.13.2
 katex:         0.18.4

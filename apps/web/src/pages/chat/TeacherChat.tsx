@@ -61,6 +61,18 @@ function statusMeta(status: ChatThread["status"]) {
   return { icon: lockUrl, label: "ฉบับร่าง", cls: "chat-history-status-draft" };
 }
 
+function stageLabel(stage: string): string {
+  const map: Record<string, string> = {
+    queued: "เข้าคิวแล้ว",
+    generating: "กำลังให้ AI เขียนหน้า",
+    checking: "กำลังตรวจหน้าที่สร้าง",
+    done: "เสร็จแล้ว",
+    failed: "ไม่สำเร็จ",
+    reconnecting: "กำลังเชื่อมต่อใหม่",
+  };
+  return map[stage] ?? stage;
+}
+
 export default function TeacherChat() {
   const { user } = useSession();
   const { classroomId = "", lessonId = "", threadId } = useParams();
@@ -294,11 +306,20 @@ function ThreadPanel({ thread }: { thread: ChatThread }) {
       {thread.status === "generating" || !src ? (
         <div className="gen-card">
           <div className="gen-card-generating">
+            {/* Show the worker's stage, not a bare spinner. Generation takes
+                30-90 seconds and the stages are the interesting part. */}
             <span className="spinner" /> กำลังสร้างสื่อการสอน…
+            {thread.stage ? <span className="gen-card-stage-label">{stageLabel(thread.stage)}</span> : null}
           </div>
         </div>
       ) : (
         <div className="gen-card">
+          {/* A fixture standing in for a real generation must say so. The
+              field existed for exactly this and was never rendered, so every
+              fallback looked identical to a real page. */}
+          {thread.demoReason ? (
+            <div className="gen-card-demo">โหมดสาธิต: {thread.demoReason}</div>
+          ) : null}
           <div className="gen-card-head">
             <span className="gen-card-title">{thread.title}</span>
             <button type="button" className="gen-card-replay" onClick={() => setReplayNonce((n) => n + 1)}>

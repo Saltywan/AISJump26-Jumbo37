@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 /* Figma: Classroom (node 12:37) — teacher home. Greeting, a primary
    "สร้างห้องเรียน" button, and the list of the signed-in teacher's classrooms.
    There is no "new classroom" screen in the five designed here, so creating
@@ -7,7 +8,8 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { AppShell } from "../../components/AppShell";
 import { Button, Card, PageHeader, SectionTitle } from "../../components/ui";
 import { useSession } from "../../lib/session";
-import { createClassroom, lessonsOf, useClassroomStore } from "../../lib/classroom";
+import { createClassroom, syncSeedToServer, lessonsOf, useClassroomStore } from "../../lib/classroom";
+import { useChatStore } from "../../lib/chat";
 import plusSmallUrl from "../../icons/plus-small.svg";
 import angleSmallRightUrl from "../../icons/angle-small-right.svg";
 
@@ -18,11 +20,20 @@ export default function ClassroomList() {
 
   if (!user) return <Navigate to="/login" replace />;
 
-  function handleCreate() {
+  // First run against a live backend: give the seeded demo rows real ids, or
+  // every generation from them 404s and silently falls back to a fixture.
+  const threadCount = useChatStore().threads.length;
+
+  useEffect(() => {
+    void syncSeedToServer(threadCount > 0);
+  }, [threadCount]);
+
+  async function handleCreate() {
     const name = window.prompt("ชื่อห้องเรียนใหม่");
     if (!name || !name.trim()) return;
     const description = window.prompt("รายละเอียดห้องเรียน (ไม่บังคับ)") ?? "";
-    const classroom = createClassroom(name.trim(), description.trim());
+    // awaits the backend so the classroom carries the id the API issued
+    const classroom = await createClassroom(name.trim(), description.trim());
     navigate(`/t/c/${classroom.id}/lessons`);
   }
 

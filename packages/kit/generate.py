@@ -97,8 +97,13 @@ def build_prompt(problem: str, level: str | None) -> str:
 
 
 def strip_fences(text: str) -> str:
-    """The model sometimes wraps the file in a markdown fence. Drop fence lines."""
-    return "\n".join(l for l in text.splitlines() if not l.startswith("```"))
+    """The model sometimes wraps the file in a markdown fence. Drop fence lines.
+    Strip leading whitespace before matching: an OpenRouter model (deepseek-v4-
+    flash-0731) emitted " ```html" with a leading space, which slipped past a
+    bare startswith() check, left the fence line ahead of <!DOCTYPE>, and put
+    the whole page in quirks mode -- which silently disables KaTeX. Every
+    formula on the page rendered as nothing, and nothing else here caught it."""
+    return "\n".join(l for l in text.splitlines() if not l.strip().startswith("```"))
 
 
 def looks_complete(html: str) -> bool:
@@ -116,9 +121,14 @@ class OpenRouterClient:
     it exists so call_with_backoff/generate_one keep one shared signature
     instead of forking the retry loop per backend."""
 
-    def __init__(self, api_key: str, timeout: int) -> None:
+    def __init__(self, api_key: str, timeout: int, provider: str | None = None) -> None:
         self.api_key = api_key
         self.timeout = timeout
+        self.provider = (
+            {"order": [provider], "allow_fallbacks": False}
+            if provider
+            else {"sort": "throughput", "allow_fallbacks": True}
+        )
 
 
 def is_openrouter_model(model: str) -> bool:
@@ -139,6 +149,16 @@ def generate_one_openrouter(client: "OpenRouterClient", model: str, prompt: str,
         "messages": [{"role": "user", "content": prompt}],
         "max_tokens": 65535,
         "reasoning": {"effort": effort},
+        # Most of these slugs are served by several upstreams — minimax-m3 by
+        # eleven — and a page lost to one saturated or flaky provider is not a
+        # verdict on the model. By default sort by throughput and let OpenRouter
+        # fall back, so a slow or refusing upstream is routed around rather than
+        # retried into. --provider pins a named one instead, which is how you
+        # compare a model against its own first-party endpoint rather than
+        # against whichever reseller happened to answer. None of this helps a
+        # single-endpoint model: qwen3.8-flash is served only by Alibaba, so its
+        # shared-pool 429s need a BYOK key, not routing.
+        "provider": client.provider,
     }
     req = urllib.request.Request(
         OPENROUTER_URL,
@@ -157,7 +177,12 @@ def generate_one_openrouter(client: "OpenRouterClient", model: str, prompt: str,
         # exception type, because call_with_backoff's transient check greps
         # the string for "429"/"503" — same contract the Google path relies on.
         detail = exc.read().decode("utf-8", "ignore")[:2000]
-        raise RuntimeError(f"HTTP {exc.code} from OpenRouter: {detail}") from None
+        # A provider that tells us how long to wait is worth listening to;
+        # guessing an exponential backoff against a shared upstream pool is how
+        # qwen burned six retries and still lost its problem.
+        hint = exc.headers.get("Retry-After") if exc.headers else None
+        suffix = f" [retry-after={hint}]" if hint else ""
+        raise RuntimeError(f"HTTP {exc.code} from OpenRouter: {detail}{suffix}") from None
     except urllib.error.URLError as exc:
         raise RuntimeError(f"OpenRouter request failed: {exc.reason}") from None
 
@@ -211,25 +236,42 @@ def generate_one(client, model: str, prompt: str, effort: str) -> str:
     return "".join(chunks)
 
 
-def call_with_backoff(client, model, prompt, effort, tries: int = 4) -> str:
+def call_with_backoff(client, model, prompt, effort, tries: int = 7) -> str:
     """Retry on rate limiting. A batch of six lost two problems to 429s, which is
     not a model failure — it is the pipeline declining to wait its turn. Real
     workers will meet this constantly, so the retry belongs here rather than in
     the caller."""
     for attempt in range(tries):
         try:
-            return generate_one(client, model, prompt, effort)
+            out = generate_one(client, model, prompt, effort)
+            # An empty completion is transient, not a verdict on the model. It
+            # used to raise outside this loop, so one blank response under load
+            # permanently labelled a model as failed: a 13-model comparison
+            # reported two of them "returned nothing" while both, retried alone,
+            # answered perfectly. A cull that mislabels working models is worse
+            # than no cull.
+            if not out.strip():
+                raise RuntimeError("empty completion from model")
+            return out
         except Exception as exc:                          # noqa: BLE001
             msg = str(exc)
             transient = ("429" in msg or "RESOURCE_EXHAUSTED" in msg
                          or "503" in msg or "UNAVAILABLE" in msg
                          # a stream that stalls past the deadline is worth another
                          # go, not a lost problem — four of sixty-eight hung
-                         or "timeout" in msg.lower() or "timed out" in msg.lower())
+                         or "timeout" in msg.lower() or "timed out" in msg.lower()
+                         or "empty completion" in msg)
             if not transient or attempt == tries - 1:
                 raise
-            wait = (2 ** attempt) * 5 + random.uniform(0, 3)
-            print(f"  rate limited, waiting {wait:.0f}s then retrying")
+            # Honour Retry-After when the provider sent one. Otherwise back off
+            # exponentially, and harder for a shared upstream pool than for a
+            # local hiccup — 5s doublings top out too low to outlast one.
+            m = re.search(r"\[retry-after=([0-9]+)\]", msg)
+            if m:
+                wait = min(120.0, float(m.group(1)) + random.uniform(0, 2))
+            else:
+                wait = min(90.0, (2 ** attempt) * 8 + random.uniform(0, 5))
+            print(f"  transient ({msg[:60]}), waiting {wait:.0f}s then retrying")
             time.sleep(wait)
     return ""
 
@@ -303,6 +345,9 @@ def main() -> None:
     ap.add_argument("--check", action="store_true",
                     help="run checks/check.mjs afterwards (needs Node; not in the demo bundle)")
     ap.add_argument("--jobs", type=int, default=4, help="parallel generations")
+    ap.add_argument("--provider",
+                    help="OpenRouter: pin a named upstream (e.g. Minimax, DeepInfra) "
+                         "instead of routing by throughput. Ignored on the Google path.")
     ap.add_argument("--timeout", type=int, default=420,
                     help="seconds before a single generation is abandoned and retried")
     args = ap.parse_args()
@@ -357,7 +402,8 @@ def main() -> None:
     # of sixty-eight sat with no output for thirteen minutes while the batch
     # waited on them. The agy path had --print-timeout and this one lost it.
     if use_openrouter:
-        client = OpenRouterClient(api_key=key, timeout=args.timeout)
+        client = OpenRouterClient(api_key=key, timeout=args.timeout,
+                                  provider=args.provider)
     else:
         client = genai.Client(vertexai=True, api_key=key,
                               http_options=types.HttpOptions(timeout=args.timeout * 1000))
