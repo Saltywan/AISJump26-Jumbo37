@@ -55,8 +55,8 @@ lesson        id, classroom_id, title, chapter, position,
 -- One of the โจทย์ inside a lesson. Ordered, so "1 จาก 4" is position+1 of count.
 problem       id, lesson_id, position,
               source('text'|'image'), raw_text, image_path,
-              extracted_text,          -- editable; the only OCR mitigation
-              extraction_confidence, level, created_at
+              extracted_text,          -- read-only; recovered after generation
+              level, created_at
 
 -- The generated artefact. One current page per problem, but keep the history:
 -- re-running a problem against a newer kit is the whole point of kit_version.
@@ -72,8 +72,8 @@ review        id, page_id, reviewer_id -> user,
               seconds_on_page,         -- rubber-stamping is a silent failure
               created_at
 
-job           id, kind('generate'|'recheck'|'extract'),
-              target_id,               -- a problem id for generate
+job           id, kind('generate'|'tutor_ask'),
+              target_id,               -- a problem id for generate, a page id for tutor_ask
               state('queued'|'running'|'done'|'failed'),
               stage, progress_json, attempts, error,
               started_at, finished_at
@@ -128,9 +128,13 @@ GET    /jobs/{id}/events                  SSE stream for real-time stage & check
 shell, re-execute every past page" possible, and that has already paid off
 repeatedly — most recently a draw-in fix that took five of six 3D pages from
 completely static to animated, and a fix that repaired a page rendering as two
-stacked frames, both without regenerating anything. Store it, and keep the
-ability to re-run a page against a newer kit. That is what `job.kind='recheck'`
-and `page.superseded_by` are for.
+stacked frames, both without regenerating anything (both observed in the
+research repo, by re-executing stored pages by hand). Store it, and keep the
+ability to re-run a page against a newer kit. `page.superseded_by` is already
+queried when picking the current page for a problem; the job kind that would
+set it (`recheck`) is in the schema and mentioned in worker.py's own comments,
+but nothing creates that job yet — `process_job()` only dispatches `generate`
+and `tutor_ask`. Re-execution against this service is not wired up yet.
 
 **Page HTML is never served by the API.** It is written to the shared storage
 volume and served by the `pages` origin, embedded with `sandbox="allow-scripts"`
@@ -190,11 +194,14 @@ the whole research repo exists to keep honest.
 ```
 job(generate) → kit/generate.py → page html + raw
               → check.mjs --json → checks_json
-              → thumbnail        → thumb_path
-              → page.status = 'ready'
+              → page.status = 'ready'   (a DRAFT: no student sees it yet)
 ```
 
-`extract` is performed directly inside the generate job by the multimodal model,
-restating what it read into `problem.extracted_text` before generation starts. That
-string is displayed alongside the draft card as the primary verification against
-misread problems.
+There is no separate `extract` job or OCR pass. An image-sourced problem's photo
+goes straight into `kit/generate.py` via `--image`, in the same multimodal call
+that writes the page. What the model understood the problem to be is recovered
+*afterwards*, by reading the page's own `Shell.page({problem})` call
+(`extract_problem_statement()` in `apps/worker/worker.py`) and storing it as
+`problem.extracted_text`. That string is displayed read-only alongside the
+draft card as the primary verification against misread problems, before a
+teacher publishes.

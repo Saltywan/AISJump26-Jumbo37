@@ -66,7 +66,18 @@ body{background:var(--sh-bg);color:var(--sh-ink);
   padding:10px;overflow:hidden;
   position:sticky;top:var(--sh-stage-top);
   max-height:calc(100vh - (var(--sh-stage-top) * 2))}
-.sh-stage svg{display:block;width:100%;height:auto;object-fit:contain;
+/* .sh-diagram (not a bare "svg" descendant selector) is deliberate: a math
+   label's KaTeX output can carry its own tiny inner <svg> — the radical sign
+   of \sqrt is one, drawn via a span.hide-tail with a stretchy
+   width:400em/height:1.08em glyph — and a blanket ".sh-stage svg" rule
+   forcing width:100%;height:auto onto EVERY nested svg collapses that one to
+   its own aspect ratio at the shrunk width: ~36px / (400000/1080) is under
+   a tenth of a pixel tall. The radical vanished while the digits beside it
+   (plain text, not svg) rendered fine, and no check caught it because
+   check.mjs never looks at what a label actually drew. Scoping to the class
+   the shell puts only on its own top-level diagram/board svg keeps this
+   rule off anything KaTeX renders inside a label. */
+.sh-stage svg.sh-diagram{display:block;width:100%;height:auto;object-fit:contain;
   max-height:calc(100vh - (var(--sh-stage-top) * 2) - 20px)} /* minus the stage's 10px+10px padding */
 .sh-steps{display:grid;gap:9px;align-content:start}
 /* breathing room when a step is scrolled into view, so it does not land flush

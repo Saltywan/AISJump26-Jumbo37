@@ -198,8 +198,8 @@ footer{margin-top:60px;padding-top:20px;border-top:1px solid var(--rule);color:v
       <div class="num">5</div>
       <h3>Photo upload — direct multimodal generation</h3>
       <p>Last on purpose. It is the stage most likely to misbehave on stage, and putting it last
-      means it cannot destabilise anything else. The editable extracted-text field is not a nicety;
-      it is the only mitigation that exists.</p>
+      means it cannot destabilise anything else. The extracted-text readback below is not a
+      nicety; it is the only mitigation that exists.</p>
       <p><b>Implemented as a single Gemini call.</b> Image bytes are passed directly to
       <code>kit/generate.py</code> as a multimodal <code>Part</code> alongside the generation prompt.
       There is no separate extraction step — the model reads the problem image and emits the
@@ -242,15 +242,15 @@ footer{margin-top:60px;padding-top:20px;border-top:1px solid var(--rule);color:v
   <h2>The schema, and the one field that matters most</h2>
 
 <pre>problem      id, source('text'|'image'), raw_text, image_path,
-             <b>extracted_text</b>          -- editable; the only OCR mitigation
-             extraction_confidence, level, created_by, created_at
+             <b>extracted_text</b>          -- read-only; recovered after generation, the only OCR mitigation
+             level, created_by, created_at
 
 page         id, problem_id, <b>kit_version</b>, model, effort,
              html_path, thumb_path, path_chosen('board'|'svg'),
              checks_json             -- window.__shellCheck, verbatim
              status('generating'|'ready'|'approved'|'rejected'), created_at
 
-job          id, problem_id, kind('extract'|'generate'), state,
+job          id, target_id, kind('generate'|'tutor_ask'), state,
              stage, progress_json, attempts, error, started_at, finished_at
 
 review       id, page_id, reviewer, action, note,
@@ -340,8 +340,10 @@ chat_message id, page_id, student_id, role, content, created_at</pre>
   <h2>Risks that do not go away</h2>
   <ul>
     <li><b>Extraction.</b> A misread photo yields a flawless page solving the wrong problem, and
-      every automated check passes it. Editable text is the entire mitigation — which is why the
-      human step sits between extract and generate, and why stage 5 is last.</li>
+      every automated check passes it. There is no human step between extract and generate any
+      more — extraction happens after generation, read back out of the page itself — so the
+      readback shown to the teacher before publishing is the entire mitigation. That is also why
+      stage 5 is last.</li>
     <li><b>Grade-appropriate method.</b> A page can be correct by a method the class has not been
       taught. Nothing verifies this. It is judgement, and it is the likely rejection reason.</li>
     <li><b>Model arithmetic.</b> No CAS. The model computes its own numbers. This is the largest

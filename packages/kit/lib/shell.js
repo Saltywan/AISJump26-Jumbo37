@@ -188,7 +188,7 @@
     canvas: function () {
       if (!state.built) Shell.page({});
       if (state.root) return state.root;   // a board page already owns the layer
-      var svg = el('svg', { viewBox: '0 0 ' + W + ' ' + H,
+      var svg = el('svg', { viewBox: '0 0 ' + W + ' ' + H, class: 'sh-diagram',
         preserveAspectRatio: 'xMidYMid meet', role: 'img' }, state.stage);
       state.svg = svg;
       state.root = el('g', { 'data-shell': 'root' }, svg);
@@ -232,7 +232,7 @@
       guardCreate(b);
 
       /* the shell's own layer, in the same 960 x 540 space as every other page */
-      var svg = el('svg', { viewBox: '0 0 ' + W + ' ' + H, class: 'sh-over', role: 'img' }, frame);
+      var svg = el('svg', { viewBox: '0 0 ' + W + ' ' + H, class: 'sh-over sh-diagram', role: 'img' }, frame);
       state.svg = svg;
       state.root = el('g', { 'data-shell': 'root' }, svg);
 

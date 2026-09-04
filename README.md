@@ -27,7 +27,9 @@ docker compose --profile backend up --build  # web :5173, pages :8080, api :8000
 
 ```
 apps/api             FastAPI — REST, SSE job progress, classroom/lesson/problem lifecycle
-apps/worker          the pipeline: extract → generate → check → thumbnail
+apps/worker          the pipeline: generate (image goes in directly, one
+                      multimodal call) → check → recover the problem text the
+                      model read from the page's own Shell.page() call
 apps/web             Vite + React + TS
 apps/pages           nginx config for the page origin (static only: /pages/, /drafts/, /generated/)
 packages/kit         the vendored generation kit — lib/, prompts/, checks/, VERSION
@@ -49,9 +51,12 @@ This is what lets a shell improvement upgrade every past page by re-executing it
 cost. It only works if nothing loads from a CDN, so nothing does.
 
 **Extraction is the failure nothing downstream can see.** A misread photo produces a
-flawless page solving the wrong problem, and every check passes. The extracted text is shown
-in an editable field before generation starts. That field is the entire mitigation — it is
-not an optional convenience.
+flawless page solving the wrong problem, and every check passes. There is no OCR step and no
+separate restatement call before generation — the image goes straight into `kit/generate.py`
+via `--image`, and what the model understood is recovered afterwards from the page's own
+`Shell.page({problem})` call. That recovered text is shown read-only next to the draft, for
+the teacher to compare against the photo before publishing. It is the entire mitigation — it
+is not an optional convenience.
 
 ## Never
 
