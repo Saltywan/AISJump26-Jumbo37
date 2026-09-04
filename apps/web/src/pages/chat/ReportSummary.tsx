@@ -19,7 +19,12 @@ import { SeverityChip } from "../../components/Chips";
 export function ReportSummary({ check }: { check: CheckRow }) {
   const flags = useMemo(() => severityOf(check), [check]);
   const risky = flags.filter((f) => f.severity !== "clean");
-  const [open, setOpen] = useState(false);
+  // This now sits in a side panel next to the page (see TeacherChat.tsx),
+  // not squeezed into a couple of lines underneath it, so there's room to
+  // default the detail open — a reviewer who has to click to even see
+  // whether there's anything behind the chips is exactly the "clear report,
+  // wrong page" gap this screen exists to close.
+  const [open, setOpen] = useState(true);
 
   return (
     <div className="report-summary">

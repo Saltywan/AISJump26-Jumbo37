@@ -294,16 +294,22 @@ function ThreadPanel({ thread }: { thread: ChatThread }) {
   // Only pageSrc knows that split.
   const src = thread.file ? pageSrc(thread.file, thread.kind ?? "fixture") : undefined;
   const check = thread.file ? CHECKS[checkIdOf(thread.file)] : undefined;
+  // Once there's a real page to look at, this stops being a chat bubble and
+  // becomes the review screen the page and report have to share (see
+  // Review.tsx) — wider, and tall enough that the iframe and the report sit
+  // side by side instead of the report running off the bottom of a narrow,
+  // fixed-height card.
+  const ready = thread.status !== "generating" && !!src;
 
   return (
-    <div className="chat-thread">
+    <div className={`chat-thread chat-thread-wide${ready ? " chat-thread-fill" : ""}`}>
       {thread.messages.map((m) => (
         <div key={m.id} className={m.role === "user" ? "chat-msg-user" : "chat-msg-assistant"}>
           {m.text}
         </div>
       ))}
 
-      {thread.status === "generating" || !src ? (
+      {!ready ? (
         <div className="gen-card">
           <div className="gen-card-generating">
             {/* Show the worker's stage, not a bare spinner. Generation takes
@@ -313,7 +319,7 @@ function ThreadPanel({ thread }: { thread: ChatThread }) {
           </div>
         </div>
       ) : (
-        <div className="gen-card">
+        <div className="gen-card gen-card-review">
           {/* A fixture standing in for a real generation must say so. The
               field existed for exactly this and was never rendered, so every
               fallback looked identical to a real page. */}
@@ -327,30 +333,36 @@ function ThreadPanel({ thread }: { thread: ChatThread }) {
               <span>เล่นอีกครั้ง</span>
             </button>
           </div>
-          <div className="gen-card-stage">
-            {!loaded && (
-              <div className="gen-card-loading">
-                <span className="spinner" /> กำลังโหลด…
+
+          {/* Page and report side by side, same proportions as Review.tsx's
+              .review-body/.review-report grid — a reviewer has to be able to
+              look at both at once, not scroll past one to reach the other. */}
+          <div className="gen-card-review-body">
+            <div className="gen-card-review-stage">
+              {!loaded && (
+                <div className="gen-card-loading">
+                  <span className="spinner" /> กำลังโหลด…
+                </div>
+              )}
+              {/* Real generated page, opaque origin: allow-scripts only, no
+                  allow-same-origin — see docs/BUILD-PLAN.html and Viewer.tsx. */}
+              <iframe
+                key={`${thread.file ?? thread.id}-${replayNonce}`}
+                className="gen-card-frame"
+                src={src}
+                title={thread.title}
+                sandbox="allow-scripts"
+                referrerPolicy="no-referrer"
+                onLoad={() => setLoaded(true)}
+              />
+            </div>
+
+            {check && (
+              <div className="gen-card-review-report">
+                <ReportSummary check={check} />
               </div>
             )}
-            {/* Real generated page, opaque origin: allow-scripts only, no
-                allow-same-origin — see docs/BUILD-PLAN.html and Viewer.tsx. */}
-            <iframe
-              key={`${thread.file ?? thread.id}-${replayNonce}`}
-              className="gen-card-frame"
-              src={src}
-              title={thread.title}
-              sandbox="allow-scripts"
-              referrerPolicy="no-referrer"
-              onLoad={() => setLoaded(true)}
-            />
           </div>
-
-          {check && (
-            <div className="gen-card-report">
-              <ReportSummary check={check} />
-            </div>
-          )}
 
           <div className="gen-card-publish-row">
             {thread.status === "published" ? (

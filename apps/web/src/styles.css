@@ -1451,7 +1451,10 @@ button.chip {
 
 .chat-scroll {
   flex: 1 1 auto; min-height: 0; overflow-y: auto;
-  padding: var(--space-2xl) var(--space-2xl) 140px;
+  /* Bottom clearance only has to clear the floating chat-input-bar (~72px
+     tall, sitting 30px off the bottom, so ~102px of clearance) — 140px left
+     the review card 30-40px shorter than it needed to be for no reason. */
+  padding: var(--space-2xl) var(--space-2xl) 110px;
   display: flex; flex-direction: column; align-items: center; gap: var(--space-lg);
 }
 .chat-empty {
@@ -1462,13 +1465,23 @@ button.chip {
 .chat-empty p { margin: 0; font-size: var(--text-body); color: var(--ink-2); }
 
 .chat-thread { width: 100%; max-width: 800px; display: flex; flex-direction: column; gap: var(--space-lg); }
+/* The teacher screen only: once there's a generated page to review, the
+   narrow 800px chat column is exactly the problem (see gen-card-review
+   below) — widen the thread so the card can use the width the sidebar
+   layout leaves free, while text bubbles keep their own reading width
+   via the max-width on .chat-msg-* below instead of the container's. */
+.chat-thread-wide { max-width: 1400px; }
+/* And once the card is the thing being reviewed, let it — and only it —
+   grow to fill the vertical space chat-scroll has, instead of sizing to
+   its own (short) content and leaving the rest of the viewport blank. */
+.chat-thread-fill { flex: 1 1 auto; min-height: 0; }
 .chat-msg-user {
-  align-self: flex-end; max-width: 85%;
+  align-self: flex-end; max-width: min(85%, 640px);
   background: var(--sunk); color: var(--ink);
   border-radius: var(--radius); padding: var(--space-sm) var(--space-lg);
   font-size: var(--text-body); line-height: var(--lh-body);
 }
-.chat-msg-assistant { align-self: flex-start; font-size: var(--text-body); line-height: var(--lh-body); color: var(--ink); }
+.chat-msg-assistant { align-self: flex-start; max-width: 640px; font-size: var(--text-body); line-height: var(--lh-body); color: var(--ink); }
 
 /* Generated-lesson card — the animation plus, for the teacher, the check
    report and the publish control. Shared by TeacherChat.tsx and
@@ -1503,7 +1516,23 @@ button.chip {
   display: flex; align-items: center; justify-content: center; gap: var(--space-sm);
   padding: 60px var(--space-lg); color: var(--ink-3); font-size: var(--text-body);
 }
-.gen-card-report { border-top: 1px solid var(--rule); padding: var(--space-lg); }
+
+/* The teacher's review layout once a page is ready to look at (TeacherChat.tsx
+   only — the student card stops at .gen-card-stage and never reaches this).
+   Page and report side by side, same grid proportions and the same "report
+   scrolls internally, stage doesn't" split as Review.tsx's
+   .review-body/.review-stage/.review-report, so the two screens read as one
+   answer to the same problem instead of two different ones. */
+.gen-card-review { flex: 1 1 auto; min-height: 0; }
+.gen-card-review-body {
+  flex: 1 1 auto;
+  min-height: 420px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(280px, 1fr);
+}
+.gen-card-review-stage { position: relative; min-height: 0; background: var(--bg); border-right: 1px solid var(--rule); }
+.gen-card-review-report { min-height: 0; overflow-y: auto; padding: var(--space-lg); }
+
 .gen-card-publish-row {
   display: flex; align-items: center; justify-content: space-between; gap: var(--space-md);
   flex-wrap: wrap;
@@ -1583,6 +1612,25 @@ button.chip {
   .gen-card-head { padding: var(--space-sm) var(--space-md); flex-wrap: wrap; }
   .gen-card-publish-row { flex-direction: column; align-items: stretch; }
   .chat-input-bar { width: calc(100% - 24px); padding: var(--space-sm) var(--space-md); }
+
+  /* Stacking is correct on a phone — there's no width to split — but the
+     controls still have to be reachable, so this drops the fill-to-viewport
+     sizing (nothing left to gain from it at this width) and lets the page
+     and the report flow naturally: a fixed, generous height for the page
+     (same 42vh Review.tsx uses on its own mobile breakpoint), the report
+     underneath at its natural height, both scrolling with the page.
+     flex: 0 0 auto + min-height: auto (undoing the desktop fill rules'
+     min-height: 0) matters here — without it flexbox shrinks the report's
+     grid row down to a sliver to force everything into chat-scroll's box
+     instead of letting chat-scroll's own overflow-y: auto do the scrolling. */
+  .chat-thread-fill { flex: 0 0 auto; min-height: auto; }
+  .gen-card-review { flex: 0 0 auto; min-height: auto; }
+  .gen-card-review-body {
+    flex: 0 0 auto; min-height: auto;
+    grid-template-columns: 1fr; grid-template-rows: 42vh auto;
+  }
+  .gen-card-review-stage { border-right: none; border-bottom: 1px solid var(--rule); }
+  .gen-card-review-report { overflow-y: visible; }
 }
 
 /* ---------------------------------------------------------------------------
