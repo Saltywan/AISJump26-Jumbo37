@@ -12,6 +12,7 @@ import asyncio
 import datetime as dt
 import json
 import os
+import pathlib
 from typing import Optional
 
 from fastapi import Depends, FastAPI, HTTPException
@@ -24,6 +25,32 @@ from .db import SessionLocal, get_session, init_db
 from .models import Classroom, Job, Lesson, Page, Problem, Review
 
 app = FastAPI(title="JumpAIS")
+
+# Where the worker drops a generated page (a draft — see apps/worker/worker.py)
+# and where the `pages` nginx actually serves pages from. Two different volumes
+# on purpose: this process is the only thing with write access to PUBLISHED_DIR,
+# and it only ever writes there from review_page() below, on approval. A page
+# nobody has approved has no copy in PUBLISHED_DIR and therefore no URL that
+# serves it — not merely one nothing links to.
+STORAGE_DIR = pathlib.Path(os.environ.get("STORAGE_DIR", "/storage"))
+PUBLISHED_DIR = pathlib.Path(os.environ.get("PUBLISHED_DIR", "/published"))
+
+
+def _ensure_lib_link() -> None:
+    """Generated pages load ./lib/shell.js relative to themselves. In the pages
+    container PUBLISHED_DIR is mounted at html/generated and the kit's lib at
+    html/lib, so a `lib` symlink inside PUBLISHED_DIR resolves to the vendored
+    kit — the same arrangement the fixtures already use. It is a relative
+    symlink, so it resolves correctly in whichever container reads it (nginx)
+    regardless of where this process has PUBLISHED_DIR mounted. Without it every
+    approved page 404s its own shell and renders nothing."""
+    try:
+        PUBLISHED_DIR.mkdir(parents=True, exist_ok=True)
+        link = PUBLISHED_DIR / "lib"
+        if not link.exists() and not link.is_symlink():
+            link.symlink_to("../lib")
+    except OSError:
+        pass
 
 # The web app is a different origin in dev (5173 vs 8000). The pages origin is
 # NOT listed: it never talks to this API, and it must not be able to.
@@ -38,6 +65,7 @@ app.add_middleware(
 @app.on_event("startup")
 def _startup() -> None:
     init_db()
+    _ensure_lib_link()
 
 
 # ---------------------------------------------------------------- shapes ----
@@ -180,6 +208,27 @@ def publish_lesson(lesson_id: str, db: Session = Depends(get_session)):
     return {"id": lesson.id, "status": lesson.status}
 
 
+@app.post("/lessons/{lesson_id}/unpublish")
+def unpublish_lesson(lesson_id: str, db: Session = Depends(get_session)):
+    """Undo a publish — the demo's safety valve for a mis-click, mirrored from
+    the same control on the old localStorage-only build. This only revokes
+    *visibility*: `published_only` stops returning the lesson, so a student
+    session that asks after this call sees it disappear. It does not touch any
+    page's `status` or its copy in PUBLISHED_DIR, and it writes no `review` row
+    — approval is an audit trail of events that happened, not a live flag, and
+    erasing it here would make "why was this approved" unanswerable later for
+    no safety benefit: re-publishing needs no new approval, since the pages are
+    still approved. If a specific page must stop being served, reject it via
+    POST /pages/{id}/review instead — that is what removes its file."""
+    lesson = db.get(Lesson, lesson_id)
+    if lesson is None:
+        raise HTTPException(404, "no such lesson")
+    lesson.status = "draft"
+    lesson.published_at = None
+    db.commit()
+    return {"id": lesson.id, "status": lesson.status}
+
+
 # -------------------------------------------------------------- problems ----
 
 
@@ -208,6 +257,17 @@ def add_problem(lesson_id: str, body: ProblemIn, db: Session = Depends(get_sessi
 
 @app.get("/lessons/{lesson_id}/problems")
 def list_problems(lesson_id: str, approved_only: bool = False, db: Session = Depends(get_session)):
+    lesson = db.get(Lesson, lesson_id)
+    if lesson is None:
+        raise HTTPException(404, "no such lesson")
+    # A second gate, not a duplicate of the first: `published_only` on the
+    # lessons list keeps a student from ever being handed this lesson_id, but
+    # a bookmarked or guessed one is still a valid id to ask about directly.
+    # Without this, unpublishing a lesson (see /lessons/{id}/unpublish) would
+    # stop it appearing in lists while every one of its already-approved pages
+    # stayed answerable here by anyone who still had the URL.
+    if approved_only and lesson.status != "published":
+        return []
     rows = (
         db.query(Problem)
         .filter(Problem.lesson_id == lesson_id)
@@ -244,11 +304,44 @@ def get_page(page_id: str, db: Session = Depends(get_session)):
     return page_out(p)
 
 
+def _publish_page_file(html_path: Optional[str]) -> None:
+    """The other half of the confirmation gate: approving a page in Postgres
+    means nothing to a student unless the pages origin can actually serve it.
+    Copies from STORAGE_DIR (where the worker left the draft) into
+    PUBLISHED_DIR (what nginx mounts) — see the module-level comment and
+    apps/worker/worker.py. A missing source is not fatal here: it means the
+    page predates this file, or storage was pruned, and there is nothing to
+    copy either way."""
+    if not html_path:
+        return
+    src = STORAGE_DIR / html_path
+    if not src.exists():
+        return
+    PUBLISHED_DIR.mkdir(parents=True, exist_ok=True)
+    (PUBLISHED_DIR / html_path).write_bytes(src.read_bytes())
+
+
+def _unpublish_page_file(html_path: Optional[str]) -> None:
+    """Reverses _publish_page_file. Used when a page's approval is reversed —
+    a rejected page must stop being servable, not just stop being linked."""
+    if not html_path:
+        return
+    dst = PUBLISHED_DIR / html_path
+    if dst.exists():
+        dst.unlink()
+
+
 @app.post("/pages/{page_id}/review")
 def review_page(page_id: str, body: ReviewIn, db: Session = Depends(get_session)):
     """The confirmation. seconds_on_page is recorded because rubber-stamping is
     this design's silent failure — if approving is slow, a teacher clicks
-    through without reading and every metric stays green."""
+    through without reading and every metric stays green.
+
+    This is also the only place a page's HTML is ever copied into PUBLISHED_DIR,
+    the directory the pages origin actually serves — approving here and only
+    here is what makes the page reachable by URL at all (see
+    _publish_page_file). Rejecting removes it again, even if it had been
+    approved and served before."""
     p = db.get(Page, page_id)
     if p is None:
         raise HTTPException(404, "no such page")
@@ -264,6 +357,10 @@ def review_page(page_id: str, body: ReviewIn, db: Session = Depends(get_session)
     )
     p.status = body.action
     db.commit()
+    if body.action == "approved":
+        _publish_page_file(p.html_path)
+    else:
+        _unpublish_page_file(p.html_path)
     return page_out(p)
 
 

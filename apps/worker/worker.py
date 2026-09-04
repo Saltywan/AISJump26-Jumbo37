@@ -10,10 +10,14 @@ that exists to keep this honest.
                   -> check.mjs --json -> checks_json
                   -> page.status = 'ready'   (a DRAFT: no student sees it yet)
 
-The page is written into the shared storage volume, which the `pages` nginx
-serves from its own origin. The API never serves page HTML: generated pages run
-model-written JavaScript, and the separate origin plus an opaque-origin iframe
-is the containment.
+The page is written into the `storage` volume, which is private to this worker
+and the API — the `pages` nginx that actually serves generated pages does not
+mount it and cannot read it. `storage` holds drafts; `published` (mounted only
+by the API and by `pages`) holds what a teacher has approved. This worker never
+writes there — see review_page() in apps/api/app/main.py, which copies a page
+into `published` the moment, and only the moment, a teacher approves it. A page
+this process finishes is a draft no student can reach by any URL until that
+happens, not merely one nothing links to.
 """
 from __future__ import annotations
 
@@ -40,21 +44,6 @@ POLL_SECONDS = 2
 
 def log(*a):
     print(*a, flush=True)
-
-
-def ensure_lib_link() -> None:
-    """Generated pages load ./lib/shell.js relative to themselves. In the pages
-    container the storage volume is mounted at html/pages and the kit's lib at
-    html/lib, so a `lib` symlink beside the pages resolves to the vendored kit —
-    the same arrangement the fixtures already use. Without it every page 404s
-    its own shell and renders nothing."""
-    link = STORAGE / "lib"
-    if not link.exists() and not link.is_symlink():
-        try:
-            link.symlink_to("../lib")
-            log("worker: created storage/lib -> ../lib")
-        except OSError as e:
-            log(f"worker: could not create lib symlink: {e}")
 
 
 def kit_version() -> str:
@@ -141,7 +130,9 @@ def handle_generate(db, job: Job) -> None:
     checks = run_check(page_file, db, job)
     html = page_file.read_text(encoding="utf-8", errors="replace")
 
-    # Then publish into the storage root, where the pages origin serves it.
+    # Land the finished draft at the storage root. Nothing serves this volume —
+    # see the module docstring — so this is not "publishing" it anywhere; it is
+    # just where review_page() will look for it if a teacher approves it.
     final_name = f"{problem.id}.html"
     final = STORAGE / final_name
     final.write_bytes(page_file.read_bytes())
@@ -187,7 +178,6 @@ def claim_one(db) -> Job | None:
 
 def main() -> None:
     init_db()
-    ensure_lib_link()
     log(f"worker: up. kit={kit_version()} model={MODEL} effort={EFFORT}")
     while True:
         db = SessionLocal()

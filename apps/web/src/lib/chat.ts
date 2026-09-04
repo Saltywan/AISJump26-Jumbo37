@@ -51,6 +51,15 @@ export interface ChatThread {
   /* Set when the page came from the real backend rather than a fixture. */
   jobId?: string;
   pageId?: string;
+  /** When this thread's page first became reviewable (real, backend-issued
+   *  pageId in hand). publishThread() measures the gap between this and the
+   *  publish click as seconds_on_page — see docs/SCHEMA.md's `review` table.
+   *  It is a proxy, not an eye tracker: it can't tell a careful read from a
+   *  tab left open, but it is the one signal available without instrumenting
+   *  TeacherChat.tsx (out of scope for this pass — another agent owns it),
+   *  and a number close to zero is exactly the rubber-stamp case it exists
+   *  to surface. */
+  readyForReviewAt?: number;
   /** Stage reported by the worker while generating — the waiting screen shows
    *  it instead of a spinner, because a 30-90s spinner kills a live demo and
    *  the checks are genuinely interesting to watch land. */
@@ -145,27 +154,45 @@ export async function attachLiveJob(
   lessonId: string,
   text: string
 ): Promise<void> {
-  const thread = { id: threadId };
+  // Cleared synchronously, before the first `await` below ever yields
+  // control back to the event loop. TeacherChat.tsx's submit() always calls
+  // this immediately after submitPrompt() creates the thread, in the same
+  // call stack, so nothing else can run in between — clearing readyAt only
+  // after isLive()/addProblem() resolve further down (as this used to) is a
+  // real race, not a formality: tickThreads() runs on its own 400ms timer,
+  // the fake pipeline's delay is 1.4-3.2s, and a real generation reliably
+  // takes tens of seconds, so tickThreads regularly won that race and flipped
+  // the thread to a fixture "draft" before this function ever got a pageId.
+  // That failure is invisible: the thread still said "draft" with a plausible
+  // page in it, just one with no jobId or pageId behind it, which is exactly
+  // the shape publishThread() below reads as "this thread never went live"
+  // and silently confirms only in localStorage. Every branch past this point
+  // now finishes the thread itself rather than leaning on tickThreads' timer,
+  // since the thing that timer was for — a beat before the fixture "arrives"
+  // — no longer applies once this has taken over.
+  patch(threadId, { readyAt: undefined });
 
   if (!(await isLive())) {
-    patch(thread.id, { demoReason: "เซิร์ฟเวอร์ไม่พร้อมใช้งาน — แสดงตัวอย่างที่เตรียมไว้" });
+    patch(threadId, {
+      status: "draft",
+      demoReason: "เซิร์ฟเวอร์ไม่พร้อมใช้งาน — แสดงตัวอย่างที่เตรียมไว้",
+    });
     return;
   }
 
   try {
     const { job_id } = await api.addProblem(lessonId, { text });
-    patch(thread.id, { jobId: job_id, stage: "queued", readyAt: undefined, demoReason: undefined });
+    patch(threadId, { jobId: job_id, stage: "queued", demoReason: undefined });
 
     watchJob(
       job_id,
-      (e) => patch(thread.id, { stage: e.stage ?? e.state }),
+      (e) => patch(threadId, { stage: e.stage ?? e.state }),
       async (e) => {
         const pageId = (e.progress as { page_id?: string } | null)?.page_id;
         if (e.state === "failed" || !pageId) {
-          patch(thread.id, {
+          patch(threadId, {
             status: "draft",
             stage: undefined,
-            readyAt: Date.now(),
             demoReason:
               e.error?.slice(0, 160) ?? "งานสร้างไม่สำเร็จ — แสดงตัวอย่างที่เตรียมไว้",
           });
@@ -173,21 +200,23 @@ export async function attachLiveJob(
         }
         try {
           const page = await api.page(pageId);
-          patch(thread.id, {
+          patch(threadId, {
             status: "draft",
             stage: undefined,
             pageId,
             file: page.html_path ?? undefined,
             kind: "generated",
             demoReason: undefined,
+            readyForReviewAt: Date.now(),
           });
         } catch {
-          patch(thread.id, { status: "draft", stage: undefined });
+          patch(threadId, { status: "draft", stage: undefined });
         }
       }
     );
   } catch (err) {
-    patch(thread.id, {
+    patch(threadId, {
+      status: "draft",
       demoReason: `ส่งงานไม่สำเร็จ (${String(err).slice(0, 60)}) — แสดงตัวอย่างที่เตรียมไว้`,
     });
   }
@@ -249,22 +278,73 @@ export function hasPendingThreads(): boolean {
   return state.threads.some((t) => t.status === "generating");
 }
 
-/** The confirmation step itself. A draft only becomes visible to students
- *  once a teacher calls this — see studentVisibleFiles(). */
-export function publishThread(id: string) {
-  set({
-    threads: state.threads.map((t) => (t.id === id ? { ...t, status: "published" as const } : t)),
-  });
+/** The confirmation step itself — called from TeacherChat.tsx exactly as
+ *  before (`onClick={() => publishThread(thread.id)}`), now wired to the real
+ *  gate instead of only flipping a local field.
+ *
+ * localStorage is flipped first and unconditionally: it is what
+ * studentVisibleFiles() reads, so a thread with no live pageId (a fixture
+ * stand-in, or a backend that never came up — see attachLiveJob) still
+ * publishes for a single-browser demo, matching the old behaviour exactly.
+ *
+ * When the thread has a real pageId, that flip is provisional: this also
+ * POSTs the confirmation to the API — first `review(pageId, "approved")` with
+ * seconds_on_page measured from when the page first became reviewable (see
+ * readyForReviewAt), then `publishLesson`, which only actually flips the
+ * lesson's server-side `status` once every problem in it has an approved
+ * page. A 409 there just means a sibling thread in this lesson is still a
+ * draft — not an error from this thread's point of view — so it is swallowed.
+ * Postgres, not localStorage, is what a second device's student view reads
+ * (see pages/student/*), so this network call is the one that actually makes
+ * the page reachable across devices; the local flip alone would look
+ * published only on this browser. */
+export async function publishThread(id: string): Promise<void> {
+  const thread = state.threads.find((t) => t.id === id);
+  if (!thread) return;
+
+  patch(id, { status: "published" });
+  if (!thread.pageId || !(await isLive())) return;
+
+  try {
+    const secondsOnPage = thread.readyForReviewAt
+      ? Math.max(0, Math.round((Date.now() - thread.readyForReviewAt) / 1000))
+      : undefined;
+    await api.review(thread.pageId, { action: "approved", seconds_on_page: secondsOnPage });
+    await api.publishLesson(thread.lessonId).catch(() => {
+      /* lesson has other unapproved problems — expected, not this thread's problem */
+    });
+  } catch (err) {
+    // The local flip already happened so the teacher isn't stuck mid-click,
+    // but a student on another device will not see this until the backend
+    // actually records the approval, so say so rather than pretending it's
+    // done everywhere.
+    patch(id, {
+      demoReason: `ยืนยันกับเซิร์ฟเวอร์ไม่สำเร็จ (${String(err).slice(0, 60)}) — เผยแพร่แล้วเฉพาะเครื่องนี้`,
+    });
+  }
 }
 
 /** Reverts a publish — "เผยแพร่แล้ว" back to "ฉบับร่าง". Not in the Figma
  *  design (which only shows the two states as a fact, not a control to leave
  *  "published"), but withholding it would mean a mis-click can never be
- *  undone from this screen, which is a worse failure mode for a live demo. */
-export function unpublishThread(id: string) {
-  set({
-    threads: state.threads.map((t) => (t.id === id ? { ...t, status: "draft" as const } : t)),
-  });
+ *  undone from this screen, which is a worse failure mode for a live demo.
+ *
+ * Mirrors publishThread: local flip always happens (offline/fixture case),
+ * and when the thread has a real lessonId on a live backend this also calls
+ * unpublishLesson — see that endpoint's docstring for why it revokes
+ * visibility only and leaves any page's approval and review history alone. */
+export async function unpublishThread(id: string): Promise<void> {
+  const thread = state.threads.find((t) => t.id === id);
+  if (!thread) return;
+
+  patch(id, { status: "draft" });
+  if (!thread.pageId || !(await isLive())) return;
+
+  try {
+    await api.unpublishLesson(thread.lessonId);
+  } catch {
+    /* local state already reverted; nothing more useful to surface here */
+  }
 }
 
 /** The kebab menu on a history row only implements this one action (of the

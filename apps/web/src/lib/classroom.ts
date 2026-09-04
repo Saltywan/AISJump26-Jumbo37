@@ -302,37 +302,80 @@ export function resetClassroomDemoData() {
  * has already generated something is one where this migration is not worth the
  * risk — it is a first-run step, not a repair tool.
  */
+let seedSyncInFlight = false;
+
 export async function syncSeedToServer(hasThreads: boolean): Promise<void> {
-  if (state.seedSyncedAt || hasThreads) return;
-  if (!(await isLive())) return;
+  // The in-flight flag is set synchronously, before any await. The guard used
+  // to be the persisted seedSyncedAt alone, which is only written at the END —
+  // so React's development double-invoke, or two mounts in quick succession,
+  // both passed it and both created a full set of rows. That is how the demo
+  // database reached 41 classrooms with fourteen called "Physics ม.4/1".
+  if (state.seedSyncedAt || hasThreads || seedSyncInFlight) return;
+  seedSyncInFlight = true;
+  try {
+    if (!(await isLive())) return;
 
-  const idMap = new Map<string, string>();
-  const classrooms: Classroom[] = [];
-  for (const c of state.classrooms) {
+    // Adopt what is already there before creating anything. Clearing local
+    // storage is the normal way to reset a demo, and without this every reset
+    // minted another parallel set of identical classrooms server-side.
+    let existing: { id: string; name: string }[] = [];
     try {
-      const { id } = await api.createClassroom({ name: c.name, subject: c.description || undefined });
-      idMap.set(c.id, id);
-      classrooms.push({ ...c, id });
+      existing = await api.classrooms();
     } catch {
-      classrooms.push(c);            // leave it local; it simply cannot generate
+      /* fall through and create */
     }
-  }
+    const byName = new Map(existing.map((c) => [c.name, c.id]));
 
-  const lessons: Lesson[] = [];
-  for (const l of state.lessons) {
-    const classroomId = idMap.get(l.classroomId) ?? l.classroomId;
-    try {
-      const { id } = await api.createLesson(classroomId, { title: l.title });
+    const idMap = new Map<string, string>();
+    const classrooms: Classroom[] = [];
+    for (const c of state.classrooms) {
+      const found = byName.get(c.name);
+      if (found) {
+        idMap.set(c.id, found);
+        classrooms.push({ ...c, id: found });
+        continue;
+      }
+      try {
+        const { id } = await api.createClassroom({ name: c.name, subject: c.description || undefined });
+        idMap.set(c.id, id);
+        classrooms.push({ ...c, id });
+      } catch {
+        classrooms.push(c);            // leave it local; it simply cannot generate
+      }
+    }
+
+    const lessons: Lesson[] = [];
+    for (const l of state.lessons) {
+      const classroomId = idMap.get(l.classroomId) ?? l.classroomId;
+      let id = l.id;
+      let matched = false;
+      try {
+        const serverLessons = await api.lessons(classroomId);
+        const hit = serverLessons.find((sl) => sl.title === l.title);
+        if (hit) {
+          id = hit.id;
+          matched = true;
+        }
+      } catch {
+        /* fall through and create */
+      }
+      if (!matched) {
+        try {
+          ({ id } = await api.createLesson(classroomId, { title: l.title }));
+        } catch {
+          id = l.id;
+        }
+      }
       lessons.push({ ...l, id, classroomId });
-    } catch {
-      lessons.push({ ...l, classroomId });
     }
+
+    const students = state.students.map((st) => ({
+      ...st,
+      classroomId: idMap.get(st.classroomId) ?? st.classroomId,
+    }));
+
+    set({ classrooms, lessons, students, seedSyncedAt: Date.now() });
+  } finally {
+    seedSyncInFlight = false;
   }
-
-  const students = state.students.map((st) => ({
-    ...st,
-    classroomId: idMap.get(st.classroomId) ?? st.classroomId,
-  }));
-
-  set({ classrooms, lessons, students, seedSyncedAt: Date.now() });
 }

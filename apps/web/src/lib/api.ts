@@ -111,6 +111,11 @@ export const api = {
   publishLesson: (lessonId: string) =>
     req<{ id: string; status: string }>(`/lessons/${lessonId}/publish`, { method: "POST" }),
 
+  /** Undoes publishLesson — visibility only, see the endpoint's docstring: it
+   *  does not touch any page's approval. */
+  unpublishLesson: (lessonId: string) =>
+    req<{ id: string; status: string }>(`/lessons/${lessonId}/unpublish`, { method: "POST" }),
+
   problems: (lessonId: string, approvedOnly = false) =>
     req<ApiProblem[]>(`/lessons/${lessonId}/problems${approvedOnly ? "?approved_only=true" : ""}`),
 
@@ -162,12 +167,19 @@ export function watchJob(
       close();
     }
   };
-  /* An SSE error here is a dropped connection, not a failed job. Report it and
-     stop; the caller can fall back to polling GET /jobs/{id} rather than being
-     left with a spinner that never resolves. */
+  /* An SSE error here is a dropped connection, not a failed job — report it,
+     but do NOT close(). A generation reliably takes tens of seconds to
+     minutes, plenty of time for one connection to drop, and calling close()
+     here used to hand the browser's native EventSource reconnection nothing
+     to do: the stream just stayed dead, onDone() never fired, and the caller
+     (attachLiveJob, in lib/chat.ts) was left with no jobId-to-pageId result
+     forever — a live generation that finished fine on the worker with no way
+     for this tab to ever learn its pageId. The server has nothing to resume:
+     GET /jobs/{id}/events just re-reads the job row fresh on every new
+     connection, so leaving `src` open and letting the browser's own retry
+     reconnect is enough to pick the stream back up once it can. */
   src.onerror = () => {
     onEvent({ state: "running", stage: "reconnecting", progress: null, error: null });
-    close();
   };
   return close;
 }
