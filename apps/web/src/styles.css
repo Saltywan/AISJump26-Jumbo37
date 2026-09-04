@@ -1465,16 +1465,6 @@ button.chip {
 .chat-empty p { margin: 0; font-size: var(--text-body); color: var(--ink-2); }
 
 .chat-thread { width: 100%; max-width: 800px; display: flex; flex-direction: column; gap: var(--space-lg); }
-/* The teacher screen only: once there's a generated page to review, the
-   narrow 800px chat column is exactly the problem (see gen-card-review
-   below) — widen the thread so the card can use the width the sidebar
-   layout leaves free, while text bubbles keep their own reading width
-   via the max-width on .chat-msg-* below instead of the container's. */
-.chat-thread-wide { max-width: 1400px; }
-/* And once the card is the thing being reviewed, let it — and only it —
-   grow to fill the vertical space chat-scroll has, instead of sizing to
-   its own (short) content and leaving the rest of the viewport blank. */
-.chat-thread-fill { flex: 1 1 auto; min-height: 0; }
 .chat-msg-user {
   align-self: flex-end; max-width: min(85%, 640px);
   background: var(--sunk); color: var(--ink);
@@ -1506,15 +1496,6 @@ button.chip {
   font: inherit; font-size: var(--text-body); cursor: pointer;
 }
 .gen-card-replay:hover { border-color: var(--primary); color: var(--primary); }
-.gen-card-stage { position: relative; height: 500px; background: var(--card); }
-/* Student screen only (.gen-card-stage never appears on the teacher's ready
-   card — see the comment above .gen-card-review) — once chat-thread-fill has
-   let the surrounding column stretch to the viewport (see
-   StudentLessonChat.tsx), let the video stage grow into that space too,
-   instead of sitting at a fixed 500px regardless of how much room a wide
-   screen actually has. */
-.chat-thread-fill .gen-card { flex: 1 1 auto; min-height: 0; }
-.chat-thread-fill .gen-card-stage { flex: 1 1 auto; min-height: 0; height: auto; }
 .gen-card-frame { display: block; width: 100%; height: 100%; border: 0; }
 .gen-card-loading {
   position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
@@ -1525,28 +1506,6 @@ button.chip {
   padding: 60px var(--space-lg); color: var(--ink-3); font-size: var(--text-body);
 }
 
-/* The teacher's review layout once a page is ready to look at (TeacherChat.tsx
-   only — the student card stops at .gen-card-stage and never reaches this).
-   Page and report side by side, same grid proportions and the same "report
-   scrolls internally, stage doesn't" split as Review.tsx's
-   .review-body/.review-stage/.review-report, so the two screens read as one
-   answer to the same problem instead of two different ones. */
-.gen-card-review { flex: 1 1 auto; min-height: 0; }
-.gen-card-review-body {
-  flex: 1 1 auto;
-  min-height: 420px;
-  display: grid;
-  grid-template-columns: minmax(0, 1.3fr) minmax(280px, 1fr);
-}
-.gen-card-review-stage { position: relative; min-height: 0; background: var(--bg); border-right: 1px solid var(--rule); }
-.gen-card-review-report { min-height: 0; overflow-y: auto; padding: var(--space-lg); }
-
-.gen-card-publish-row {
-  display: flex; align-items: center; justify-content: space-between; gap: var(--space-md);
-  flex-wrap: wrap;
-  padding: var(--space-md) var(--space-lg);
-  border-top: 1px solid var(--rule); background: var(--sunk);
-}
 .chat-publish-btn {
   display: inline-flex; align-items: center; gap: var(--space-md);
   background: var(--primary); color: #fff; border: none;
@@ -1623,37 +1582,11 @@ button.chip {
 
   .chat-scroll { padding: var(--space-lg) var(--space-md) 130px; }
   .chat-empty h2 { font-size: 19px; }
-  .gen-card-stage { height: 300px; }
-  /* Same specificity as the fill rules above (.chat-thread-fill .gen-card /
-     .gen-card-stage), placed later so it wins at this width: a phone has no
-     spare width to give back, so undo the fill and pin the stage back to a
-     fixed height, matching chat-thread-fill's own mobile override below. */
-  .chat-thread-fill .gen-card { flex: 0 0 auto; min-height: auto; }
-  .chat-thread-fill .gen-card-stage { flex: 0 0 auto; height: 300px; }
-  .gen-card-head { padding: var(--space-sm) var(--space-md); flex-wrap: wrap; }
-  .gen-card-publish-row { flex-direction: column; align-items: stretch; }
   .gen-card-extracted { margin: 0 var(--space-md) var(--space-sm); flex-direction: column; }
   .gen-card-extracted-thumb { width: 100%; height: 120px; }
+  .gen-card-head { padding: var(--space-sm) var(--space-md); flex-wrap: wrap; }
   .chat-input-bar { width: calc(100% - 24px); padding: var(--space-sm) var(--space-md); }
 
-  /* Stacking is correct on a phone — there's no width to split — but the
-     controls still have to be reachable, so this drops the fill-to-viewport
-     sizing (nothing left to gain from it at this width) and lets the page
-     and the report flow naturally: a fixed, generous height for the page
-     (same 42vh Review.tsx uses on its own mobile breakpoint), the report
-     underneath at its natural height, both scrolling with the page.
-     flex: 0 0 auto + min-height: auto (undoing the desktop fill rules'
-     min-height: 0) matters here — without it flexbox shrinks the report's
-     grid row down to a sliver to force everything into chat-scroll's box
-     instead of letting chat-scroll's own overflow-y: auto do the scrolling. */
-  .chat-thread-fill { flex: 0 0 auto; min-height: auto; }
-  .gen-card-review { flex: 0 0 auto; min-height: auto; }
-  .gen-card-review-body {
-    flex: 0 0 auto; min-height: auto;
-    grid-template-columns: 1fr; grid-template-rows: 42vh auto;
-  }
-  .gen-card-review-stage { border-right: none; border-bottom: 1px solid var(--rule); }
-  .gen-card-review-report { overflow-y: visible; }
 }
 
 /* ---------------------------------------------------------------------------
@@ -1718,7 +1651,6 @@ button.chip {
 }
 .chat-cite-chip:hover { background: var(--primary); color: var(--primary-ink); }
 
-.gen-card-stage-highlight { outline: 3px solid var(--primary); outline-offset: -3px; }
 .gen-card-stage-flag {
   position: absolute; left: 50%; bottom: var(--space-md); transform: translateX(-50%);
   background: var(--ink); color: var(--primary-ink);
@@ -1789,65 +1721,131 @@ button.chip {
 }
 .gen-card-extracted-text { margin: 0; font-size: var(--text-body); line-height: var(--lh-body); color: var(--ink); }
 
-/* ---------------------------------------------------------------------------
-   Student lesson view: the solution is the content, the chat is the aside.
-
-   It was the other way round. The animation sat in an 800px column with a
-   fixed-height stage, and every question pushed it further up until roughly a
-   tenth of the screen showed the thing the student came to look at. A tutor
-   answer is about the page; it cannot be allowed to evict it.
-
-   So on a wide screen the two sit side by side and neither can shrink the
-   other, and on a phone the page keeps a fixed share at the top while only the
-   conversation scrolls.
-   --------------------------------------------------------------------------- */
-
-.lesson-split {
-  flex: 1 1 auto;
-  min-height: 0;
-  width: 100%;
-  max-width: 1600px;
-  margin: 0 auto;
-  padding: var(--space-lg) var(--space-lg) 0;
-  display: grid;
-  /* the page gets the larger share; the chat is wide enough to read */
-  grid-template-columns: minmax(0, 1.45fr) minmax(340px, 0.85fr);
-  gap: var(--space-lg);
-  align-items: stretch;
-}
-.lesson-split > .lesson-split-page,
-.lesson-split > .lesson-split-chat {
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-}
-/* The stage fills its column instead of a fixed height, so a taller window
-   shows more of the diagram rather than more empty card. */
-.lesson-split .gen-card { flex: 1 1 auto; min-height: 0; }
-.lesson-split .gen-card-stage { flex: 1 1 auto; min-height: 0; }
-.lesson-split .gen-card-stage iframe { width: 100%; height: 100%; border: 0; display: block; }
-
-.lesson-split-chat { background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius-card); overflow: hidden; }
-.lesson-split-chat .chat-scroll {
-  padding: var(--space-lg);
-  align-items: stretch;
-  gap: var(--space-md);
-}
-.lesson-split-chat .chat-msg-user,
-.lesson-split-chat .chat-msg-assistant { max-width: 100%; }
-
-@media (max-width: 1100px) {
-  .lesson-split {
-    grid-template-columns: 1fr;
-    grid-template-rows: minmax(46vh, 46vh) minmax(0, 1fr);
-    padding: var(--space-md) var(--space-md) 0;
-  }
-  /* On a phone the page keeps its share at the top and only the conversation
-     scrolls under it — the failure being fixed is the page shrinking away. */
-  .lesson-split-page { position: sticky; top: 0; }
-}
-
 /* The send control reads as an action, not a menu: filled primary, the glyph
    centred, and disabled while there is nothing to send. */
 .chat-send-btn { color: var(--primary-ink); }
 .chat-send-btn img { display: block; margin: auto; }
+
+/* ---------------------------------------------------------------------------
+   The generated page as an artifact (components/Artifact.tsx).
+
+   Two layouts were tried here and both were wrong in the same way. First the
+   page was embedded in the chat column with the check report beside it, so a
+   chat message was half page and half report and neither had room. Then the
+   student's screen put the animation and the conversation in two permanent
+   columns, which only fixed the vertical version of the problem: the page was
+   still boxed inside a message, now permanently half a screen wide.
+
+   A page that draws a solution wants the whole viewport. So in the
+   conversation it is a card — one object, message-sized, saying what was made
+   and what state it is in — and opening it takes the screen. The controls that
+   decide anything about the page live in that view's top right, next to the
+   page they decide about.
+   --------------------------------------------------------------------------- */
+
+.artifact-block { width: 100%; display: flex; flex-direction: column; gap: var(--space-sm); }
+/* The student's card stays at the top of the thread while answers accumulate
+   under it — the failure being fixed is the page scrolling away. */
+.artifact-block-pinned { position: sticky; top: 0; z-index: 3; padding-bottom: var(--space-xs); background: var(--bg); }
+
+.artifact-card {
+  appearance: none; text-align: left; width: 100%; cursor: pointer;
+  display: flex; align-items: center; gap: var(--space-lg);
+  padding: var(--space-lg);
+  background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius-card);
+  box-shadow: var(--shadow-center);
+  font: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+.artifact-card:hover { border-color: var(--primary); box-shadow: 0 2px 14px 1px rgba(17, 17, 17, 0.09); }
+.artifact-card:active { transform: translateY(1px); }
+.artifact-card:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+.artifact-card-mark {
+  flex: 0 0 auto; width: 52px; height: 52px; border-radius: var(--radius);
+  background: var(--primary-bg); color: var(--primary);
+  display: flex; align-items: center; justify-content: center;
+}
+.artifact-glyph { width: 30px; height: 30px; display: block; }
+
+.artifact-card-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.artifact-card-kicker {
+  font-size: 12px; line-height: 1.4; font-weight: 600; letter-spacing: 0.04em;
+  text-transform: uppercase; color: var(--ink-3);
+}
+.artifact-card-title {
+  font-size: 18px; line-height: 26px; font-weight: 600; color: var(--ink);
+  overflow: hidden; text-overflow: ellipsis; display: -webkit-box;
+  -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+}
+.artifact-card-status { display: flex; align-items: center; gap: var(--space-sm); flex-wrap: wrap; }
+.artifact-card-hint { font-size: var(--text-body-sm); color: var(--ink-2); }
+.artifact-card-open {
+  flex: 0 0 auto; display: inline-flex; align-items: center; gap: 2px;
+  font-size: var(--text-body-sm); font-weight: 500; color: var(--primary);
+}
+
+/* The expanded view. Over everything, including the navbar: the page is the
+   only thing that matters while it is open. */
+.artifact-view {
+  position: fixed; inset: 0; z-index: 60;
+  background: var(--bg);
+  display: flex; flex-direction: column;
+}
+.artifact-view-head {
+  flex: 0 0 auto;
+  display: flex; align-items: center; gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  background: var(--card); border-bottom: 1px solid var(--rule);
+}
+.artifact-view-close {
+  appearance: none; flex: 0 0 auto; width: 34px; height: 34px; border-radius: var(--radius);
+  border: 1px solid var(--rule); background: var(--card); color: var(--ink);
+  font-size: 15px; line-height: 1; cursor: pointer;
+}
+.artifact-view-close:hover { border-color: var(--primary); color: var(--primary); }
+.artifact-view-titles { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.artifact-view-title {
+  font-size: 18px; line-height: var(--lh-body); font-weight: 600; color: var(--ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.artifact-view-subtitle {
+  font-size: var(--text-body-sm); color: var(--ink-2);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* Top right: replay, the report toggle, and the publish decision. */
+.artifact-view-actions { flex: 0 0 auto; display: flex; align-items: center; gap: var(--space-sm); flex-wrap: wrap; justify-content: flex-end; }
+.gen-card-replay-on { border-color: var(--primary); color: var(--primary); background: var(--primary-bg); }
+
+.artifact-view-banner { flex: 0 0 auto; background: var(--card); border-bottom: 1px solid var(--rule); padding: var(--space-sm) 0; }
+.artifact-view-banner .gen-card-extracted { margin-bottom: 0; }
+
+.artifact-view-body { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr); }
+.artifact-view-body-split { grid-template-columns: minmax(0, 1fr) 380px; }
+.artifact-view-stage { position: relative; min-width: 0; min-height: 0; background: var(--card); }
+.artifact-view-aside {
+  min-height: 0; overflow-y: auto;
+  padding: var(--space-lg);
+  background: var(--card); border-left: 1px solid var(--rule);
+}
+
+/* Not the publish button — the page has not been looked at yet, and saying so
+   in the control itself is clearer than a disabled button with a tooltip. */
+.chat-publish-btn-locked { background: var(--card); color: var(--ink-2); border: 1px solid var(--rule); font-weight: 400; }
+.chat-publish-btn-locked:hover:not(:disabled) { background: var(--card); border-color: var(--primary); color: var(--primary); }
+
+@media (max-width: 900px) {
+  .artifact-card { padding: var(--space-md); gap: var(--space-md); }
+  .artifact-card-mark { width: 42px; height: 42px; }
+  .artifact-glyph { width: 24px; height: 24px; }
+  .artifact-card-title { font-size: var(--text-body); line-height: var(--lh-body); }
+  .artifact-card-open span { display: none; }
+
+  .artifact-view-head { flex-wrap: wrap; padding: var(--space-sm) var(--space-md); }
+  .artifact-view-actions { width: 100%; justify-content: flex-start; }
+  /* No width to split on a phone: the page keeps a generous fixed share and
+     the report flows underneath it, the whole body scrolling as one. */
+  .artifact-view-body-split { grid-template-columns: minmax(0, 1fr); grid-template-rows: 55vh auto; overflow-y: auto; }
+  .artifact-view-body-split .artifact-view-stage { height: 55vh; }
+  .artifact-view-aside { border-left: none; border-top: 1px solid var(--rule); overflow-y: visible; }
+}

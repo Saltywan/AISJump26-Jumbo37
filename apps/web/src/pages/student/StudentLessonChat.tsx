@@ -27,10 +27,11 @@
  * a real backend pageId (see Item below); otherwise, and on any failure, this
  * says so in the conversation rather than fabricating an answer — never a
  * silent fallback to canned copy. */
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { AppShell } from "../../components/AppShell";
 import { MathText } from "../../components/Math";
+import { ArtifactCard, ArtifactViewer } from "../../components/Artifact";
 import { useSession } from "../../lib/session";
 import { classroomOf, lessonsOf, useClassroomStore } from "../../lib/classroom";
 import { useChatStore, studentVisibleFiles } from "../../lib/chat";
@@ -39,7 +40,6 @@ import { PAGES } from "../../manifest";
 import angleSmallLeftUrl from "../../icons/angle-small-left.svg";
 import angleSmallRightUrl from "../../icons/angle-small-right.svg";
 import caretDownUrl from "../../icons/caret-down.svg";
-import caretRightUrl from "../../icons/caret-right.svg";
 import sendUrl from "../../icons/send.svg";
 
 const PAGES_URL = import.meta.env.VITE_PAGES_URL ?? "http://localhost:8080";
@@ -159,8 +159,7 @@ export default function StudentLessonChat() {
   const liveProblems = useLiveProblems(lessonId);
   const liveMeta = useLiveLessonMeta(classroomId, lessonId);
   const [index, setIndex] = useState(0);
-  const [loaded, setLoaded] = useState(false);
-  const [replayNonce, setReplayNonce] = useState(0);
+  const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
   const [messages, setMessages] = useState<AskMessage[]>([]);
   const [asking, setAsking] = useState(false);
@@ -170,7 +169,6 @@ export default function StudentLessonChat() {
   // module comment and docs/BUILD-PLAN.html: allow-scripts only, deliberately
   // no allow-same-origin).
   const [highlightStep, setHighlightStep] = useState<number | null>(null);
-  const stageRef = useRef<HTMLDivElement>(null);
 
   // Hooks below run unconditionally, before either early-return guard, so this
   // component's hook count can't change from one render to the next.
@@ -281,12 +279,14 @@ export default function StudentLessonChat() {
   }
 
   /** The one thing a citation lets a student do without this screen reaching
-   *  into the sandboxed page (forbidden — see the module comment): point at
-   *  the animation and name the step to go check by hand. */
+   *  into the sandboxed page (forbidden — see the module comment): open the
+   *  animation and name the step to go check by hand. It opens the artifact
+   *  rather than scrolling to it, because a citation is only useful with the
+   *  page in front of you. */
   function jumpToStep(step: number) {
-    stageRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    setOpen(true);
     setHighlightStep(step);
-    window.setTimeout(() => setHighlightStep((s) => (s === step ? null : s)), 2500);
+    window.setTimeout(() => setHighlightStep((s) => (s === step ? null : s)), 6000);
   }
 
   return (
@@ -332,7 +332,6 @@ export default function StudentLessonChat() {
                   disabled={clampedIndex === 0}
                   onClick={() => {
                     setIndex((i) => Math.max(0, i - 1));
-                    setLoaded(false);
                   }}
                   aria-label="โจทย์ก่อนหน้า"
                 >
@@ -348,7 +347,6 @@ export default function StudentLessonChat() {
                   disabled={clampedIndex >= items.length - 1}
                   onClick={() => {
                     setIndex((i) => Math.min(items.length - 1, i + 1));
-                    setLoaded(false);
                   }}
                   aria-label="โจทย์ถัดไป"
                 >
@@ -363,53 +361,23 @@ export default function StudentLessonChat() {
               <p className="classroom-empty">บทเรียนนี้ยังไม่มีโจทย์ที่เผยแพร่แล้ว</p>
             </div>
           ) : (
-            /* Page and conversation side by side, neither able to shrink the
-               other. Stacked in one scrolling column, every question pushed
-               the animation further up until it was a sliver — and the
-               animation is what the student came for. */
-            <div className="lesson-split">
-              <div className="lesson-split-page">
-                <div className="gen-card">
-                  <div className="gen-card-head">
-                    <span className="gen-card-title">{title}</span>
-                    <button type="button" className="gen-card-replay" onClick={() => setReplayNonce((n) => n + 1)}>
-                      <img src={caretRightUrl} alt="" width={20} height={20} />
-                      <span>เล่นอีกครั้ง</span>
-                    </button>
-                  </div>
-                  <div
-                    ref={stageRef}
-                    className={`gen-card-stage${highlightStep !== null ? " gen-card-stage-highlight" : ""}`}
-                  >
-                    {!loaded && (
-                      <div className="gen-card-loading">
-                        <span className="spinner" /> กำลังโหลด…
-                      </div>
-                    )}
-                    <iframe
-                      key={item.src + replayNonce}
-                      className="gen-card-frame"
-                      src={item.src}
-                      title={title}
-                      sandbox="allow-scripts"
-                      referrerPolicy="no-referrer"
-                      onLoad={() => setLoaded(true)}
-                    />
-                    {/* Never reaches into the sandboxed frame (allow-scripts
-                        only, no allow-same-origin — see the module comment) —
-                        just tells the student which step of the animation
-                        above to go check by hand, which is the whole point of
-                        a citation. */}
-                    {highlightStep !== null && (
-                      <div className="gen-card-stage-flag">ตรวจสอบคำตอบกับขั้นตอนที่ {highlightStep} ในสื่อนี้</div>
-                    )}
-                  </div>
+            /* The animation is an artifact in the conversation, not a panel
+               competing with it. Stacked in one column every question pushed
+               the page further up until it was a sliver; split into two columns
+               it was permanently half a screen wide. As a card it stays put at
+               the top of the thread, and one click gives it the whole
+               viewport — which is the size this content actually wants. */
+            <div className="chat-scroll">
+              <div className="chat-thread">
+                <div className="artifact-block artifact-block-pinned">
+                  <ArtifactCard
+                    title={title}
+                    kicker="สื่อการสอนแบบเคลื่อนไหว"
+                    status={<span className="artifact-card-hint">คลิกเพื่อดูภาพเคลื่อนไหวแบบเต็มจอ</span>}
+                    onOpen={() => setOpen(true)}
+                  />
                 </div>
 
-              </div>
-
-              <div className="lesson-split-chat">
-                <div className="chat-scroll">
                 {/* The conversation itself — a real answer from
                     POST /pages/{'{'}page_id{'}'}/ask when item.pageId exists,
                     a visible notice otherwise. Never a fabricated answer. */}
@@ -446,10 +414,23 @@ export default function StudentLessonChat() {
                     )}
                   </div>
                 )}
-                </div>
               </div>
             </div>
           )}
+
+          {open && item ? (
+            <ArtifactViewer
+              title={title}
+              subtitle={`${clampedIndex + 1} จาก ${items.length} โจทย์ · ${lessonTitle}`}
+              src={item.src}
+              onClose={() => setOpen(false)}
+              /* Never reaches into the sandboxed frame (allow-scripts only, no
+                 allow-same-origin — see the module comment) — it just names the
+                 step of the animation to go check by hand, which is the whole
+                 point of a citation. */
+              flag={highlightStep !== null ? `ตรวจสอบคำตอบกับขั้นตอนที่ ${highlightStep} ในสื่อนี้` : undefined}
+            />
+          ) : null}
 
           {item && (
             <div className="lesson-chat-suggested">

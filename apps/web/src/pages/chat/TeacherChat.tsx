@@ -37,9 +37,9 @@ import {
 import { CHECKS } from "../../checks";
 import { checkIdOf } from "../../lib/format";
 import { ReportSummary } from "./ReportSummary";
+import { ArtifactCard, ArtifactViewer } from "../../components/Artifact";
 import angleSmallLeftUrl from "../../icons/angle-small-left.svg";
 import caretDownUrl from "../../icons/caret-down.svg";
-import caretRightUrl from "../../icons/caret-right.svg";
 import plusSmallUrl from "../../icons/plus-small.svg";
 import globeUrl from "../../icons/globe.svg";
 import globeOnPrimaryUrl from "../../icons/globe-on-primary.svg";
@@ -95,6 +95,14 @@ export default function TeacherChat() {
   // blob: URLs don't survive a reload, and there's nothing useful to persist
   // here beyond this tab's current session anyway.
   const [imagePreviews, setImagePreviews] = useState<Record<string, string>>({});
+  // Which threads the teacher has actually opened the page for, this session.
+  // Publishing is gated on it (see PublishBar): a confirm button reachable
+  // without opening the page is a button pressed without opening the page. Not
+  // persisted on purpose — a reload should make you look again.
+  const [opened, setOpened] = useState<Record<string, true>>({});
+  // Bumped to ask the open thread's panel to expand its artifact, so the top
+  // bar's "open it first" button drives the same viewer.
+  const [openRequest, setOpenRequest] = useState(0);
 
   // Fake generation: poll for threads whose simulated delay has elapsed.
   useEffect(() => {
@@ -264,7 +272,13 @@ export default function TeacherChat() {
             >
               ☰
             </button>
-            {thread && <PublishBar thread={thread} />}
+            {thread && (
+              <PublishBar
+                thread={thread}
+                opened={!!opened[thread.id]}
+                onOpen={() => setOpenRequest((n) => n + 1)}
+              />
+            )}
           </div>
 
           <div className="chat-scroll">
@@ -274,7 +288,14 @@ export default function TeacherChat() {
                 <p>พิมพ์โจทย์คณิตศาสตร์หรือฟิสิกส์ แล้ว AI จะช่วยสร้าง Animation เพื่อให้นักเรียนเข้าใจได้ง่ายขึ้น</p>
               </div>
             ) : (
-              <ThreadPanel thread={thread} imagePreviewUrl={imagePreviews[thread.id]} />
+              <ThreadPanel
+                key={thread.id}
+                thread={thread}
+                imagePreviewUrl={imagePreviews[thread.id]}
+                opened={!!opened[thread.id]}
+                onOpened={() => setOpened((m) => ({ ...m, [thread.id]: true }))}
+                openNonce={openRequest}
+              />
             )}
           </div>
 
@@ -317,11 +338,16 @@ export default function TeacherChat() {
   );
 }
 
-function PublishBar({ thread }: { thread: ChatThread }) {
+/* The decision about a page belongs next to the page, and this bar is the top
+ * right of the chat panel — but it stays disabled until the teacher has
+ * actually opened the artifact, because that is the whole gate (see
+ * components/Artifact.tsx and docs/BUILD-PLAN.html §04). */
+function PublishBar({ thread, opened, onOpen }: { thread: ChatThread; opened: boolean; onOpen: () => void }) {
+  const ready = thread.status !== "generating" && !!thread.file;
   return (
     <div className="chat-topbar">
       <span className="chat-topbar-title">{thread.title}</span>
-      {thread.status === "published" ? (
+      {!ready ? null : thread.status === "published" ? (
         <span className="chat-published-row">
           <span className="chat-published-note">
             <img src={globeUrl} alt="" width={16} height={16} /> เผยแพร่ให้นักเรียนแล้ว
@@ -330,33 +356,94 @@ function PublishBar({ thread }: { thread: ChatThread }) {
             ยกเลิกการเผยแพร่
           </button>
         </span>
-      ) : null}
+      ) : (
+        <span className="chat-published-row">
+          <span className="chat-draft-note">
+            <img src={lockUrl} alt="" width={16} height={16} /> ฉบับร่าง — นักเรียนยังไม่เห็นหน้านี้
+          </span>
+          {opened ? (
+            <button type="button" className="chat-publish-btn" onClick={() => publishThread(thread.id)}>
+              <img src={globeOnPrimaryUrl} alt="" width={16} height={16} />
+              <span>เผยแพร่ให้นักเรียน</span>
+            </button>
+          ) : (
+            <button type="button" className="chat-publish-btn chat-publish-btn-locked" onClick={onOpen}>
+              <span>เปิดดูหน้าก่อนเผยแพร่</span>
+            </button>
+          )}
+        </span>
+      )}
     </div>
   );
 }
 
-function ThreadPanel({ thread, imagePreviewUrl }: { thread: ChatThread; imagePreviewUrl?: string }) {
-  const [loaded, setLoaded] = useState(false);
-  const [replayNonce, setReplayNonce] = useState(0);
-  // A worker-generated page is served from /generated/, a fixture from /pages/.
-  // Only pageSrc knows that split.
-  // A generated page is a DRAFT until it is published, and drafts live on a
-  // different path — see pageSrc. Using "generated" here 404'd every page the
-  // teacher was meant to review.
+function ThreadPanel({
+  thread,
+  imagePreviewUrl,
+  opened,
+  onOpened,
+  openNonce,
+}: {
+  thread: ChatThread;
+  imagePreviewUrl?: string;
+  opened: boolean;
+  onOpened: () => void;
+  /** Bumped by the top bar's "open it first" button, so that button can open
+   *  the same viewer this panel owns rather than being a second, divergent
+   *  way of showing the page. */
+  openNonce: number;
+}) {
+  const [open, setOpen] = useState(false);
+  // A worker-generated page is served from /generated/, a fixture from /pages/,
+  // and a generated page is a DRAFT until it is published — drafts live on a
+  // third path. Only pageSrc knows that split; using "generated" for a draft
+  // 404'd every page the teacher was meant to review.
   const kind = thread.kind === "generated"
     ? (thread.status === "published" ? "generated" : "draft")
     : (thread.kind ?? "fixture");
   const src = thread.file ? pageSrc(thread.file, kind) : undefined;
   const check = thread.file ? CHECKS[checkIdOf(thread.file)] : undefined;
-  // Once there's a real page to look at, this stops being a chat bubble and
-  // becomes the review screen the page and report have to share (see
-  // Review.tsx) — wider, and tall enough that the iframe and the report sit
-  // side by side instead of the report running off the bottom of a narrow,
-  // fixed-height card.
   const ready = thread.status !== "generating" && !!src;
 
+  // Only a *change* since this panel mounted counts. Comparing against zero
+  // would mean switching threads re-opens the viewer, because the parent's
+  // counter does not reset when the panel remounts for a different thread.
+  const nonceAtMount = useRef(openNonce);
+  useEffect(() => {
+    if (openNonce === nonceAtMount.current) return;
+    setOpen(true);
+    onOpened();
+    // onOpened is an inline closure and changes every render; keying off it
+    // would re-run this on every parent render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openNonce]);
+
+  function openArtifact() {
+    setOpen(true);
+    onOpened();
+  }
+
+  /* Shown for a photo-sourced thread only (attachImageJob, lib/chat.ts): what
+     the model read the problem as. It rides with the artifact into the expanded
+     view because that is where publishing now happens — a misread photo
+     produces a flawless page solving the wrong problem, every automated check
+     passes it, and a teacher comparing this line against their photo is the
+     only defence that exists (docs/BUILD-PLAN.html §06). */
+  const extracted = thread.extractedText ? (
+    <div className="gen-card-extracted">
+      {imagePreviewUrl && <img className="gen-card-extracted-thumb" src={imagePreviewUrl} alt="รูปโจทย์ที่แนบ" />}
+      <div className="gen-card-extracted-body">
+        <p className="gen-card-extracted-label">
+          <img src={exclamationUrl} alt="" width={14} height={14} />
+          โจทย์ที่ระบบอ่านได้จากรูป — ตรวจให้ตรงกับภาพก่อนเผยแพร่
+        </p>
+        <p className="gen-card-extracted-text">{thread.extractedText}</p>
+      </div>
+    </div>
+  ) : null;
+
   return (
-    <div className={`chat-thread chat-thread-wide${ready ? " chat-thread-fill" : ""}`}>
+    <div className="chat-thread">
       {thread.messages.map((m) => (
         <div key={m.id} className={m.role === "user" ? "chat-msg-user" : "chat-msg-assistant"}>
           {m.text}
@@ -366,110 +453,69 @@ function ThreadPanel({ thread, imagePreviewUrl }: { thread: ChatThread; imagePre
       {!ready ? (
         <div className="gen-card">
           <div className="gen-card-generating">
-            {/* Show the worker's stage, not a bare spinner. Generation takes
-                30-90 seconds and the stages are the interesting part. */}
+            {/* The worker's stage, not a bare spinner: generation takes 30-90
+                seconds and the stages are the interesting part. */}
             <span className="spinner" /> กำลังสร้างสื่อการสอน…
             {thread.stage ? <span className="gen-card-stage-label">{stageLabel(thread.stage)}</span> : null}
           </div>
         </div>
       ) : (
-        <div className="gen-card gen-card-review">
-          {/* A fixture standing in for a real generation must say so. The
-              field existed for exactly this and was never rendered, so every
-              fallback looked identical to a real page. */}
-          {thread.demoReason ? (
-            <div className="gen-card-demo">โหมดสาธิต: {thread.demoReason}</div>
-          ) : null}
-          <div className="gen-card-head">
-            <span className="gen-card-title">{thread.title}</span>
-            <button type="button" className="gen-card-replay" onClick={() => setReplayNonce((n) => n + 1)}>
-              <img src={caretRightUrl} alt="" width={20} height={20} />
-              <span>เล่นอีกครั้ง</span>
-            </button>
-          </div>
+        <div className="artifact-block">
+          {/* A fixture standing in for a real generation must say so. The field
+              existed for exactly this and was never rendered, so every fallback
+              looked identical to a real page. */}
+          {thread.demoReason ? <div className="gen-card-demo">โหมดสาธิต: {thread.demoReason}</div> : null}
 
-          {/* Page and report side by side, same proportions as Review.tsx's
-              .review-body/.review-report grid — a reviewer has to be able to
-              look at both at once, not scroll past one to reach the other. */}
-          <div className="gen-card-review-body">
-            <div className="gen-card-review-stage">
-              {!loaded && (
-                <div className="gen-card-loading">
-                  <span className="spinner" /> กำลังโหลด…
-                </div>
-              )}
-              {/* Real generated page, opaque origin: allow-scripts only, no
-                  allow-same-origin — see docs/BUILD-PLAN.html and Viewer.tsx. */}
-              <iframe
-                key={`${thread.file ?? thread.id}-${replayNonce}`}
-                className="gen-card-frame"
-                src={src}
-                title={thread.title}
-                sandbox="allow-scripts"
-                referrerPolicy="no-referrer"
-                onLoad={() => setLoaded(true)}
-              />
-            </div>
-
-            {check && (
-              <div className="gen-card-review-report">
-                <ReportSummary check={check} />
-              </div>
-            )}
-          </div>
-
-          {/* Only ever set for a thread started from a photo (attachImageJob,
-              lib/chat.ts) — what the model read the problem as, straight from
-              the problem row. This sits right above the confirm control on
-              purpose: a misread photo produces a flawless page solving the
-              wrong problem that every automated check passes, and a teacher
-              comparing this line to the photo they took is the only defence
-              that exists for that (see docs/BUILD-PLAN.html §06). */}
-          {thread.extractedText ? (
-            <div className="gen-card-extracted">
-              {imagePreviewUrl && (
-                <img className="gen-card-extracted-thumb" src={imagePreviewUrl} alt="รูปโจทย์ที่แนบ" />
-              )}
-              <div className="gen-card-extracted-body">
-                <p className="gen-card-extracted-label">
-                  <img src={exclamationUrl} alt="" width={14} height={14} />
-                  โจทย์ที่ระบบอ่านได้จากรูป — ตรวจให้ตรงกับภาพก่อนเผยแพร่
-                </p>
-                <p className="gen-card-extracted-text">{thread.extractedText}</p>
-              </div>
-            </div>
-          ) : null}
-
-          <div className="gen-card-publish-row">
-            {thread.status === "published" ? (
-              <>
+          <ArtifactCard
+            title={thread.title}
+            kicker="สื่อการสอนแบบเคลื่อนไหว"
+            status={
+              thread.status === "published" ? (
                 <span className="chat-published-note">
                   <img src={globeUrl} alt="" width={16} height={16} /> เผยแพร่ให้นักเรียนแล้ว
                 </span>
-                <button type="button" className="chat-unpublish-btn" onClick={() => unpublishThread(thread.id)}>
-                  ยกเลิกการเผยแพร่
-                </button>
-              </>
-            ) : (
-              <>
+              ) : (
                 <span className="chat-draft-note">
-                  <img src={lockUrl} alt="" width={16} height={16} /> ฉบับร่าง — นักเรียนยังไม่เห็นหน้านี้
+                  <img src={lockUrl} alt="" width={16} height={16} />
+                  {opened ? "ฉบับร่าง — พร้อมเผยแพร่" : "ฉบับร่าง — เปิดดูก่อนเผยแพร่"}
                 </span>
-                <button
-                  type="button"
-                  className="chat-publish-btn"
-                  disabled={!loaded}
-                  title={!loaded ? "รอโหลดหน้าให้เสร็จก่อน เพื่อให้ดูภาพจริงก่อนเผยแพร่" : undefined}
-                  onClick={() => publishThread(thread.id)}
-                >
-                  <img src={globeOnPrimaryUrl} alt="" width={16} height={16} />
-                  <span>เผยแพร่ให้นักเรียน</span>
-                </button>
-              </>
-            )}
-          </div>
+              )
+            }
+            onOpen={openArtifact}
+          />
+
+          {extracted}
         </div>
       )}
+
+      {open && src ? (
+        <ArtifactViewer
+          title={thread.title}
+          subtitle={thread.status === "published" ? "เผยแพร่ให้นักเรียนแล้ว" : "ฉบับร่าง — ยังไม่เผยแพร่"}
+          src={src}
+          onClose={() => setOpen(false)}
+          banner={extracted ? <div className="artifact-view-banner">{extracted}</div> : undefined}
+          aside={check ? <ReportSummary check={check} /> : undefined}
+          actions={({ loaded }) =>
+            thread.status === "published" ? (
+              <button type="button" className="chat-unpublish-btn" onClick={() => unpublishThread(thread.id)}>
+                ยกเลิกการเผยแพร่
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="chat-publish-btn"
+                disabled={!loaded}
+                title={!loaded ? "รอโหลดหน้าให้เสร็จก่อน เพื่อให้ดูภาพจริงก่อนเผยแพร่" : undefined}
+                onClick={() => publishThread(thread.id)}
+              >
+                <img src={globeOnPrimaryUrl} alt="" width={16} height={16} />
+                <span>เผยแพร่ให้นักเรียน</span>
+              </button>
+            )
+          }
+        />
+      ) : null}
     </div>
   );
 }

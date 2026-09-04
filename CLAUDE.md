@@ -52,12 +52,22 @@ is exactly why the check report is stored in Postgres and fetched from the API.
 Do not weaken the sandbox, do not inline a page into the app document, and do not
 add a route to the API that returns page bytes.
 
-**2. A page a teacher has not approved is not merely hidden — it is unservable.**
+**2. A page a teacher has not approved is not in the students' path at all.**
 The worker writes drafts to the `storage` volume. On approval the API copies the
-file into the `published` volume, and nginx mounts **only** that. Rejection
-removes it again. The pages origin has no path to a draft's bytes. A secret URL
-is not a defence, which is why this is a volume boundary and not a naming
-convention.
+file into the `published` volume; rejection removes it again. nginx serves the
+published volume at `/generated/`, so that path physically cannot contain an
+unapproved page — no naming convention to get wrong, and nothing to leak by
+accident.
+
+Drafts are served too, at `/drafts/`, from the storage volume. That is not an
+oversight and it is not a hole that can be closed: serving only approved pages
+means the page a teacher must look at *before* approving returns 404, and a
+reviewer who cannot see the page cannot review it. Be precise about what this
+boundary is — with no authentication anywhere in this system, `/drafts/` is a
+**product** boundary, not a security one. The student app never links it and the
+API never returns an unapproved page's path, but a guessed URL would serve it.
+Real protection needs auth on the pages origin; do not describe it as sealed
+until that exists.
 
 The gate is enforced server-side too: `?published_only=true` and
 `?approved_only=true` do not return unconfirmed rows, and `approved_only` also
@@ -77,6 +87,27 @@ numbers are annotation. If you change that screen, keep the page large, keep the
 report beside it rather than under it, and keep the decision reachable without
 scrolling. `seconds_on_page` is recorded on every review because rubber-stamping
 is this design's silent failure and has to be visible from the first day.
+
+## The generated page is an artifact, not an embed
+
+`components/Artifact.tsx`. In the conversation a finished page is a **card** —
+one clickable object, message-sized. Opening it hands the page the whole
+viewport, and the controls that decide anything about it live in that view's top
+right.
+
+Two earlier layouts are why. First the page was embedded in the chat column with
+the check report beside it, so a chat message was half page and half report and
+neither had room. Then the student's screen split the animation and the
+conversation into two permanent columns — which only fixed the vertical version
+of the same mistake: the page was still boxed inside a message, now permanently
+half a screen wide. A page that draws a solution wants the whole screen; a
+message cannot give it one.
+
+Publishing lives in that expanded view, and the chat's own top bar shows
+**เปิดดูหน้าก่อนเผยแพร่** until the teacher has opened the artifact. That is the
+gate in the only form that means anything: a confirm button reachable without
+opening the page is a button pressed without opening the page. Do not add a
+publish control that works from the card.
 
 ## State: where things actually live
 
