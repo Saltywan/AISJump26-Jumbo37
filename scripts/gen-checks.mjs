@@ -122,6 +122,14 @@ export interface CheckRow {
   explain: CheckExplain;
   latex: CheckLatex;
   jsx: CheckJsx | null;
+  /* check.mjs writes a SECOND, minimal row for a page that never built — a
+     missing lib/, a syntax error, a truncated generation. It carries id, errs,
+     N, per and total, nulls for explain/latex/jsx, broken: true, and none of
+     the fields above them. The API stores that row verbatim, so the app reads
+     it too; severity.ts checks that flag first and reports the build failure
+     instead of trying to summarise a report that is not there. Optional
+     because the fixture rows this file is generated from never carry it. */
+  broken?: boolean;
   // merged from motion.json (the animation probe, a separate script by design)
   pre?: number;
   zeroSteps?: number;

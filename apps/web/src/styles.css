@@ -1935,3 +1935,16 @@ button.chip {
   .artifact-view-body-split .artifact-view-stage { height: 55vh; }
   .artifact-view-aside { border-left: none; border-top: 1px solid var(--rule); overflow-y: visible; }
 }
+
+/* A panel that failed to render (see components/ErrorBoundary.tsx). Styled as a
+   problem, not as content: this is the report saying it could not draw itself,
+   and the teacher needs to read it as a reason not to publish. */
+.panel-error {
+  display: flex; flex-direction: column; gap: var(--space-sm);
+  padding: var(--space-md) var(--space-lg);
+  border: 1px solid var(--sev-critical); border-radius: var(--radius);
+  background: var(--sev-critical-bg); color: var(--sev-critical);
+}
+.panel-error-title { margin: 0; font-weight: 600; font-size: var(--text-body); }
+.panel-error-body { margin: 0; font-size: var(--text-body-sm); line-height: var(--lh-body-sm); color: var(--ink); }
+.panel-error-detail { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: var(--ink-2); word-break: break-word; }

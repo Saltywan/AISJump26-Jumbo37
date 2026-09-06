@@ -38,6 +38,7 @@ import {
 import { CHECKS, type CheckRow } from "../../checks";
 import { checkIdOf } from "../../lib/format";
 import { ReportSummary } from "./ReportSummary";
+import { ErrorBoundary } from "../../components/ErrorBoundary";
 import { MathText } from "../../components/Math";
 import { ArtifactCard, ArtifactViewer } from "../../components/Artifact";
 import angleSmallLeftUrl from "../../icons/angle-small-left.svg";
@@ -383,10 +384,32 @@ export default function TeacherChat() {
 
           <div className="chat-scroll">
             {!thread ? (
-              <div className="chat-empty">
-                <h2>วันนี้อยากสร้างสื่อการสอนเกี่ยวกับอะไร?</h2>
-                <p>พิมพ์โจทย์คณิตศาสตร์หรือฟิสิกส์ แล้ว AI จะช่วยสร้าง Animation เพื่อให้นักเรียนเข้าใจได้ง่ายขึ้น</p>
-              </div>
+              /* Two different states used to render identically. /chat with no
+                 id is "start something new"; /chat/<id> for an id that resolves
+                 to nothing is a conversation that is gone — deleted here, or
+                 deleted on the server and never coming back through
+                 syncLessonProblems. Showing the new-chat prompt for the second
+                 one is a dead link pretending to be a fresh start: the URL still
+                 names a thread, and typing into it silently creates a different
+                 one under a different id. */
+              threadId ? (
+                <div className="chat-empty">
+                  <h2>ไม่พบการสนทนานี้</h2>
+                  <p>
+                    การสนทนานี้ถูกลบไปแล้ว หรือถูกสร้างไว้ในเบราว์เซอร์อื่น
+                    (ประวัติการสนทนาเก็บไว้เฉพาะเครื่องนี้ ส่วนโจทย์และหน้าที่สร้างแล้วอยู่บนเซิร์ฟเวอร์)
+                  </p>
+                  <button type="button" className="ui-btn ui-btn-primary" onClick={goNewChat}>
+                    <img src={plusSmallUrl} alt="" width={24} height={24} />
+                    <span>สร้างโจทย์ใหม่</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="chat-empty">
+                  <h2>วันนี้อยากสร้างสื่อการสอนเกี่ยวกับอะไร?</h2>
+                  <p>พิมพ์โจทย์คณิตศาสตร์หรือฟิสิกส์ แล้ว AI จะช่วยสร้าง Animation เพื่อให้นักเรียนเข้าใจได้ง่ายขึ้น</p>
+                </div>
+              )
             ) : (
               <ThreadPanel
                 key={thread.id}
@@ -639,7 +662,11 @@ function ThreadPanel({
           src={src}
           onClose={() => setOpen(false)}
           banner={extracted ? <div className="artifact-view-banner">{extracted}</div> : undefined}
-          aside={check ? <ReportSummary check={check} /> : undefined}
+          aside={check ? (
+            <ErrorBoundary label="รายงานการตรวจ">
+              <ReportSummary check={check} />
+            </ErrorBoundary>
+          ) : undefined}
           actions={({ loaded }) =>
             thread.status === "published" ? (
               <button type="button" className="chat-unpublish-btn" onClick={() => unpublishThread(thread.id)}>
