@@ -543,15 +543,24 @@ def handle_tutor_ask(db, job: Job) -> None:
     """POST /pages/{page_id}/ask (apps/api/app/main.py) creates this job with
     target_id=page_id and progress_json={"question": ...}, then polls for
     state in (done, failed) and answers the HTTP request from whatever this
-    writes back into progress_json. Context comes ONLY from the approved
-    page's own stored HTML — never from a fresh solve — and 409s (the page is
-    not approved) are caught by the API before this job is even created, but
-    are re-checked here too since a page could be rejected while a chat job
-    sits queued behind a page generation."""
+    writes back into progress_json. Context comes ONLY from the page's own
+    stored HTML — never from a fresh solve.
+
+    The access rule is re-checked here, not just trusted from the API, since
+    a page's state could change while a chat job sits queued behind a
+    generation. It has to match main.py's ask_page() exactly: global content
+    needs `approved` (the review gate), but personal content has no review
+    gate at all (see models.py's Review docstring) and only ever needs
+    `ready` — a personal page's owner is the only one who can reach this job
+    in the first place, so `ready` is already as far as it goes."""
     page = db.get(Page, job.target_id)
     if page is None:
         raise RuntimeError(f"page {job.target_id} is gone")
-    if page.status != "approved":
+    problem = db.get(Problem, page.problem_id) if page.problem_id else None
+    is_personal_ready = (
+        problem is not None and problem.scope == "personal" and page.status == "ready"
+    )
+    if page.status != "approved" and not is_personal_ready:
         raise RuntimeError("page is not approved")
     question = ((job.progress_json or {}).get("question") or "").strip()
     if not question:

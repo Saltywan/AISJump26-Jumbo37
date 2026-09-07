@@ -32,6 +32,15 @@ services:
       WEB_ORIGIN: http://localhost:5173
       STORAGE_DIR: /storage
       PUBLISHED_DIR: /published
+      # Comma-separated allowlist, checked on every startup: an EXISTING
+      # account whose email is in here gets promoted to admin. Never creates
+      # one — see main.py's _bootstrap_admins for why. Empty by default;
+      # set it in .env once you have a real account to promote.
+      ADMIN_EMAILS: ${ADMIN_EMAILS:-}
+      # true only behind real HTTPS — see auth.py's _cookie_secure(). Plain
+      # http (local dev, a plain tunnel) needs this unset/false or the
+      # session cookie never gets sent back.
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
     ports: ["8000:8000"]
     # the source is mounted so an edit reloads instead of needing a rebuild;
     # the image still COPYs it, so a built image runs standalone
