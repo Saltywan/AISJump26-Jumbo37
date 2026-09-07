@@ -225,3 +225,44 @@ export function PageHeader({
 export function SectionTitle({ children }: { children: ReactNode }) {
   return <h2 className="ui-section-title">{children}</h2>;
 }
+
+/* A small effort picker, shared by Generate.tsx and the tutor/revise panel in
+   ProblemArtifact.tsx — one component so both read the same three labels and
+   the same visual language, rather than two screens drifting on wording for
+   the same underlying kit vocabulary (low/medium/high — see lib/api.ts's
+   Effort type). `options` is which of the three this particular caller may
+   offer: generation and revision both refuse "low" (see the API's own
+   _validate_effort and its reasoning), a tutor question offers all three. No
+   latency promise in the copy on purpose — that number isn't measured yet
+   (see docs/BACKLOG.md), so the labels only ever claim depth, never speed. */
+const EFFORT_LABEL: Record<string, string> = { low: "ปกติ", medium: "มาตรฐาน", high: "ละเอียด" };
+
+export function EffortSelect({
+  value,
+  onChange,
+  options,
+  disabled,
+}: {
+  value: string;
+  onChange: (v: "low" | "medium" | "high") => void;
+  options: readonly ("low" | "medium" | "high")[];
+  disabled?: boolean;
+}) {
+  return (
+    <div className="ui-effort" role="radiogroup" aria-label="ระดับความละเอียดของ AI">
+      {options.map((opt) => (
+        <button
+          key={opt}
+          type="button"
+          role="radio"
+          aria-checked={value === opt}
+          disabled={disabled}
+          className={`ui-effort-opt${value === opt ? " ui-effort-opt-active" : ""}`}
+          onClick={() => onChange(opt)}
+        >
+          {EFFORT_LABEL[opt]}
+        </button>
+      ))}
+    </div>
+  );
+}

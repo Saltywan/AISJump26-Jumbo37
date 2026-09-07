@@ -14,9 +14,10 @@
 import { useEffect, useRef, useState, type ChangeEvent, type ClipboardEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { AppShell } from "../components/AppShell";
+import { EffortSelect } from "../components/ui";
 import { ProblemArtifact } from "../components/ProblemArtifact";
 import { useSession } from "../lib/session";
-import { api, watchJob, type ApiProblem, type JobEvent } from "../lib/api";
+import { api, watchJob, type ApiProblem, type Effort, type JobEvent } from "../lib/api";
 import imageUrl from "../icons/image.svg";
 import sendUrl from "../icons/send.svg";
 import angleSmallLeftUrl from "../icons/angle-small-left.svg";
@@ -27,6 +28,21 @@ const STAGE_LABEL: Record<string, string> = {
   checking: "กำลังตรวจหน้าที่สร้าง",
   reconnecting: "กำลังเชื่อมต่อใหม่",
 };
+
+// Generation refuses "low" (see main.py's _validate_effort — kit/CLAUDE.md's
+// medium-vs-high measurement never tested it). Persisted across sessions:
+// picking this once shouldn't need re-picking on every reload.
+const GENERATE_EFFORT_OPTIONS = ["medium", "high"] as const;
+const EFFORT_STORAGE_KEY = "jumpais.generateEffort";
+
+function loadStoredEffort(): Effort {
+  try {
+    const v = localStorage.getItem(EFFORT_STORAGE_KEY);
+    return v === "medium" || v === "high" ? v : "high";
+  } catch {
+    return "high"; // matches the kit's own shipped default
+  }
+}
 
 export default function Generate() {
   const { user } = useSession();
@@ -47,8 +63,18 @@ export default function Generate() {
   // TeacherChat.tsx this is restoring the behaviour of.
   const [stagedImage, setStagedImage] = useState<File | null>(null);
   const [stagedPreviewUrl, setStagedPreviewUrl] = useState<string | null>(null);
+  const [effort, setEffort] = useState<Effort>(loadStoredEffort);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const stopWatch = useRef<(() => void) | null>(null);
+
+  function chooseEffort(v: Effort) {
+    setEffort(v);
+    try {
+      localStorage.setItem(EFFORT_STORAGE_KEY, v);
+    } catch {
+      /* a private window or blocked storage just means it resets next visit */
+    }
+  }
 
   useEffect(() => () => stopWatch.current?.(), []);
 
@@ -115,7 +141,7 @@ export default function Generate() {
       setText("");
       clearStagedImage();
       try {
-        const { problem_id, job_id } = await api.addProblemImage(file, { text: t, sectionId });
+        const { problem_id, job_id } = await api.addProblemImage(file, { text: t, sectionId, effort });
         begin(job_id, problem_id);
       } catch {
         setError("อัปโหลดรูปไม่สำเร็จ ลองใหม่อีกครั้ง");
@@ -124,11 +150,24 @@ export default function Generate() {
     }
     setText("");
     try {
-      const { problem_id, job_id } = await api.addProblem({ text: t, section_id: sectionId });
+      const { problem_id, job_id } = await api.addProblem({ text: t, section_id: sectionId, effort });
       begin(job_id, problem_id);
     } catch {
       setError("ส่งโจทย์ไม่สำเร็จ ลองใหม่อีกครั้ง");
     }
+  }
+
+  /** onChanged from ProblemArtifact (a delete, or now a revision) means
+   *  "re-fetch me" — this used to just clear `result`, which was correct for
+   *  a delete but would have wiped the very card a revision just updated
+   *  in place. Re-finding by id and only clearing if it's actually gone
+   *  handles both the same way every other screen's onChanged already does
+   *  (Library.tsx and friends re-fetch a whole list; this holds one item
+   *  instead of a list, so it re-fetches and picks that one item back out). */
+  async function refreshResult() {
+    if (!result) return;
+    const mine = await api.myProblems();
+    setResult(mine.find((p) => p.id === result.id) ?? null);
   }
 
   function onFileChosen(e: ChangeEvent<HTMLInputElement>) {
@@ -170,7 +209,7 @@ export default function Generate() {
                 ) : null}
                 {result ? (
                   <>
-                    <ProblemArtifact problem={result} isAdmin={false} isMine onChanged={() => setResult(null)} />
+                    <ProblemArtifact problem={result} isAdmin={false} isMine onChanged={() => void refreshResult()} />
                     <button
                       type="button"
                       className="ui-btn ui-btn-outline"
@@ -235,6 +274,7 @@ export default function Generate() {
                     : "พิมพ์โจทย์ที่นี่ หรือวางรูปภาพ (Ctrl+V / Cmd+V)"
                 }
               />
+              <EffortSelect value={effort} onChange={chooseEffort} options={GENERATE_EFFORT_OPTIONS} disabled={busy} />
               <button
                 type="button"
                 className="chat-input-send"

@@ -16,8 +16,9 @@
 import { useState } from "react";
 import { ArtifactCard, ArtifactViewer } from "./Artifact";
 import { MathText } from "./Math";
+import { EffortSelect } from "./ui";
 import { ReportSummary } from "../pages/chat/ReportSummary";
-import { api, pageKindOf, pageSrc, type ApiProblem, ApiError } from "../lib/api";
+import { api, pageKindOf, pageSrc, watchJob, type ApiProblem, type Effort, ApiError } from "../lib/api";
 import type { CheckRow } from "../checks";
 import globeUrl from "../icons/globe.svg";
 import globeOnPrimaryUrl from "../icons/globe-on-primary.svg";
@@ -30,9 +31,17 @@ const STAGE_LABEL: Record<string, string> = {
   queued: "เข้าคิวแล้ว",
   generating: "กำลังให้ AI เขียนหน้า",
   checking: "กำลังตรวจหน้าที่สร้าง",
+  revising: "กำลังแก้ไขหน้า",
   done: "เสร็จแล้ว",
   failed: "ไม่สำเร็จ",
 };
+
+// Ask defaults to low — a question answered strictly from stored page text
+// is not reasoning-heavy by design (see worker.py's TUTOR_SYSTEM_PROMPT).
+// Revise refuses low, same floor as fresh generation (see main.py's
+// _validate_effort) — a revision is a real generation-class model call.
+const ASK_EFFORT_OPTIONS = ["low", "high"] as const;
+const REVISE_EFFORT_OPTIONS = ["medium", "high"] as const;
 
 interface AskMessage {
   id: string;
@@ -124,6 +133,10 @@ function Expanded({
   const page = problem.page!;
   const src = page.html_path ? pageSrc(page.html_path, pageKindOf(page)) : undefined;
   const canReview = isAdmin && problem.scope === "global" && page.status === "ready";
+  // Personal content only, for now — global content is admin-managed and a
+  // revision of an approved page needs to go back through review before
+  // replacing what's published, which needs its own pass (see docs/BACKLOG.md).
+  const canRevise = isMine && problem.scope === "personal" && page.status === "ready";
   const [reviewing, setReviewing] = useState(false);
 
   async function decide(action: "approved" | "rejected", openedAt: number) {
@@ -176,7 +189,7 @@ function Expanded({
         isAdmin && problem.scope === "global" ? (
           page.checks ? <ReportSummary check={page.checks as CheckRow} /> : <p className="report-caveat">ยังไม่มีรายงานผลตรวจ</p>
         ) : canAsk ? (
-          <AskPanel pageId={page.id} />
+          <AskPanel pageId={page.id} sourceEffort={page.effort} canRevise={canRevise} onRevised={onChanged} />
         ) : undefined
       }
       asideLabel={isAdmin && problem.scope === "global" ? "รายงานการตรวจ" : "ถามคำถาม"}
@@ -216,47 +229,135 @@ function Expanded({
   );
 }
 
-function AskPanel({ pageId }: { pageId: string }) {
+/** Not keyed on pageId by the caller (see Expanded above) — a revision
+ *  changes pageId under this same mounted instance, on purpose, so the
+ *  conversation survives the page it was about being replaced. That's the
+ *  entire point of "fix it in the same thread": remounting on pageId change
+ *  would wipe the thread at exactly the moment the feature fires. */
+function AskPanel({
+  pageId,
+  sourceEffort,
+  canRevise,
+  onRevised,
+}: {
+  pageId: string;
+  sourceEffort: string | null;
+  /** Personal content at `ready` only — see Expanded's canRevise. When false
+   *  this renders byte-identical to the question-only panel from before
+   *  revision existed. */
+  canRevise: boolean;
+  /** Called once a personal revision lands, so the caller re-fetches and
+   *  this component's own `pageId` prop starts pointing at the new page. */
+  onRevised?: () => void;
+}) {
+  const [mode, setMode] = useState<"ask" | "revise">("ask");
   const [text, setText] = useState("");
   const [messages, setMessages] = useState<AskMessage[]>([]);
-  const [asking, setAsking] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [askEffort, setAskEffort] = useState<Effort>("low");
+  const [reviseEffort, setReviseEffort] = useState<Effort>(
+    sourceEffort === "medium" || sourceEffort === "high" ? sourceEffort : "high"
+  );
 
-  async function send(raw: string) {
-    const question = raw.trim();
-    if (!question || asking) return;
-    setText("");
+  function pushNotice(text: string) {
     askCounter += 1;
-    const uId = `u${askCounter}`;
-    setMessages((m) => [...m, { id: uId, role: "user", text: question }]);
-    setAsking(true);
+    setMessages((m) => [...m, { id: `n${askCounter}`, role: "assistant", notice: true, text }]);
+  }
+
+  async function ask(question: string) {
+    askCounter += 1;
+    setMessages((m) => [...m, { id: `u${askCounter}`, role: "user", text: question }]);
+    setBusy(true);
     try {
-      const res = await api.askPage(pageId, question);
+      const res = await api.askPage(pageId, question, askEffort);
       askCounter += 1;
       setMessages((m) => [...m, { id: `a${askCounter}`, role: "assistant", text: res.answer, cites: res.cites }]);
     } catch (err) {
       const status = err instanceof ApiError ? err.status : undefined;
-      askCounter += 1;
-      setMessages((m) => [
-        ...m,
-        {
-          id: `a${askCounter}`,
-          role: "assistant",
-          notice: true,
-          text: status === 409 ? "หน้านี้ยังถามไม่ได้ในตอนนี้" : "ระบบถาม-ตอบไม่พร้อมใช้งาน ลองใหม่อีกครั้ง",
-        },
-      ]);
+      pushNotice(status === 409 ? "หน้านี้ยังถามไม่ได้ในตอนนี้" : "ระบบถาม-ตอบไม่พร้อมใช้งาน ลองใหม่อีกครั้ง");
     } finally {
-      setAsking(false);
+      setBusy(false);
     }
+  }
+
+  async function revise(instruction: string) {
+    askCounter += 1;
+    setMessages((m) => [...m, { id: `u${askCounter}`, role: "user", text: `ขอให้แก้ไข: ${instruction}` }]);
+    setBusy(true);
+    try {
+      const { job_id } = await api.revisePage(pageId, instruction, reviseEffort);
+      askCounter += 1;
+      const statusId = `s${askCounter}`;
+      setMessages((m) => [...m, { id: statusId, role: "assistant", notice: true, text: "กำลังส่งให้ AI แก้ไข…" }]);
+      watchJob(
+        job_id,
+        (e) => {
+          const label = e.stage ? STAGE_LABEL[e.stage] ?? e.stage : null;
+          if (label) setMessages((m) => m.map((msg) => (msg.id === statusId ? { ...msg, text: label } : msg)));
+        },
+        (e) => {
+          setBusy(false);
+          if (e.state === "failed") {
+            setMessages((m) => m.map((msg) => (msg.id === statusId ? { ...msg, text: e.error || "แก้ไขไม่สำเร็จ ลองใหม่อีกครั้ง" } : msg)));
+            return;
+          }
+          setMessages((m) => m.map((msg) => (msg.id === statusId ? { ...msg, text: "อัปเดตหน้าแล้ว" } : msg)));
+          onRevised?.();
+        }
+      );
+    } catch (err) {
+      const status = err instanceof ApiError ? err.status : undefined;
+      pushNotice(status === 409 ? "หน้านี้ยังแก้ไขไม่ได้ในตอนนี้" : "ส่งคำขอแก้ไขไม่สำเร็จ ลองใหม่อีกครั้ง");
+      setBusy(false);
+    }
+  }
+
+  function send() {
+    const value = text.trim();
+    if (!value || busy) return;
+    setText("");
+    void (mode === "revise" ? revise(value) : ask(value));
   }
 
   return (
     <div className="ask-panel">
+      {canRevise ? (
+        <div className="ask-panel-mode" role="tablist">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mode === "ask"}
+            className={`ask-panel-mode-btn${mode === "ask" ? " ask-panel-mode-active" : ""}`}
+            onClick={() => setMode("ask")}
+          >
+            ถามคำถาม
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mode === "revise"}
+            className={`ask-panel-mode-btn${mode === "revise" ? " ask-panel-mode-active" : ""}`}
+            onClick={() => setMode("revise")}
+          >
+            ขอให้แก้ไขหน้านี้
+          </button>
+        </div>
+      ) : null}
       <div className="lesson-chat-messages">
-        {messages.length === 0 ? <p className="report-caveat">ถามอะไรก็ได้เกี่ยวกับข้อนี้</p> : null}
+        {messages.length === 0 ? (
+          <p className="report-caveat">
+            {mode === "revise" ? "บอกสิ่งที่อยากให้แก้ เช่น \"แก้ป้ายกำกับที่ทับกันในขั้นที่ 3\"" : "ถามอะไรก็ได้เกี่ยวกับข้อนี้"}
+          </p>
+        ) : null}
         {messages.map((m) => (
           <div key={m.id} className={m.role === "user" ? "chat-msg-user" : `chat-msg-assistant${m.notice ? " chat-msg-notice" : ""}`}>
-            {m.notice ? m.text : <MathText text={m.text} />}
+            {m.notice ? (
+              <>
+                {busy && messages[messages.length - 1]?.id === m.id ? <span className="spinner" /> : null} {m.text}
+              </>
+            ) : (
+              <MathText text={m.text} />
+            )}
             {!!m.cites?.length && (
               <div className="chat-cite-row">
                 <span className="chat-cite-label">อ้างอิง:</span>
@@ -269,27 +370,28 @@ function AskPanel({ pageId }: { pageId: string }) {
             )}
           </div>
         ))}
-        {asking ? (
-          <div className="chat-msg-assistant chat-msg-notice">
-            <span className="spinner" /> กำลังค้นคำตอบ…
-          </div>
-        ) : null}
       </div>
       <div className="ask-panel-input">
         <input
           className="chat-input-field"
           value={text}
-          placeholder="พิมพ์คำถาม…"
-          disabled={asking}
+          placeholder={mode === "revise" ? "อยากให้แก้อะไร…" : "พิมพ์คำถาม…"}
+          disabled={busy}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
-              void send(text);
+              send();
             }
           }}
         />
-        <button type="button" className="chat-input-send" disabled={!text.trim() || asking} onClick={() => void send(text)} aria-label="ส่ง">
+        <EffortSelect
+          value={mode === "revise" ? reviseEffort : askEffort}
+          onChange={mode === "revise" ? setReviseEffort : setAskEffort}
+          options={mode === "revise" ? REVISE_EFFORT_OPTIONS : ASK_EFFORT_OPTIONS}
+          disabled={busy}
+        />
+        <button type="button" className="chat-input-send" disabled={!text.trim() || busy} onClick={send} aria-label="ส่ง">
           <img src={sendUrl} alt="" width={18} height={18} />
         </button>
       </div>

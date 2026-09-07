@@ -19,9 +19,10 @@ into `published` the moment, and only the moment, a teacher approves it. A page
 this process finishes is a draft no student can reach by any URL until that
 happens, not merely one nothing links to.
 
-Two more job kinds live here, both added for the student/teacher-facing
-features below, and both call the model directly with google-genai rather than
-shelling out — there is nothing in kit/ for either of them to wrap:
+Three more job kinds live here, added for student/teacher-facing features
+below. `tutor_ask` calls the model directly with google-genai — there is
+nothing in kit/ for it to wrap. `revise` shells out to kit/generate.py same
+as `generate` does, just in a different mode:
 
 `generate` on an image-sourced problem hands the photograph straight to
 kit/generate.py via --image. There is no OCR step and no separate restatement
@@ -46,6 +47,16 @@ queued tutor_ask ahead of generate/recheck jobs so a chat question does not
 sit behind a 30-90 second page generation that happened to be queued first;
 it cannot preempt one already *running*, since this is still a single
 sequential worker.
+
+`revise` (see handle_revise() / kit/generate.py's --revise-from) fixes a page
+someone already has instead of starting over — the model gets the existing
+page's full HTML plus a change instruction and is told to change only what's
+asked, then the same check.mjs run a fresh generation gets. It is NOT given
+tutor_ask's queue-priority: a ~90s revision jumping ahead of a student's
+question is exactly the starvation that priority exists to prevent. Personal
+content only for now — see POST /pages/{page_id}/revise in apps/api/app/main.py
+and docs/BACKLOG.md for why global content's review-gate interaction is a
+separate pass, not a corner cut into this one.
 """
 from __future__ import annotations
 
@@ -76,6 +87,22 @@ MODEL = os.environ.get("GEN_MODEL", "gemini-3.8-flash")
 EFFORT = os.environ.get("GEN_EFFORT", "high")
 MAX_WORKERS = int(os.environ.get("WORKER_CONCURRENCY", "3"))
 POLL_SECONDS = 2
+
+# The kit's own vocabulary (packages/kit/generate.py's EFFORT dict) for the
+# one call here that talks to google-genai directly instead of shelling out
+# to that script — ask_tutor(). generate.py validates its own --effort
+# argument against its own copy of this map; this one only has to match it.
+THINKING_LEVEL = {"low": "LOW", "medium": "MEDIUM", "high": "HIGH"}
+
+
+def job_effort(job: Job, default: str) -> str:
+    """The effort a job's own request asked for (apps/api/app/main.py
+    validates it into progress_json before this ever runs), falling back to
+    `default` when the request didn't specify one. Never trusts an unknown
+    value even though the API already validates — a worker reading its own
+    queue should not crash a job over a row nothing here wrote."""
+    eff = (job.progress_json or {}).get("effort")
+    return eff if eff in THINKING_LEVEL else default
 
 
 def log(*a):
@@ -390,9 +417,12 @@ TUTOR_SYSTEM_PROMPT = """คุณคือ "ติวเตอร์" ที่
 ห้ามมีข้อความใดๆ นอกเหนือจากก้อน JSON นี้"""
 
 
-def ask_tutor(problem_text: str, ctx: dict, question: str) -> dict:
+def ask_tutor(problem_text: str, ctx: dict, question: str, effort: str = "low") -> dict:
     """One call, JSON-mode, parsed with json.loads only — never eval()/
-    sympify() on anything the model returns."""
+    sympify() on anything the model returns. `effort` defaults to low: a
+    question answered strictly from stored page text (TUTOR_SYSTEM_PROMPT
+    forbids anything else) is not a reasoning-heavy task, and low is what
+    this always ran at before effort became choosable per request."""
     client = genai_client()
     user_text = f"{_format_page_context(problem_text, ctx)}\n\nคำถามของนักเรียน: {question}"
     config = types.GenerateContentConfig(
@@ -401,7 +431,7 @@ def ask_tutor(problem_text: str, ctx: dict, question: str) -> dict:
         response_mime_type="application/json",
         safety_settings=_safety_off(),
         automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
-        thinking_config=types.ThinkingConfig(thinking_level="LOW"),
+        thinking_config=types.ThinkingConfig(thinking_level=THINKING_LEVEL.get(effort, "LOW")),
     )
     contents = [types.Content(role="user", parts=[types.Part.from_text(text=user_text)])]
 
@@ -426,7 +456,7 @@ def ask_tutor(problem_text: str, ctx: dict, question: str) -> dict:
     return {"answer": answer, "cites": cites}
 
 
-def run_generate(problem: Problem, out_dir: pathlib.Path, db, job: Job) -> pathlib.Path | None:
+def run_generate(problem: Problem, out_dir: pathlib.Path, db, job: Job, effort: str) -> pathlib.Path | None:
     """One problem through generate.py. Passed directly as CLI arguments so multiline
     text statements never get split by batch line parsers. For image problems,
     the image path is passed via --image to allow direct single-call multimodal
@@ -443,14 +473,14 @@ def run_generate(problem: Problem, out_dir: pathlib.Path, db, job: Job) -> pathl
     if not text and not image_args:
         raise RuntimeError("problem has neither text nor image")
 
-    set_stage(db, job, "generating", model=MODEL, effort=EFFORT)
+    set_stage(db, job, "generating", model=MODEL, effort=effort)
     cmd = [
         "python3", str(KIT / "generate.py"),
         text,
         "--id", problem.id,
         "--out", str(out_dir),
         "--model", MODEL,
-        "--effort", EFFORT,
+        "--effort", effort,
         "--jobs", "1",
     ]
     if problem.level:
@@ -464,6 +494,46 @@ def run_generate(problem: Problem, out_dir: pathlib.Path, db, job: Job) -> pathl
         raise RuntimeError((proc.stderr or proc.stdout)[-500:])
 
     page_file = out_dir / "pages" / f"{problem.id}.html"
+    return page_file if page_file.is_file() else None
+
+
+def run_revise(problem: Problem, source_html: pathlib.Path, instruction: str,
+               out_dir: pathlib.Path, db, job: Job, effort: str) -> pathlib.Path | None:
+    """A problem's existing page through generate.py's --revise-from mode
+    instead of a from-scratch one — see that script's build_revise_prompt().
+    Same id-and-directory shape as run_generate so run_check() below needs no
+    branching between the two; the pid just happens not to match any file
+    that will ever be written outside this one run directory."""
+    pid = f"{problem.id}-revise-{job.id}"
+    image_args: list[str] = []
+    if problem.source == "image" and problem.image_path:
+        img_p = STORAGE / problem.image_path
+        if img_p.is_file():
+            image_args = ["--image", str(img_p)]
+        # Unlike run_generate, a missing photo here is not fatal: the
+        # existing page's own HTML (already read in full) is still enough
+        # context for a revision, whereas a from-scratch generation with no
+        # image and no text has nothing to work from at all.
+
+    set_stage(db, job, "revising", model=MODEL, effort=effort)
+    cmd = [
+        "python3", str(KIT / "generate.py"),
+        "--revise-from", str(source_html),
+        "--instruction", instruction,
+        "--id", pid,
+        "--out", str(out_dir),
+        "--model", MODEL,
+        "--effort", effort,
+        "--jobs", "1",
+    ]
+    cmd += image_args
+
+    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
+    log(proc.stdout[-2000:])
+    if proc.returncode != 0:
+        raise RuntimeError((proc.stderr or proc.stdout)[-500:])
+
+    page_file = out_dir / "pages" / f"{pid}.html"
     return page_file if page_file.is_file() else None
 
 
@@ -488,10 +558,11 @@ def handle_generate(db, job: Job) -> None:
     if problem is None:
         raise RuntimeError(f"problem {job.target_id} is gone")
 
+    effort = job_effort(job, default=EFFORT)
     work = STORAGE / "runs" / job.id
     work.mkdir(parents=True, exist_ok=True)
 
-    page_file = run_generate(problem, work, db, job)
+    page_file = run_generate(problem, work, db, job, effort)
     if page_file is None:
         raise RuntimeError("generate produced no page")
 
@@ -522,7 +593,7 @@ def handle_generate(db, job: Job) -> None:
         problem_id=problem.id,
         kit_version=kit_version(),
         model=MODEL,
-        effort=EFFORT,
+        effort=effort,
         html_path=final_name,
         path_chosen="board" if "Shell.board(" in html else "svg",
         checks_json=checks,
@@ -584,8 +655,86 @@ def handle_tutor_ask(db, job: Job) -> None:
     problem_text = ((problem.extracted_text if problem else None)
                      or (problem.raw_text if problem else None) or "").strip()
 
-    result = ask_tutor(problem_text, ctx, question)
+    result = ask_tutor(problem_text, ctx, question, job_effort(job, default="low"))
     set_stage(db, job, "done", answer=result["answer"], cites=result["cites"])
+
+
+def handle_revise(db, job: Job) -> None:
+    """POST /pages/{page_id}/revise (apps/api/app/main.py) creates this job
+    with target_id=page_id and progress_json={instruction, effort,
+    problem_id}. Same re-check structure as handle_tutor_ask and for the same
+    reason: whatever main.py verified when it queued this job is a claim
+    about that moment, not about now.
+
+    Personal content only, matching the endpoint — see this function's
+    reasoning for why global revision isn't offered yet. The endpoint's own
+    guards (current page, no other live version, no in-flight job, chain
+    depth) are trusted here for cost — this only re-checks the two things
+    that can actually go stale between queueing and running: who's allowed to
+    see the result, and whether the source is still the current page."""
+    page = db.get(Page, job.target_id)
+    if page is None:
+        raise RuntimeError(f"page {job.target_id} is gone")
+    problem = db.get(Problem, page.problem_id) if page.problem_id else None
+    if problem is None or problem.scope != "personal" or problem.owner_id != job.requested_by:
+        raise RuntimeError("revising this page is not allowed")
+    if page.superseded_by is not None:
+        raise RuntimeError("a newer version of this page already exists")
+    instruction = ((job.progress_json or {}).get("instruction") or "").strip()
+    if not instruction:
+        raise RuntimeError("no instruction given")
+    if not page.html_path:
+        raise RuntimeError("page has no stored html")
+    source_html = STORAGE / page.html_path
+    if not source_html.exists():
+        # Never fall through to a from-scratch generation instead — the same
+        # reasoning as kit/generate.py's read_image() docstring: a run that
+        # silently does something other than what was asked, while still
+        # reporting success, is the worst available outcome.
+        raise RuntimeError(f"page html missing from storage: {source_html}")
+
+    effort = job_effort(job, default=page.effort or EFFORT)
+    work = STORAGE / "runs" / job.id
+    work.mkdir(parents=True, exist_ok=True)
+
+    page_file = run_revise(problem, source_html, instruction, work, db, job, effort)
+    if page_file is None:
+        raise RuntimeError("revise produced no page")
+
+    checks = run_check(page_file, db, job)
+    html = page_file.read_text(encoding="utf-8", errors="replace")
+
+    # Distinct filename, deliberately never problem.id.html: every generated
+    # page for a problem used to land on the exact same name, which would
+    # make a revision clobber the file the current page's own tutor chat and
+    # /drafts/ serving still read, and would make rejecting a bad revision of
+    # an approved page (once that exists — see docs/BACKLOG.md) delete the
+    # live published file out from under it.
+    n = db.query(Page).filter(Page.problem_id == problem.id).count()
+    final_name = f"{problem.id}-r{n}.html"
+    final = STORAGE / final_name
+    final.write_bytes(page_file.read_bytes())
+
+    new_page = Page(
+        problem_id=problem.id,
+        kit_version=kit_version(),
+        model=MODEL,
+        effort=effort,
+        html_path=final_name,
+        path_chosen="board" if "Shell.board(" in html else "svg",
+        checks_json=checks,
+        status="ready",
+    )
+    db.add(new_page)
+    db.flush()  # need new_page.id both for superseded_by and the SSE payload
+
+    # Currency transfers now, unconditionally, for personal content — it has
+    # no review gate at all (models.py's Review docstring), so `ready` is
+    # already as far as "done" gets, same as a fresh generation. Global
+    # content's approved case defers this (see docs/BACKLOG.md); unreachable
+    # here since this endpoint refuses non-personal content.
+    page.superseded_by = new_page.id
+    set_stage(db, job, "done", page_id=new_page.id)
 
 
 def claim_one(db) -> Job | None:
@@ -622,6 +771,8 @@ def process_job(job_id: str) -> None:
                 handle_generate(db, job)
             elif job.kind == "tutor_ask":
                 handle_tutor_ask(db, job)
+            elif job.kind == "revise":
+                handle_revise(db, job)
             else:
                 raise RuntimeError(f"unknown job kind {job.kind}")
             job.state = "done"

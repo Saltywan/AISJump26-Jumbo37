@@ -9,10 +9,22 @@
     uv run kit/generate.py "โจทย์..." --level ม.6 --effort high --label my-run
     uv run kit/generate.py --image photo.jpg            # a photographed problem
     uv run kit/generate.py --image photo.jpg "หามุม ABC" # plus a note from the teacher
+    uv run kit/generate.py --revise-from old.html --instruction "แก้ป้ายกำกับที่ทับกันในขั้นที่ 3"
 
 Assembles exactly the same prompt as `checks/run.sh` — the one-line role header
 from prompts/poc-original.th.txt, the problem, then prompts/shell-rules.th.txt
 verbatim — so pages made here are comparable with every archived run.
+
+--revise-from switches to a different mode entirely: instead of a fresh
+problem, an existing page's full HTML plus a change instruction (prompts/
+revise.th.txt in place of the "โจทย์:" section, see build_revise_prompt()).
+The model is told to change only what's asked and keep everything else
+identical, and still gets shell-rules.th.txt verbatim afterward — a revision
+is bound by the same rules and the same output contract as a from-scratch
+page, and check.mjs is exactly as capable of catching a "fix" that
+introduces a new label collision as it is a first draft that does. Mutually
+exclusive with -f (a revision is always exactly one page); --id defaults to
+the source file's stem when not given.
 
 Everything is kept: the prompt sent, the raw model output, the finished page.
 Two of the defects fixed in the shell were only diagnosable by reading what the
@@ -136,6 +148,27 @@ def build_prompt(problem: str, level: str | None, has_image: bool = False) -> st
     if level:
         parts.append(f"ระดับชั้น: {level}")
     return "\n".join(parts) + "\n" + rules
+
+
+def build_revise_prompt(instruction: str, existing_html: str) -> str:
+    """A "fix this page" prompt instead of a from-scratch one: the same role
+    header and the same shell-rules.th.txt verbatim (so a revision is still
+    comparable with every archived from-scratch run and still bound by the
+    same output contract), but with prompts/revise.th.txt's preamble in place
+    of build_prompt()'s "โจทย์:" section — the instruction and the existing
+    page's full HTML in place of the problem statement.
+
+    Deliberately does not re-send the original problem text or level: the
+    existing page's own Shell.page({problem}) call already carries that, and
+    the model reads the whole file. Re-stating it would just be a second,
+    possibly-drifted copy of information already in `existing_html`."""
+    header = (HERE / "prompts" / "poc-original.th.txt").read_text(
+        encoding="utf-8"
+    ).splitlines()[0]
+    preamble = (HERE / "prompts" / "revise.th.txt").read_text(encoding="utf-8")
+    rules = (HERE / "prompts" / "shell-rules.th.txt").read_text(encoding="utf-8")
+    body = preamble.format(instruction=instruction.strip(), existing_html=existing_html)
+    return "\n".join([header, "", body]) + "\n" + rules
 
 
 def strip_fences(text: str) -> str:
@@ -346,8 +379,12 @@ def call_with_backoff(client, model, prompt, effort, image_path: str | None = No
 
 
 def run_problem(client, model, effort, out: Path, pid: str,
-                problem: str, level: str | None, image_path: str | None = None) -> dict:
-    prompt = build_prompt(problem, level, has_image=bool(image_path))
+                problem: str, level: str | None, image_path: str | None = None,
+                revise_instruction: str | None = None, existing_html: str | None = None) -> dict:
+    if revise_instruction is not None:
+        prompt = build_revise_prompt(revise_instruction, existing_html)
+    else:
+        prompt = build_prompt(problem, level, has_image=bool(image_path))
     (out / "prompts" / f"p_{pid}.txt").write_text(prompt, encoding="utf-8")
 
     raw = call_with_backoff(client, model, prompt, effort, image_path)
@@ -392,7 +429,10 @@ def read_problems(args) -> list[tuple[str, str, str | None, str | None]]:
         return rows
     problem = args.problem if args.problem is not None else (sys.stdin.read() if not sys.stdin.isatty() else "")
     image_arg = getattr(args, "image", None)
-    if not problem.strip() and not image_arg:
+    # --revise-from supplies its own context (the existing page's full HTML,
+    # read in main() before this is called) — no separate problem statement
+    # is needed, and args.id is already defaulted from the source filename.
+    if not problem.strip() and not image_arg and not getattr(args, "revise_from", None):
         sys.exit("no problem given: pass it as an argument, with -f, --image, or on stdin")
     pid = args.id or re.sub(r"[^a-z0-9]+", "-", problem.strip()[:28].lower()).strip("-") or "page"
     return [(pid, problem, args.level, image_arg)]
@@ -405,6 +445,8 @@ def main() -> None:
     ap.add_argument("--id", help="page id for a single problem")
     ap.add_argument("--level", help="ระดับชั้น to pitch the explanation at, e.g. ม.4")
     ap.add_argument("--image", help="path to a problem image file")
+    ap.add_argument("--revise-from", help="path to an existing page's HTML to revise, instead of generating from scratch")
+    ap.add_argument("--instruction", help="what to change, required together with --revise-from")
     ap.add_argument("--model", default="gemini-3.8-flash",
                     help="a Gemini model name, or an OpenRouter slug "
                          "(anything containing '/', e.g. openai/gpt-5.6-terra) "
@@ -423,6 +465,27 @@ def main() -> None:
     ap.add_argument("--timeout", type=int, default=420,
                     help="seconds before a single generation is abandoned and retried")
     args = ap.parse_args()
+
+    existing_html: str | None = None
+    if args.revise_from:
+        if args.file:
+            sys.exit("--revise-from cannot be combined with -f/--file: a revision is always one page")
+        if not args.instruction or not args.instruction.strip():
+            sys.exit("--revise-from needs --instruction: what should change")
+        src = Path(args.revise_from)
+        if not src.is_file():
+            # Raises rather than falling through to a from-scratch generation
+            # for the same reason read_image() raises on a missing photo (see
+            # its docstring): a run that silently does something other than
+            # what was asked, while still reporting success, is the worst
+            # available outcome here.
+            sys.exit(f"--revise-from: no such file: {args.revise_from}")
+        existing_html = src.read_text(encoding="utf-8")
+        if not args.id:
+            args.id = src.stem
+    elif args.instruction:
+        sys.exit("--instruction only makes sense together with --revise-from")
+
     use_openrouter = is_openrouter_model(args.model)
 
     if use_openrouter:
@@ -455,7 +518,12 @@ def main() -> None:
     (out / "MODEL").write_text(
         f"{args.model} (thinking_level={EFFORT[args.effort]}, backend={backend})\n",
         encoding="utf-8")
-    if args.file:
+    if args.revise_from:
+        # The evidence trail for a revision is the instruction and which page
+        # it started from, not a problem statement — there isn't one.
+        (out / "problems.txt").write_text(
+            f"revise-from={args.revise_from}\ninstruction={args.instruction}\n", encoding="utf-8")
+    elif args.file:
         (out / "problems.txt").write_text(
             Path(args.file).read_text(encoding="utf-8"), encoding="utf-8")
     else:
@@ -486,7 +554,10 @@ def main() -> None:
     results = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, args.jobs)) as pool:
         futures = {
-            pool.submit(run_problem, client, args.model, args.effort, out, pid, prob, lvl, img): pid
+            pool.submit(
+                run_problem, client, args.model, args.effort, out, pid, prob, lvl, img,
+                args.instruction, existing_html,
+            ): pid
             for pid, prob, lvl, img in problems
         }
         for fut in concurrent.futures.as_completed(futures):

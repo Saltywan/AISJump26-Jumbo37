@@ -190,11 +190,14 @@ security boundary; the role picker on the login screen is a demo control.
 No CAS — the model computes its own arithmetic. This is the largest correctness
 gap in the product and nothing in the UI mitigates it.
 
-Chat follow-up replies beyond the initial generated problem stay local, and a
-follow-up cannot revise the page it followed — asking the model to fix or
-tune a generated solution in the same thread is not built. See
-`docs/BACKLOG.md` for what that needs (a `superseded_by` chain already exists
-in the schema for exactly this and nothing creates one yet).
+A follow-up CAN revise the page it followed now (`POST /pages/{id}/revise`,
+`Page.superseded_by` finally populated) — but personal content only. Global
+(library) content still cannot be revised in-app: it's admin-managed and has
+a review gate a revision would have to interact with correctly (does a
+revision of an approved page need to go back through review before replacing
+what's published, keeping the old page live meanwhile — yes, but that's its
+own pass). Chat itself is still not persisted server-side — see
+`docs/BACKLOG.md`.
 
 No suggested-question generation, quizzes, or weak/strong-point analysis.
 Also `docs/BACKLOG.md` — it depends on the section tree this pivot introduces.

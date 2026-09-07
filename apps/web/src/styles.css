@@ -1203,6 +1203,19 @@ button.chip {
 .ui-tab:hover { color: var(--ink); }
 .ui-tab-active { color: var(--ink); font-weight: 600; border-bottom-color: var(--primary); }
 
+/* Effort picker (components/ui.tsx's EffortSelect) — a tight pill group, not
+   full tabs: it sits inline in an input bar next to a send button, not on a
+   line of its own. */
+.ui-effort { display: inline-flex; gap: 2px; padding: 2px; border-radius: var(--radius-sm); background: var(--bg); border: 1px solid var(--rule); }
+.ui-effort-opt {
+  appearance: none; border: 0; background: none; border-radius: calc(var(--radius-sm) - 2px);
+  padding: 4px 10px; font-family: inherit; font-size: 12.5px; line-height: 1.4;
+  color: var(--ink-2); cursor: pointer; white-space: nowrap;
+}
+.ui-effort-opt:hover:not(:disabled) { color: var(--ink); }
+.ui-effort-opt:disabled { cursor: default; opacity: 0.6; }
+.ui-effort-opt-active { background: var(--card); color: var(--ink); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
+
 /* Page header ------------------------------------------------------------- */
 .ui-page-header { display: flex; align-items: center; justify-content: space-between; gap: var(--space-lg); }
 .ui-page-header-text { display: flex; flex-direction: column; gap: var(--space-2xs); }
@@ -2016,3 +2029,17 @@ button.chip {
 .ask-panel .lesson-chat-messages { flex: 1 1 auto; overflow-y: auto; }
 .ask-panel-input { flex: 0 0 auto; display: flex; align-items: center; gap: var(--space-sm); border-top: 1px solid var(--rule); padding-top: var(--space-md); }
 .ask-panel-input .chat-input-field { border: 1px solid var(--rule); border-radius: var(--radius); padding: var(--space-sm) var(--space-md); }
+
+/* Ask-vs-revise mode toggle — only rendered when the viewer is allowed to
+   revise (components/ProblemArtifact.tsx's AskPanel), so a question-only
+   panel never grows this row. Deliberately its own small tab strip rather
+   than .ui-tabs: full-size tabs are built for a whole screen's navigation,
+   this sits inside a side panel that's already tight on height. */
+.ask-panel-mode { flex: 0 0 auto; display: flex; gap: var(--space-2xs); border-bottom: 1px solid var(--rule); padding-bottom: var(--space-sm); }
+.ask-panel-mode-btn {
+  appearance: none; border: 0; background: none; border-radius: var(--radius-sm);
+  padding: var(--space-2xs) var(--space-sm); font-family: inherit; font-size: var(--text-body-sm);
+  color: var(--ink-2); cursor: pointer;
+}
+.ask-panel-mode-btn:hover { color: var(--ink); }
+.ask-panel-mode-active { background: var(--bg); color: var(--ink); font-weight: 600; }

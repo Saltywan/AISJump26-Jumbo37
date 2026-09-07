@@ -83,6 +83,11 @@ export interface ApiPage {
 
 export type Scope = "global" | "personal";
 
+/** The kit's own vocabulary (packages/kit/generate.py's EFFORT dict). "low"
+ *  is refused by the API for generation and revision (see main.py's
+ *  _validate_effort) — offered here only where the caller actually allows it. */
+export type Effort = "low" | "medium" | "high";
+
 export interface ApiSection {
   id: string;
   parent_id: string | null;
@@ -149,23 +154,24 @@ export const api = {
 
   /** Personal generation — the core loop. No section required; an unfiled
    *  problem lands in the caller's own inbox (see myProblems). */
-  addProblem: (body: { text: string; level?: string; section_id?: string }) =>
+  addProblem: (body: { text: string; level?: string; section_id?: string; effort?: Effort }) =>
     req<{ problem_id: string; job_id: string }>("/problems", {
       method: "POST",
       body: JSON.stringify(body),
     }),
 
-  addProblemImage: (file: File, opts?: { text?: string; level?: string; sectionId?: string }) => {
+  addProblemImage: (file: File, opts?: { text?: string; level?: string; sectionId?: string; effort?: Effort }) => {
     const form = new FormData();
     form.append("file", file);
     if (opts?.text?.trim()) form.append("text", opts.text.trim());
     if (opts?.level?.trim()) form.append("level", opts.level.trim());
     if (opts?.sectionId) form.append("section_id", opts.sectionId);
+    if (opts?.effort) form.append("effort", opts.effort);
     return reqForm<{ problem_id: string; job_id: string; image_path?: string }>("/problems/image", form);
   },
 
   /** Admin-only: files a problem straight into a global section. */
-  addGlobalProblem: (sectionId: string, body: { text: string; level?: string }) =>
+  addGlobalProblem: (sectionId: string, body: { text: string; level?: string; effort?: Effort }) =>
     req<{ problem_id: string; job_id: string }>(`/sections/${sectionId}/problems`, {
       method: "POST",
       body: JSON.stringify(body),
@@ -173,17 +179,22 @@ export const api = {
 
   /** Admin-only bulk import — a past-papers book is forty questions; adding
    *  them one at a time is the reason a global library stays empty. */
-  addGlobalProblemsBulk: (sectionId: string, items: { text: string; level?: string }[]) =>
+  addGlobalProblemsBulk: (sectionId: string, items: { text: string; level?: string; effort?: Effort }[]) =>
     req<{ problem_id: string; job_id: string }[]>(`/sections/${sectionId}/problems/bulk`, {
       method: "POST",
       body: JSON.stringify({ items }),
     }),
 
-  addGlobalProblemImage: (sectionId: string, file: File, opts?: { text?: string; level?: string }) => {
+  addGlobalProblemImage: (
+    sectionId: string,
+    file: File,
+    opts?: { text?: string; level?: string; effort?: Effort }
+  ) => {
     const form = new FormData();
     form.append("file", file);
     if (opts?.text?.trim()) form.append("text", opts.text.trim());
     if (opts?.level?.trim()) form.append("level", opts.level.trim());
+    if (opts?.effort) form.append("effort", opts.effort);
     return reqForm<{ problem_id: string; job_id: string; image_path?: string }>(
       `/sections/${sectionId}/problems/image`,
       form
@@ -212,10 +223,22 @@ export const api = {
    *  content — which has no review gate at all — only needs `ready`, and
    *  only for its own owner. 409 means the page isn't visible to ask about
    *  yet; show that as "not available", not a transient failure. */
-  askPage: (pageId: string, question: string) =>
+  askPage: (pageId: string, question: string, effort?: Effort) =>
     req<{ answer: string; cites: number[] }>(`/pages/${pageId}/ask`, {
       method: "POST",
-      body: JSON.stringify({ question }),
+      body: JSON.stringify({ question, effort }),
+    }),
+
+  /** "Fix this page" instead of asking about it — the model gets the page's
+   *  own HTML plus the instruction and changes only what's asked (see
+   *  packages/kit/generate.py's build_revise_prompt()), not a from-scratch
+   *  regeneration. Personal content only for now (see docs/BACKLOG.md).
+   *  Asynchronous like addProblem, not synchronous like askPage — a revision
+   *  is a real generation-class model call; watch it with watchJob(). */
+  revisePage: (pageId: string, instruction: string, effort?: Effort) =>
+    req<{ job_id: string; from_page_id: string }>(`/pages/${pageId}/revise`, {
+      method: "POST",
+      body: JSON.stringify({ instruction, effort }),
     }),
 };
 

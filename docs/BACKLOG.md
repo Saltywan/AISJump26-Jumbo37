@@ -6,42 +6,81 @@ nowhere gets forgotten right up until someone hits it in front of a user.
 Nothing in this file is scheduled — see `CLAUDE.md`'s "Not built, and
 deliberately so" for the short version, this file for the reasoning.
 
-## Chat history moves server-side, and becomes two-way
+## Revision: shipped for personal content; global is still open
 
-Today a generation thread — the messages, not the `Problem`/`Page` rows it
-produced — lives in `localStorage` (`apps/web/src/lib/chat.ts`). That was fine
-when a teacher generated on one machine in one sitting. It stops being fine the
-moment a personal library is expected to follow a user across devices, which
-the section pivot's auth work already commits to for `Problem`/`Page`. Right
-now those two move server-side while the chat wrapped around them does not —
-a user's *generated pages* would follow them to a new browser, their
-*conversation about* those pages would not. That mismatch is the first thing
-this work has to resolve, not an afterthought once the table exists.
+`POST /pages/{page_id}/revise` now does exactly what the previous version of
+this section sketched: the model gets the existing page's full HTML plus a
+change instruction (`kit/generate.py --revise-from`, `build_revise_prompt()`
+in the research repo), told to change only what's asked rather than start
+over, `check.mjs` runs on the result exactly as it does for a fresh page, and
+the new `Page` lands with `superseded_by` pointing at the one it replaced —
+that column finally has something writing to it. Verified on a real golden
+page: asked to add missing `why` lines, the diff against the source was
+exactly those two lines, nothing else moved.
 
-**The harder half of this isn't storage, it's a second capability: asking the
-model to fix or tune a page you already have, in the same thread.** Today
-generation is one-shot — one message in, one page out, and any follow-up
-message in the chat is decorative (see the line in `CLAUDE.md` this backlog
-item replaces). The schema is already halfway prepared for the real version:
-`Page.superseded_by` exists specifically so a re-run does not destroy the page
-it replaces, it currently just has nothing that creates one. A "fix step 3" or
-"make the diagram bigger" message would:
+**Scoped to personal content only, on purpose, not as an oversight.** Global
+(library) content is admin-managed and has a review gate a revision has to
+interact with correctly:
 
-1. write a `ChatMessage` row into whatever table this becomes,
-2. queue a `Job` whose prompt includes the prior page's source and the user's
-   instruction — not a fresh `generate.py` call, closer to what `handle_tutor_ask`
-   already does by reading `extract_page_context()` out of stored HTML, except
-   the output this time is a new page, not an answer,
-3. land a new `Page` row with `superseded_by` pointing back at the one it
-   replaced, so the history is a chain, not an overwrite,
-4. re-run `check.mjs` on the new page exactly as a fresh generation does — a
-   "fix" that introduces a new label collision is exactly the failure mode the
-   checker exists to catch, and it must not get a pass just because it started
-   from a working page.
+- A non-admin cannot revise global content at all today (nothing lets one
+  write to it in the first place). Whether that should change — a "suggest a
+  fix" flow open to any user, say — is a separate, undecided product
+  question, not a technical one; asked back to the user 2026-09-07 and left
+  open ("this needs more discussion and testing").
+- An admin revising an *approved* global page needs the revision to go back
+  through review before it replaces what's published, with the old page
+  staying live and askable in the meantime — deferred superseding
+  (`source.superseded_by` only set once the successor is itself approved,
+  not at `ready`), plus a way for the review queue to find a pending revision
+  of a page that already has a *different* current version showing as
+  approved (today every list endpoint reads only the single current page).
+  None of that exists yet.
+- Filenames matter here: every page for a problem used to land on
+  `<problem_id>.html`; a revision writes `<problem_id>-r<n>.html` specifically
+  so a rejected revision's cleanup can never delete the file an approved page
+  (or the tutor chat, or `/drafts/`) is still reading.
 
-This wants its own prompt in the kit (a "revise this page against this
-instruction" mode, not the from-scratch one), which is upstream work in
-`~/Dev/JumpAIS`, not something to improvise inside the service.
+**Chat itself is still not persisted server-side.** A revision's instruction
+and result live in the `Job` row that produced them (durable, but not a
+conversation), and the tutor Q&A around a page still lives only in the
+browser tab's React state, gone on refresh — see the "Real chat log" item
+below. Building revision first, rather than the message table this section
+used to plan around, was deliberate: the correct key for that table is
+`problem_id`, not `page_id` (a revision produces a new `Page`, so a thread
+keyed on the page fragments the moment revision is actually used), and that
+was only learned by shipping revision — designing the table first would have
+meant designing it against a key this proved wrong.
+
+## Real chat log
+
+Both the tutor Q&A and revision instructions/results are ephemeral from the
+frontend's point of view — `AskPanel` (`components/ProblemArtifact.tsx`) is
+plain `useState`, gone on close or refresh. A `ChatMessage`-shaped table would
+fix this, keyed on `problem_id` (see above), and would need to decide: does
+an admin see other users' threads on a global page; is a persisted tutor
+*answer* (unreviewed model text) a durable artifact this app now serves; what
+happens to a thread when its problem is deleted.
+
+## Effort selection
+
+Shipped for both generation and questions/revisions — `effort` is an optional
+field on every problem-creation and `/ask`/`/revise` request body, threaded
+through `Job.progress_json` (no schema column; `create_all` never migrates an
+existing table, so the transport had to fit inside something that already
+existed). Generation and revision both refuse `"low"` — see `kit/CLAUDE.md`'s
+measured medium-vs-high comparison, which never tested low, and the shipped
+default is high. A tutor question defaults to low, matching what it always
+ran at before this was choosable — a question answered strictly from stored
+page text is not a reasoning-heavy task by design (`TUTOR_SYSTEM_PROMPT`
+forbids it from doing anything else). A revision defaults to inheriting the
+*source page's* recorded effort rather than always high, so a small fix on a
+medium-effort page doesn't silently get more expensive and a fix on a
+high-effort page doesn't silently get worse.
+
+Not done: no UI control for it yet on Generate.tsx or AskPanel (the API and
+worker both support it; nothing in the frontend offers picking it). No
+per-effort latency measurement — the generation-latency section below still
+only has one number, at high.
 
 ## Generation latency
 

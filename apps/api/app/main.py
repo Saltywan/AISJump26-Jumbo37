@@ -66,6 +66,34 @@ PUBLISHED_DIR = pathlib.Path(os.environ.get("PUBLISHED_DIR", "/published"))
 # exam book this was checked against.
 MAX_SECTION_DEPTH = 2
 
+# The kit's own vocabulary (kit/generate.py's EFFORT dict) — this API never
+# invents a fourth level, it only decides which of these three a given
+# request is allowed to ask for.
+ALLOWED_EFFORTS = ("low", "medium", "high")
+
+# A revision is a full generation-class model call (packages/kit/CLAUDE.md:
+# ~90s, real cost), not the light lookup a tutor question is — same floor as
+# fresh generation, for the same reason (see _validate_effort below).
+MAX_REVISIONS_PER_PROBLEM = 10
+
+
+def _validate_effort(effort: Optional[str], *, allow_low: bool) -> Optional[str]:
+    """None passes through unchanged — it means "let the worker fall back to
+    its own default" (the GEN_EFFORT env var), same as before this existed.
+
+    allow_low=False on every generation-class endpoint (fresh generation and
+    revision): packages/kit/CLAUDE.md's medium-vs-high comparison (23 vs 35
+    collisions, 1680 vs 1133 animated strokes, 268 vs 218 why-lines, over the
+    full 68-problem bank) never tested low, and the project's own shipped
+    default is high. A tutor question is a light, page-text-only lookup by
+    design (see worker.py's TUTOR_SYSTEM_PROMPT) and defaults to low."""
+    if effort is None:
+        return None
+    allowed = ALLOWED_EFFORTS if allow_low else tuple(e for e in ALLOWED_EFFORTS if e != "low")
+    if effort not in allowed:
+        raise HTTPException(400, f"effort must be one of: {', '.join(allowed)}")
+    return effort
+
 
 def _ensure_lib_link() -> None:
     """Generated pages load ./lib/shell.js relative to themselves. In the pages
@@ -174,11 +202,14 @@ class SectionUpdateIn(BaseModel):
 
 class ProblemIn(BaseModel):
     """A personal problem as text — the core loop. `section_id` is optional:
-    an unfiled problem lands in the caller's inbox (see GET /problems/mine)."""
+    an unfiled problem lands in the caller's inbox (see GET /problems/mine).
+    `effort` is optional — None lets the worker fall back to its own default
+    (see _validate_effort); "low" is refused for generation."""
 
     text: str
     level: Optional[str] = None
     section_id: Optional[str] = None
+    effort: Optional[str] = None
 
 
 class GlobalProblemIn(BaseModel):
@@ -188,6 +219,7 @@ class GlobalProblemIn(BaseModel):
 
     text: str
     level: Optional[str] = None
+    effort: Optional[str] = None
 
 
 class BulkProblemsIn(BaseModel):
@@ -202,6 +234,17 @@ class ReviewIn(BaseModel):
 
 class AskIn(BaseModel):
     question: str
+    effort: Optional[str] = None
+
+
+class ReviseIn(BaseModel):
+    """"Fix this page" instead of a fresh question — see POST /pages/{id}/revise.
+    `effort` defaults to the page's own recorded effort when not given (see
+    that endpoint): a small fix on a high-effort page should not silently
+    downgrade it."""
+
+    instruction: str
+    effort: Optional[str] = None
 
 
 # Accepted image types for the two image-upload endpoints, mapped to the
@@ -676,7 +719,20 @@ def delete_section(section_id: str, user: User = Depends(current_user), db: Sess
         raise HTTPException(404, "no such section")
     _require_section_write(s, user)
 
-    for prob in _collect_problems(s):
+    problems = _collect_problems(s)
+    # Null every one of these problems' pages' self-FK first, as its own bulk
+    # UPDATE, flushed before any delete is even queued. Page.superseded_by has
+    # no relationship() mapping for the ORM's unit-of-work to order a cascade
+    # delete by, so once a revision chain exists (see POST /pages/{id}/revise)
+    # letting the delete and the FK-null compete for ordering in the same
+    # flush is exactly the kind of thing that works until the day it doesn't.
+    # A separate, already-flushed statement sidesteps ordering entirely.
+    page_ids = [page.id for prob in problems for page in prob.pages]
+    if page_ids:
+        db.query(Page).filter(Page.id.in_(page_ids)).update({"superseded_by": None}, synchronize_session=False)
+        db.flush()
+
+    for prob in problems:
         if prob.scope == "global":
             for page in prob.pages:
                 _unpublish_page_file(page.html_path)
@@ -708,6 +764,7 @@ def add_problem(body: ProblemIn, user: User = Depends(current_user), db: Session
         if section.scope != "personal" or section.owner_id != user.id:
             raise HTTPException(403, "not your section")
 
+    effort = _validate_effort(body.effort, allow_low=False)
     n = db.query(Problem).filter(Problem.owner_id == user.id).count()
     prob = Problem(
         section_id=section.id if section else None,
@@ -721,7 +778,8 @@ def add_problem(body: ProblemIn, user: User = Depends(current_user), db: Session
     )
     db.add(prob)
     db.flush()
-    job = Job(kind="generate", target_id=prob.id, state="queued")
+    job = Job(kind="generate", target_id=prob.id, state="queued",
+              progress_json={"effort": effort} if effort else None)
     db.add(job)
     db.commit()
     return {"problem_id": prob.id, "job_id": job.id}
@@ -749,6 +807,7 @@ async def add_problem_image(
     text: Optional[str] = Form(None),
     level: Optional[str] = Form(None),
     section_id: Optional[str] = Form(None),
+    effort: Optional[str] = Form(None),
     user: User = Depends(current_user),
     db: Session = Depends(get_session),
 ):
@@ -767,6 +826,7 @@ async def add_problem_image(
         if section.scope != "personal" or section.owner_id != user.id:
             raise HTTPException(403, "not your section")
 
+    eff = _validate_effort(effort, allow_low=False)
     data, ext = await _read_image_upload(file)
     n = db.query(Problem).filter(Problem.owner_id == user.id).count()
     prob = Problem(
@@ -788,7 +848,8 @@ async def add_problem_image(
     dest.write_bytes(data)
     prob.image_path = rel_path
 
-    job = Job(kind="generate", target_id=prob.id, state="queued")
+    job = Job(kind="generate", target_id=prob.id, state="queued",
+              progress_json={"effort": eff} if eff else None)
     db.add(job)
     db.commit()
     return {"problem_id": prob.id, "job_id": job.id, "image_path": rel_path}
@@ -805,6 +866,7 @@ def add_global_problem(
         raise HTTPException(404, "no such section")
     if section.scope != "global":
         raise HTTPException(400, "not a global section")
+    effort = _validate_effort(body.effort, allow_low=False)
     n = db.query(Problem).filter(Problem.section_id == section_id).count()
     prob = Problem(
         section_id=section.id,
@@ -818,7 +880,8 @@ def add_global_problem(
     )
     db.add(prob)
     db.flush()
-    job = Job(kind="generate", target_id=prob.id, state="queued")
+    job = Job(kind="generate", target_id=prob.id, state="queued",
+              progress_json={"effort": effort} if effort else None)
     db.add(job)
     db.commit()
     return {"problem_id": prob.id, "job_id": job.id}
@@ -840,6 +903,7 @@ def add_global_problems_bulk(
         raise HTTPException(400, "no problems given")
     if any(not item.text.strip() for item in body.items):
         raise HTTPException(400, "every problem needs text")
+    efforts = [_validate_effort(item.effort, allow_low=False) for item in body.items]
     n = db.query(Problem).filter(Problem.section_id == section_id).count()
     out = []
     for i, item in enumerate(body.items):
@@ -855,7 +919,8 @@ def add_global_problems_bulk(
         )
         db.add(prob)
         db.flush()
-        job = Job(kind="generate", target_id=prob.id, state="queued")
+        job = Job(kind="generate", target_id=prob.id, state="queued",
+                  progress_json={"effort": efforts[i]} if efforts[i] else None)
         db.add(job)
         out.append({"problem_id": prob.id, "job_id": job.id})
     db.commit()
@@ -868,6 +933,7 @@ async def add_global_problem_image(
     file: UploadFile = File(...),
     text: Optional[str] = Form(None),
     level: Optional[str] = Form(None),
+    effort: Optional[str] = Form(None),
     admin: User = Depends(require_admin),
     db: Session = Depends(get_session),
 ):
@@ -877,6 +943,7 @@ async def add_global_problem_image(
     if section.scope != "global":
         raise HTTPException(400, "not a global section")
 
+    eff = _validate_effort(effort, allow_low=False)
     data, ext = await _read_image_upload(file)
     n = db.query(Problem).filter(Problem.section_id == section_id).count()
     prob = Problem(
@@ -898,7 +965,8 @@ async def add_global_problem_image(
     dest.write_bytes(data)
     prob.image_path = rel_path
 
-    job = Job(kind="generate", target_id=prob.id, state="queued")
+    job = Job(kind="generate", target_id=prob.id, state="queued",
+              progress_json={"effort": eff} if eff else None)
     db.add(job)
     db.commit()
     return {"problem_id": prob.id, "job_id": job.id, "image_path": rel_path}
@@ -959,6 +1027,14 @@ def delete_problem(problem_id: str, user: User = Depends(current_user), db: Sess
             raise HTTPException(403, "admin only")
     elif prob.owner_id != user.id:
         raise HTTPException(403, "not your problem")
+
+    # Null the self-FK first, as its own flushed statement — see
+    # delete_section's identical comment for why this can't just be an
+    # attribute set inside the same flush as the deletes below.
+    page_ids = [page.id for page in prob.pages]
+    if page_ids:
+        db.query(Page).filter(Page.id.in_(page_ids)).update({"superseded_by": None}, synchronize_session=False)
+        db.flush()
 
     for page in prob.pages:
         _unpublish_page_file(page.html_path)
@@ -1033,6 +1109,7 @@ def ask_page(page_id: str, body: AskIn, user: User = Depends(current_user), db: 
     question = (body.question or "").strip()
     if not question:
         raise HTTPException(400, "question is required")
+    effort = _validate_effort(body.effort, allow_low=True)
 
     # requested_by lets handle_tutor_ask (apps/worker/worker.py) re-check WHO
     # is allowed to see the answer it's about to write, not just whether the
@@ -1044,7 +1121,7 @@ def ask_page(page_id: str, body: AskIn, user: User = Depends(current_user), db: 
         target_id=page.id,
         requested_by=user.id,
         state="queued",
-        progress_json={"question": question},
+        progress_json={"question": question, "effort": effort},
     )
     db.add(job)
     db.commit()
@@ -1058,6 +1135,80 @@ def ask_page(page_id: str, body: AskIn, user: User = Depends(current_user), db: 
 
     progress = result.progress_json or {}
     return {"answer": progress.get("answer") or "", "cites": progress.get("cites") or []}
+
+
+@app.post("/pages/{page_id}/revise", status_code=202)
+def revise_page(page_id: str, body: ReviseIn, user: User = Depends(current_user), db: Session = Depends(get_session)):
+    """"Fix this page" instead of asking about it — the model gets the page's
+    own full HTML plus the instruction and is told to change only what's
+    asked (see packages/kit/generate.py's build_revise_prompt()), not
+    regenerate from scratch. Runs a real generation-class model call
+    (~90s, see docs/BACKLOG.md's measurement) so this is asynchronous like
+    POST /problems, not synchronous like /ask — the caller watches it with
+    the same GET /jobs/{id}/events SSE stream a fresh generation uses.
+
+    Personal content only for now. Global content is admin-managed and has a
+    review gate an in-place revision would have to interact with correctly
+    (does a revision of an approved page need to go back through review
+    before replacing what's published, keeping the old one live meanwhile —
+    yes, but that needs its own pass, not a corner cut into this one) — see
+    docs/BACKLOG.md."""
+    page = db.get(Page, page_id)
+    if page is None:
+        raise HTTPException(404, "no such page")
+    prob = db.get(Problem, page.problem_id)
+    if not _page_visible(page, prob, user):
+        raise HTTPException(404, "no such page")
+    if prob is None or prob.scope != "personal" or prob.owner_id != user.id:
+        raise HTTPException(403, "revising global content isn't available yet — see docs/BACKLOG.md")
+    if page.status not in ("ready", "approved", "rejected"):
+        raise HTTPException(409, {"error": "page isn't finished generating yet"})
+    if page.superseded_by is not None:
+        raise HTTPException(409, {"error": "a newer version of this page already exists"})
+    if not page.html_path:
+        raise HTTPException(409, {"error": "page has no stored html to revise"})
+
+    instruction = (body.instruction or "").strip()
+    if not instruction:
+        raise HTTPException(400, "instruction is required")
+
+    live_pages = db.query(Page).filter(Page.problem_id == prob.id, Page.superseded_by.is_(None)).count()
+    if live_pages > 1:
+        # Only reachable once global revision exists (deferred superseding on
+        # an approved page can leave an old-and-a-pending-revision both live)
+        # — unreachable today since personal content always supersedes
+        # immediately, but the guard costs nothing and documents the
+        # invariant for when that changes.
+        raise HTTPException(409, {"error": "this problem already has a pending revision"})
+    total_pages = db.query(Page).filter(Page.problem_id == prob.id).count()
+    if total_pages >= MAX_REVISIONS_PER_PROBLEM:
+        raise HTTPException(409, {"error": f"a problem can be revised at most {MAX_REVISIONS_PER_PROBLEM} times"})
+
+    # generate jobs key on target_id == the problem directly; revise jobs key
+    # on target_id == the PAGE being revised, so the problem id is denormalised
+    # into progress_json instead (see the Job created below) — filtered in
+    # Python rather than a JSON-path SQL comparison, since the queued/running
+    # set at this scale is always tiny and a plain equality check on parsed
+    # JSON is far less fragile across JSON vs JSONB column behaviour.
+    active = db.query(Job).filter(Job.kind.in_(("generate", "revise")), Job.state.in_(("queued", "running"))).all()
+    for j in active:
+        if (j.kind == "generate" and j.target_id == prob.id) or (
+            j.kind == "revise" and (j.progress_json or {}).get("problem_id") == prob.id
+        ):
+            raise HTTPException(409, {"error": "this problem already has a generation in progress"})
+
+    effort = _validate_effort(body.effort, allow_low=False) or page.effort
+
+    job = Job(
+        kind="revise",
+        target_id=page.id,
+        requested_by=user.id,
+        state="queued",
+        progress_json={"instruction": instruction, "effort": effort, "problem_id": prob.id},
+    )
+    db.add(job)
+    db.commit()
+    return {"job_id": job.id, "from_page_id": page.id}
 
 
 def _publish_page_file(html_path: Optional[str]) -> None:
@@ -1152,17 +1303,18 @@ def review_page(page_id: str, body: ReviewIn, admin: User = Depends(require_admi
 
 def _job_visible(db: Session, job: Job, user: User) -> bool:
     """A job's `progress_json` can hold real content — a tutor_ask's question
-    and answer, in particular (see handle_tutor_ask in apps/worker/worker.py)
-    — so this needs the same ownership check page reads get, not just "is
-    signed in". `target_id` means a different table depending on `kind`:
-    a Problem for `generate`, a Page for `tutor_ask` (whose own visibility in
-    turn depends on its Problem — see _page_visible)."""
+    and answer, or a revise's instruction, in particular (see
+    handle_tutor_ask/handle_revise in apps/worker/worker.py) — so this needs
+    the same ownership check page reads get, not just "is signed in".
+    `target_id` means a different table depending on `kind`: a Problem for
+    `generate`, a Page for `tutor_ask` and `revise` alike (whose own
+    visibility in turn depends on its Problem — see _page_visible)."""
     if user.role == "admin":
         return True
     if job.kind == "generate":
         prob = db.get(Problem, job.target_id)
         return prob is None or prob.scope == "global" or prob.owner_id == user.id
-    if job.kind == "tutor_ask":
+    if job.kind in ("tutor_ask", "revise"):
         page = db.get(Page, job.target_id)
         if page is None:
             return True
