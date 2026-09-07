@@ -6,14 +6,14 @@ Produced by kit/sync-to-app.sh in the research repo — do not hand-edit this
 file or the files beside it; re-run that script instead. Verify with
 packages/kit/check-version.sh in this repo.
 
-source-commit: 664fd79bd2b7e7c4d0b19b3edb2f406feb4de056
-source-date:   2026-09-05
-synced:        2026-09-04 20:00:35 UTC
+source-commit: 72c4a758a459e021dd14f228396501fca558faff
+source-date:   2026-09-06
+synced:        2026-09-06 07:54:45 UTC
 tree:          clean
 
-shell.js:            sha256:0fe9ef683736e07db811239cf9ce3d5e383ebe560462bdd252f98a228a22b028
-shell.css:           sha256:a63921e85e807f0f8823b1dcfaba40520c9a26ae1243a9602950e2b1a276c123
-shell-rules.th.txt:  sha256:0795455125268c3950e76e3cc3c38f08a317cb4f58a76f69522daa0498d5d46d
+shell.js:            sha256:b406997c85dc597d0af2c626c5c5aa4cbf3997cc2f486761efb8aa64acc6719c
+shell.css:           sha256:418588a8ef4b129aec46aed2ab9ce5691eeae885bea93eafc10dfa6bb456cdec
+shell-rules.th.txt:  sha256:f580e077caf4fcded068c5926ab8a061ed2408c6e5b36f8e98cffc6474ca93f9
 poc-original.th.txt: sha256:e06ecaef250bd63bee48f1e216a3c1256b4b8f0c0280b129a2e2743a83e5a305
 check.mjs:           sha256:941b6af3d57d0c88a6e535becf76fa11fd9d086cb960a360340841a76ce0ba4c
 generate.py:         sha256:c34ce0f17d12e286b3d4c3fae620d7f3dca4ff994f9736a98450c0cedff5a174

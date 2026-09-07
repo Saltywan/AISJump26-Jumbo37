@@ -729,6 +729,7 @@
       try { checks.latex = lintLatex(); } catch (e) { checks.latex = null; }
       try { checks.jsx = lintJsx(); } catch (e) { checks.jsx = null; }
       try { checks.drawn = armStrokeDraw(); } catch (e) { checks.drawn = 0; }
+      try { checks.staggered = armLabelStagger(); } catch (e) { checks.staggered = 0; }
       try { checks.contrast = scanContrast(state.stage).slice(0, 6); }
       catch (e) { checks.contrast = []; }
       root.__shellCheck = checks;
@@ -2190,6 +2191,38 @@
         });
       });
     }
+    return n;
+  }
+
+  /* Shell.go() flips every label's and table's opacity unconditionally on
+     every call, with no per-element stagger, so a step with five labels
+     snapped all five in at once — exactly the "too dense, all at once"
+     failure armStrokeDraw() already fixes for drawn geometry. Same fix here:
+     each top-level label/tag/table/matrix/mark gets a transitionDelay based
+     on its order of creation within its own step, capped so a busy step
+     still settles inside its dwell. Cell labels inside a table or matrix are
+     skipped — their own opacity never toggles, only their parent group's
+     does, so staggering them would just dilute the ordering of the things
+     that actually move. */
+  function armLabelStagger() {
+    if (reduced() || !state.root) return 0;
+    var n = 0, order = {};
+    var stagger = function (g, born) {
+      if (!g) return;
+      var i = order[born] || 0;
+      g.style.transitionDelay = Math.min(900, i * 110) + 'ms';
+      order[born] = i + 1;
+      n++;
+    };
+    /* inGrid(), not a bare closest() call: it guards against a label whose
+       node has no closest(), and one throw in here would be swallowed by the
+       caller's try/catch and report zero staggered labels on a page where
+       every one of them should have been. */
+    state.labels.forEach(function (L) {
+      if (inGrid(L)) return;
+      stagger(L.g, L.born);
+    });
+    state.tables.forEach(function (t) { stagger(t.g, t.born); });
     return n;
   }
 

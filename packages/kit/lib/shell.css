@@ -165,7 +165,7 @@ body{background:var(--sh-bg);color:var(--sh-ink);
 .sh-btn[disabled]{opacity:.4;cursor:default;filter:none}
 .sh-step{cursor:pointer}
 .sh-step:focus-visible{outline:3px solid var(--sh-work);outline-offset:2px}
-.sh-stage [data-label]{transition:opacity .25s ease}
+.sh-stage [data-label],.sh-stage [data-table],.sh-stage [data-matrix]{transition:opacity .25s ease}
 .sh-btn{appearance:none;border:1px solid var(--sh-given);background:var(--sh-given);color:#fff;
   font-family:inherit;font-size:15px;font-weight:600;padding:9px 18px;border-radius:var(--sh-radius);
   cursor:pointer}
@@ -184,7 +184,7 @@ body{background:var(--sh-bg);color:var(--sh-ink);
   border-radius:var(--sh-radius);padding:11px 16px;font-weight:600}
 
 @media (prefers-reduced-motion:reduce){
-  .sh-step,.sh-answer,.sh-reveal{transition:none}
+  .sh-step,.sh-answer,.sh-reveal,[data-label],[data-table],[data-matrix]{transition:none}
 }
 
 /* KaTeX ships Latin-only faces. Thai inside \text{} therefore falls back to
