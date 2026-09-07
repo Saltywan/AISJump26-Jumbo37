@@ -1,11 +1,14 @@
-/* Styling that's new for CreationModals.tsx and doesn't belong in
- * src/styles.css (owned by another agent on this pass — see that file's own
- * header comment). Everything else these modals use — modal-scrim/modal-card
- * from the delete-confirmation dialog, ui-field/ui-input/ui-btn from the
- * primitives, ui-stack for the field list, classroom-settings-actions for the
- * cancel/submit row — already exists and is reused as-is, on purpose: two
- * modals that use the app's real classes read as part of the same product,
- * not a bolted-on dialog kit.
+/* Styling for the section-creation form (components/SectionModals.tsx) that
+ * doesn't belong in src/styles.css. Everything else that modal uses —
+ * modal-scrim/modal-card from the delete-confirmation dialog, ui-field/
+ * ui-input/ui-btn from the primitives, ui-stack for the field list,
+ * classroom-settings-actions for the cancel/submit row (named for the
+ * classroom-era screen that first needed it; the row itself is generic) —
+ * already exists and is reused as-is, on purpose: a dialog built from the
+ * app's real classes reads as part of the same product, not a bolted-on
+ * dialog kit. (Filename predates the section pivot — the classroom/lesson
+ * creation modals it originally styled are archived on
+ * archive/b2b-classroom-poc; not renamed since nothing else needed to change.)
  *
  * Tokens (--ink, --space-*, --danger-text, --radius, --rule, --font) come
  * from styles.css's own :root block; this file only ever reads them, never

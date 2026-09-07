@@ -1,88 +1,91 @@
-/* Login, from Figma node 60:7141.
+/* Login, from Figma node 60:7141 — reproduced as designed, minus the "Sign In
+ * with Google" button and the role picker underneath it.
  *
- * The design is a 450px card on the BG ground: a Heading 4 title, two labelled
- * inputs, a full-width primary button, an "or" rule, and a dashed Google
- * button. It is reproduced as designed — but there is no auth behind it (see
- * lib/session.ts). The fields accept anything, and the role picker below them
- * is an addition the design does not have, because without a backend something
- * has to decide whether you land in the teacher app or the student one. It is
- * labelled as a demo control rather than dressed up as part of the product. */
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+ * Both existed only because there was no real auth (see lib/session.ts's old
+ * header comment): the role picker because something had to decide teacher
+ * vs. student with no backend to ask, Google because the design had a button
+ * there and nothing behind it either. There is no teacher/student split any
+ * more (see the section pivot), and there is now a real account behind this
+ * form — email and password actually mean something, so a fake OAuth button
+ * next to a real login is a worse kind of dishonest than the old demo control
+ * ever was. If social login is ever built, it goes back in here; until then
+ * the field is just the field.
+ */
+import { useEffect, useState, type FormEvent } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Button, Input } from "../components/ui";
-import { useSession, type Role } from "../lib/session";
-import googleUrl from "../icons/google.svg";
+import { useSession } from "../lib/session";
+import { ApiError } from "../lib/api";
 
 export default function Login() {
-  const { user, signIn } = useSession();
+  const { user, login } = useSession();
   const navigate = useNavigate();
-  const [role, setRole] = useState<Role>("teacher");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
-  /* Navigate once the session has actually propagated, not in the same tick as
-     signIn(). Calling navigate() straight after it looked right and did not
-     work: the route guard re-rendered before the store update reached it, saw
-     no user, and redirected back to /login with replace — so the session was
-     set and the screen never moved. */
+  /* Navigate once the session has actually propagated, not in the same tick
+     as login(). Calling navigate() straight after it looked right and did
+     not work once, on the old fake session — the route guard re-rendered
+     before the store update reached it, saw no user, and redirected back to
+     /login with replace — so the session was set and the screen never
+     moved. */
   useEffect(() => {
-    if (user) navigate(user.role === "teacher" ? "/t" : "/s", { replace: true });
+    if (user) navigate("/", { replace: true });
   }, [user, navigate]);
 
-  function enter() {
-    signIn(role);
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    if (submitting) return;
+    setError(null);
+    setSubmitting(true);
+    try {
+      await login(email.trim().toLowerCase(), password);
+    } catch (err) {
+      setError(err instanceof ApiError ? "อีเมลหรือรหัสผ่านไม่ถูกต้อง" : "เข้าสู่ระบบไม่สำเร็จ ลองใหม่อีกครั้ง");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
     <div className="login-ground">
-      <form
-        className="login-card"
-        onSubmit={(e) => {
-          e.preventDefault();
-          enter();
-        }}
-      >
-        <h1 className="login-title">Login</h1>
+      <form className="login-card" onSubmit={submit}>
+        <h1 className="login-title">เข้าสู่ระบบ</h1>
 
         <div className="login-fields">
-          <Input label="Username or Email" placeholder="Enter username or email" autoComplete="username" />
-          <Input label="Password" type="password" placeholder="Enter password" autoComplete="current-password" />
-          <Button variant="primary" type="submit" className="ui-btn-block">
-            Login
+          <Input
+            label="อีเมล"
+            type="email"
+            placeholder="you@example.com"
+            autoComplete="username"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+          <Input
+            label="รหัสผ่าน"
+            type="password"
+            placeholder="รหัสผ่าน"
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+          {error ? (
+            <p className="form-field-error" role="alert">
+              {error}
+            </p>
+          ) : null}
+          <Button variant="primary" type="submit" className="ui-btn-block" disabled={submitting}>
+            {submitting ? "กำลังเข้าสู่ระบบ…" : "เข้าสู่ระบบ"}
           </Button>
         </div>
 
-        <div className="login-alt">
-          <div className="login-or">
-            <span className="login-rule" />
-            <span className="login-or-text">or</span>
-            <span className="login-rule" />
-          </div>
-          <button className="login-google" type="button" onClick={enter}>
-            <img src={googleUrl} alt="" width={15} height={15} />
-            <span>Sign In with Google</span>
-          </button>
-        </div>
-
-        {/* Not in the design. There is no auth, so the role has to come from
-            somewhere, and a visible switch is more honest than guessing. */}
-        <div className="login-demo">
-          <span className="login-demo-label">เข้าสู่ระบบในฐานะ (เดโม)</span>
-          <div className="login-roles">
-            <button
-              type="button"
-              className={`login-role ${role === "teacher" ? "login-role-on" : ""}`}
-              onClick={() => setRole("teacher")}
-            >
-              ครู
-            </button>
-            <button
-              type="button"
-              className={`login-role ${role === "student" ? "login-role-on" : ""}`}
-              onClick={() => setRole("student")}
-            >
-              นักเรียน
-            </button>
-          </div>
-        </div>
+        <p className="login-switch">
+          ยังไม่มีบัญชี? <Link to="/register">สมัครสมาชิก</Link>
+        </p>
       </form>
     </div>
   );

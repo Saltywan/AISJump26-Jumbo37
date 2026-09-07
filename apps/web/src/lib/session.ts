@@ -1,52 +1,74 @@
-/* A pretend session.
+/* A real session, backed by the API's httpOnly cookie (see apps/api/app/auth.py).
  *
- * The design has a Login screen, so the app has one. It does not have auth:
- * the target for this build is a laptop demo, and a real identity provider is
- * out of scope. This module is the seam — every screen asks it who is signed in
- * and gets an answer, so when auth does arrive only this file changes.
+ * This file used to be an explicit, admitted fake — a role picker with no
+ * password check, kept honest by never pretending otherwise. It said "when
+ * auth does arrive only this file changes." This is that change: every call
+ * goes to /auth/*, the cookie itself is invisible to this code on purpose
+ * (httpOnly — that's what makes it worth having), and `role` is now
+ * `user | admin` rather than `teacher | student`, because nothing here is a
+ * classroom any more (see the section pivot).
  *
- * Nothing here is a security boundary and it must never be mistaken for one.
- * Anyone can pick either role from the login screen, and the "password" is
- * ignored entirely. */
+ * There is no localStorage fallback and no offline mode. A personal library
+ * that must follow its owner across devices needs a server-trusted identity,
+ * so unlike the old isLive()-and-degrade-to-fixtures pattern, a session with
+ * no reachable API is just signed out — there is nothing honest to fall back to.
+ */
 import { useSyncExternalStore } from "react";
+import { API, ApiError } from "./api";
 
-export type Role = "teacher" | "student";
+export type Role = "user" | "admin";
 
 export interface User {
+  id: string;
+  email: string;
   name: string;
   role: Role;
 }
 
-const KEY = "jumpais.session.v1";
-
-/* The two demo identities are the ones written into the Figma screens, so the
-   built app reads like the design rather than like Lorem Ipsum. */
-export const DEMO_USERS: Record<Role, User> = {
-  teacher: { name: "คุณครูสมชาย ใจดี", role: "teacher" },
-  student: { name: "ด.ญ. สมหญิง สุดแสนสวย", role: "student" },
-};
-
-let current: User | null = read();
+let current: User | null = null;
+let resolved = false; // has the initial GET /auth/me finished, one way or the other
 const listeners = new Set<() => void>();
 
-function read(): User | null {
+function set(user: User | null) {
+  current = user;
+  resolved = true;
+  listeners.forEach((f) => f());
+}
+
+async function fetchMe(): Promise<User | null> {
   try {
-    const raw = localStorage.getItem(KEY);
-    return raw ? (JSON.parse(raw) as User) : null;
+    const res = await fetch(`${API}/auth/me`, { credentials: "include" });
+    if (!res.ok) return null;
+    return (await res.json()) as User;
   } catch {
     return null;
   }
 }
 
-function write(u: User | null) {
-  current = u;
-  try {
-    if (u) localStorage.setItem(KEY, JSON.stringify(u));
-    else localStorage.removeItem(KEY);
-  } catch {
-    /* a private window still gets a working session for this tab */
+// Runs once, at module load — every screen's first render can ask
+// useSession() before this settles, which is what `resolved` is for: "no
+// user yet" during that window must not read the same as "checked, and
+// you're signed out" or every route guard fires and bounces straight to
+// /login before the cookie's even been asked about.
+void fetchMe().then(set);
+
+async function authRequest(path: string, body: unknown): Promise<User> {
+  const res = await fetch(`${API}${path}`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    let detail: unknown = await res.text();
+    try {
+      detail = JSON.parse(detail as string);
+    } catch {
+      /* a plain-text error is still an error */
+    }
+    throw new ApiError(res.status, detail);
   }
-  listeners.forEach((f) => f());
+  return (await res.json()) as User;
 }
 
 export function useSession() {
@@ -58,9 +80,35 @@ export function useSession() {
     () => current,
     () => null
   );
+  const isResolved = useSyncExternalStore(
+    (cb) => {
+      listeners.add(cb);
+      return () => listeners.delete(cb);
+    },
+    () => resolved,
+    () => false
+  );
   return {
     user,
-    signIn: (role: Role) => write(DEMO_USERS[role]),
-    signOut: () => write(null),
+    /** False only during the one-time startup check; a route guard should
+     *  wait for this before deciding there is no session. */
+    resolved: isResolved,
+    async login(email: string, password: string) {
+      const u = await authRequest("/auth/login", { email, password });
+      set(u);
+      return u;
+    },
+    async register(email: string, password: string, name: string) {
+      const u = await authRequest("/auth/register", { email, password, name });
+      set(u);
+      return u;
+    },
+    async signOut() {
+      try {
+        await fetch(`${API}/auth/logout`, { method: "POST", credentials: "include" });
+      } finally {
+        set(null);
+      }
+    },
   };
 }

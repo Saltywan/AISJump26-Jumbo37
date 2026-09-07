@@ -4,82 +4,58 @@ import Viewer from "./pages/Viewer";
 import Teacher from "./pages/Teacher";
 import Review from "./pages/Review";
 import Login from "./pages/Login";
-import ClassroomList from "./pages/teacher/ClassroomList";
-import ClassroomLayout from "./pages/teacher/ClassroomLayout";
-import ClassroomLessons from "./pages/teacher/ClassroomLessons";
-import ClassroomStudents from "./pages/teacher/ClassroomStudents";
-import ClassroomSettings from "./pages/teacher/ClassroomSettings";
-import TeacherChat from "./pages/chat/TeacherChat";
-import StudentClassrooms from "./pages/student/StudentClassrooms";
-import StudentClassroomLessons from "./pages/student/StudentClassroomLessons";
-import StudentLessonChat from "./pages/student/StudentLessonChat";
+import Register from "./pages/Register";
+import Library from "./pages/Library";
+import SectionView from "./pages/SectionView";
+import Generate from "./pages/Generate";
+import AdminHome from "./pages/admin/AdminHome";
+import AdminSection from "./pages/admin/AdminSection";
+import AdminReview from "./pages/admin/AdminReview";
 import { useSession } from "./lib/session";
 
-/* Routes follow the Figma information architecture: /login, then a teacher
-   space under /t and a student space under /s. The stage-1 and stage-2 screens
-   (/, /p/:file, /teacher, /teacher/review/:id) are still mounted while the
-   designed screens are built out around them — they hold the working
-   student viewer and the review report, and they will be folded into the new
-   IA rather than thrown away. */
+/* Role-free routing — every signed-in user lands on the same home screen
+ * (/library) now that there is no classroom to split teacher from student
+ * (see the section pivot). Admin gets an extra branch under /admin; nothing
+ * else changes by role. `resolved` guards every route: the initial
+ * GET /auth/me is still in flight for a moment on first load, and bouncing to
+ * /login before it settles would boot a genuinely signed-in user off their
+ * own reload.
+ */
+function Guard({ children, adminOnly = false }: { children: JSX.Element; adminOnly?: boolean }) {
+  const { user, resolved } = useSession();
+  if (!resolved) return null;
+  if (!user) return <Navigate to="/login" replace />;
+  if (adminOnly && user.role !== "admin") return <Navigate to="/" replace />;
+  return children;
+}
+
 export default function App() {
-  const { user } = useSession();
+  const { user, resolved } = useSession();
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
 
-      {/* designed screens land here as they are built */}
-      <Route path="/t" element={user ? <ClassroomList /> : <Navigate to="/login" replace />} />
-      <Route path="/t/c/:classroomId" element={<ClassroomLayout />}>
-        <Route index element={<Navigate to="lessons" replace />} />
-        <Route path="lessons" element={<ClassroomLessons />} />
-        <Route path="students" element={<ClassroomStudents />} />
-        <Route path="settings" element={<ClassroomSettings />} />
-      </Route>
-      {/* teacher AI-chat generation flow (Figma 35:629 "New Chat", 35:675
-          "Chat") — see src/pages/chat/TeacherChat.tsx. This is where the
-          confirmation-before-publish gate lives (docs/BUILD-PLAN.html
-          section 04). Not yet linked from ClassroomLessons.tsx's
-          "ดูและสร้างสื่อการสอน" card action (that file is out of scope here),
-          so for now it's reached by URL / by continuing a thread from the
-          sidebar's own "สร้างโจทย์ใหม่" button. */}
-      <Route
-        path="/t/c/:classroomId/lessons/:lessonId/chat"
-        element={user ? <TeacherChat /> : <Navigate to="/login" replace />}
-      />
-      <Route
-        path="/t/c/:classroomId/lessons/:lessonId/chat/:threadId"
-        element={user ? <TeacherChat /> : <Navigate to="/login" replace />}
-      />
+      <Route path="/" element={<Guard><Library /></Guard>} />
+      <Route path="/library/section/:sectionId" element={<Guard><SectionView /></Guard>} />
+      <Route path="/new" element={<Guard><Generate /></Guard>} />
 
-      <Route path="/s" element={user ? <StudentClassrooms /> : <Navigate to="/login" replace />} />
-      <Route
-        path="/s/c/:classroomId"
-        element={user ? <StudentClassroomLessons /> : <Navigate to="/login" replace />}
-      />
-      <Route
-        path="/s/c/:classroomId/lessons/:lessonId"
-        element={user ? <StudentLessonChat /> : <Navigate to="/login" replace />}
-      />
-
-      {/* The root sends you where your session belongs. It used to render the
-          pre-Figma student view with no session guard at all, so opening the app
-          skipped login and landed on a screen from a different information
-          architecture — an easy thing to stumble into mid-demo with a stale
-          bookmark or the back button. */}
-      <Route
-        path="/"
-        element={<Navigate to={user ? (user.role === "teacher" ? "/t" : "/s") : "/login"} replace />}
-      />
+      <Route path="/admin" element={<Guard adminOnly><AdminHome /></Guard>} />
+      <Route path="/admin/review" element={<Guard adminOnly><AdminReview /></Guard>} />
+      <Route path="/admin/section/:sectionId" element={<Guard adminOnly><AdminSection /></Guard>} />
 
       {/* The stage-1 and stage-2 screens, kept and walled off rather than
-          deleted: they are a second, self-consistent generate-review-approve
-          flow over the fixtures, with their own store, and ReportSummary still
-          reuses Review.tsx's severity markup. Useful to compare against, wrong
-          to leave sitting on the paths a visitor reaches first. */}
+          deleted: a second, self-consistent generate-review-approve flow over
+          fixtures, with their own store, predating the classroom design and
+          now predating this pivot too. Untouched by either — no auth guard,
+          same as before, since they never depended on a session to begin
+          with. */}
       <Route path="/legacy" element={<Home />} />
       <Route path="/legacy/p/:file" element={<Viewer />} />
       <Route path="/legacy/teacher" element={<Teacher />} />
       <Route path="/legacy/teacher/review/:id" element={<Review />} />
+
+      <Route path="*" element={resolved ? <Navigate to={user ? "/" : "/login"} replace /> : null} />
     </Routes>
   );
 }

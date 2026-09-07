@@ -7,10 +7,11 @@
  *
  * This exists because of the product decision docs/BUILD-PLAN.html section 04
  * argues for: every automated check here can be green on a page that is
- * visibly wrong, so the report is not the gate — a teacher looking at the
- * rendered page is. The report is *evidence for that look*, surfaced right
- * next to the animation in the generated-lesson card, not a checklist a
- * teacher can clear without ever seeing the diagram. */
+ * visibly wrong, so the report is not the gate — an admin looking at the
+ * rendered page is (see components/ProblemArtifact.tsx). The report is
+ * *evidence for that look*, surfaced right next to the animation in the
+ * artifact viewer, not a checklist that can be cleared without ever seeing
+ * the diagram. */
 import { useMemo, useState } from "react";
 import type { CheckRow } from "../../checks";
 import { severityOf, type Flag } from "../../lib/severity";

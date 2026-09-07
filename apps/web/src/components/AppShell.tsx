@@ -1,8 +1,9 @@
-/* The chrome every logged-in screen in the design shares: a 64px white navbar
-   with the product name on the left and the signed-in person plus a logout
-   button on the right, a 1100px content column, and the copyright line pinned
-   at the bottom. Both the teacher and the student screens use it unchanged —
-   only the name and the links inside differ. */
+/* The chrome every logged-in screen shares: a 64px white navbar with the
+   product name on the left and the signed-in person plus a logout button on
+   the right, a 1100px content column, and the copyright line pinned at the
+   bottom. Every screen uses it unchanged now — there is no teacher/student
+   split any more (see the section pivot), just a user, and an admin link
+   that shows up for the one role that has somewhere else to go. */
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import avatarUrl from "../icons/avatar.svg";
@@ -14,17 +15,22 @@ export function AppShell({
   wide = false,
 }: {
   children: ReactNode;
-  /* the chat screens run edge to edge instead of inside the 1100px column */
+  /* the generation screen runs edge to edge instead of inside the 1100px column */
   wide?: boolean;
 }) {
   const { user, signOut } = useSession();
   return (
     <div className="shell">
       <header className="navbar">
-        <Link className="navbar-brand" to={user?.role === "teacher" ? "/t" : "/s"}>
+        <Link className="navbar-brand" to="/">
           JumpAIS
         </Link>
         <div className="navbar-right">
+          {user?.role === "admin" ? (
+            <Link className="ui-btn ui-btn-outline" to="/admin">
+              จัดการคลังข้อสอบ
+            </Link>
+          ) : null}
           {user ? (
             <span className="navbar-user">
               {/* 25px circle, straight from the design */}
@@ -32,7 +38,7 @@ export function AppShell({
               <span className="navbar-name">{user.name}</span>
             </span>
           ) : null}
-          <button className="ui-btn ui-btn-outline" onClick={signOut} type="button">
+          <button className="ui-btn ui-btn-outline" onClick={() => void signOut()} type="button">
             {/* 20px glyph inside the button, as designed */}
             <img src={signOutUrl} alt="" width={20} height={20} />
             <span>ออกจากระบบ</span>

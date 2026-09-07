@@ -1,11 +1,12 @@
-/* The real backend.
+/* The real backend — sections, problems, pages, jobs, auth.
  *
- * Everything the app knew before this file was a fixture: 68 pages that ship in
- * the repo and a localStorage store pretending to be a queue. This talks to the
- * API in apps/api, which owns classrooms, lessons, problems and pages, and to
- * the worker that actually runs the model.
+ * Classrooms, lessons and enrollment are gone (see archive/b2b-classroom-poc
+ * for the old model). Content is either global (every signed-in user, once
+ * published) or personal (only its owner), organised by one self-referential
+ * `Section` tree instead of a fixed classroom -> lesson shape — see
+ * apps/api/app/models.py's own module docstring for the reasoning.
  *
- * Two things are deliberate.
+ * Two things are deliberate, carried over from before this pivot.
  *
  * Page HTML never comes through here. It is written to shared storage and
  * served by the pages origin, because a generated page runs model-written
@@ -13,13 +14,59 @@
  * check report is fetched from the API rather than read out of the page: the
  * app cannot reach into that frame, by design.
  *
- * And every call can fail softly. The demo runs on a laptop against a
- * rate-limited model; a backend that is down should degrade to the fixtures
- * with a visible notice, not take the screen with it. `isLive()` is what the UI
- * asks before promising anything.
+ * Every request carries credentials. The session is an httpOnly cookie (see
+ * lib/session.ts) — there is no token this code ever holds or attaches by
+ * hand, `credentials: "include"` is the whole story. There is also no
+ * fixture fallback any more: the old isLive()-and-degrade pattern existed
+ * because a demo could still show something with the backend down; a real
+ * account can't sign in with the backend down, so there is nothing honest to
+ * fall back to.
  */
 
-const API = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
+export const API = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
+
+export class ApiError extends Error {
+  constructor(public status: number, public detail: unknown) {
+    super(`API ${status}`);
+  }
+}
+
+async function req<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(`${API}${path}`, {
+    credentials: "include",
+    ...init,
+    headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
+  });
+  if (!res.ok) {
+    let detail: unknown = await res.text();
+    try {
+      detail = JSON.parse(detail as string);
+    } catch {
+      /* a plain-text error is still an error */
+    }
+    throw new ApiError(res.status, detail);
+  }
+  if (res.status === 204) return undefined as T;
+  return (await res.json()) as T;
+}
+
+/** Same contract as req(), for a multipart body — the browser has to set the
+ *  boundary itself, which it only does when fetch picks the header on its own. */
+async function reqForm<T>(path: string, form: FormData): Promise<T> {
+  const res = await fetch(`${API}${path}`, { method: "POST", credentials: "include", body: form });
+  if (!res.ok) {
+    let detail: unknown = await res.text();
+    try {
+      detail = JSON.parse(detail as string);
+    } catch {
+      /* a plain-text error is still an error */
+    }
+    throw new ApiError(res.status, detail);
+  }
+  return (await res.json()) as T;
+}
+
+// ------------------------------------------------------------------ shapes --
 
 export interface ApiPage {
   id: string;
@@ -31,27 +78,28 @@ export interface ApiPage {
   path_chosen: "board" | "svg" | null;
   html_path: string | null;
   checks: unknown | null;
+  created_at?: string | null;
 }
 
-export interface ApiClassroom {
-  id: string;
-  name: string;
-  subject: string | null;
-  level: string | null;
-  lesson_count: number;
-}
+export type Scope = "global" | "personal";
 
-export interface ApiLesson {
+export interface ApiSection {
   id: string;
+  parent_id: string | null;
+  scope: Scope;
+  owner_id: string | null;
   title: string;
-  chapter: string | null;
-  status: string;
-  problem_count: number;
-  waiting_count?: number;
+  kind: string | null;
+  position: number;
+  depth: number;
+  status: "draft" | "published";
+  published_at: string | null;
 }
 
 export interface ApiProblem {
   id: string;
+  section_id: string | null;
+  scope: Scope;
   position: number;
   text: string | null;
   raw_text?: string | null;
@@ -70,149 +118,105 @@ export interface JobEvent {
   error: string | null;
 }
 
-async function req<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API}${path}`, {
-    ...init,
-    headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
-  });
-  if (!res.ok) {
-    let detail: unknown = await res.text();
-    try {
-      detail = JSON.parse(detail as string);
-    } catch {
-      /* a plain-text error is still an error */
-    }
-    throw new ApiError(res.status, detail);
-  }
-  return (await res.json()) as T;
-}
-
-/** Same contract as req(), for a multipart body — used only by
- *  uploadProblemImage below. No Content-Type header: the browser has to set
- *  the multipart boundary itself, which it only does when fetch is left to
- *  pick the header on its own. */
-async function reqForm<T>(path: string, form: FormData): Promise<T> {
-  const res = await fetch(`${API}${path}`, { method: "POST", body: form });
-  if (!res.ok) {
-    let detail: unknown = await res.text();
-    try {
-      detail = JSON.parse(detail as string);
-    } catch {
-      /* a plain-text error is still an error */
-    }
-    throw new ApiError(res.status, detail);
-  }
-  return (await res.json()) as T;
-}
-
-export class ApiError extends Error {
-  constructor(public status: number, public detail: unknown) {
-    super(`API ${status}`);
-  }
-}
-
-/** Is the backend up? Cached briefly so every screen asking does not mean a
- *  request each. Returns false rather than throwing — callers use it to decide
- *  whether to promise real generation or fall back to fixtures. */
-let liveCache: { at: number; ok: boolean } | null = null;
-export async function isLive(maxAgeMs = 5000): Promise<boolean> {
-  if (liveCache && Date.now() - liveCache.at < maxAgeMs) return liveCache.ok;
-  let ok = false;
-  try {
-    const res = await fetch(`${API}/healthz`, { signal: AbortSignal.timeout(1500) });
-    ok = res.ok;
-  } catch {
-    ok = false;
-  }
-  liveCache = { at: Date.now(), ok };
-  return ok;
-}
-
 export const api = {
-  classrooms: () => req<ApiClassroom[]>("/classrooms"),
+  // ---- sections ----------------------------------------------------------
 
-  classroom: (classroomId: string) => req<ApiClassroom>(`/classrooms/${classroomId}`),
+  /** Every global section this account can see — a flat list, not a nested
+   *  tree; the frontend builds the tree from parent_id. An admin sees drafts
+   *  too, since they're the one editing the library. */
+  globalSections: () => req<ApiSection[]>("/sections/global"),
 
-  createClassroom: (body: { name: string; subject?: string; level?: string }) =>
-    req<{ id: string }>("/classrooms", { method: "POST", body: JSON.stringify(body) }),
+  mySections: () => req<ApiSection[]>("/sections/mine"),
 
-  updateClassroom: (classroomId: string, body: { name?: string; subject?: string; level?: string }) =>
-    req<ApiClassroom>(`/classrooms/${classroomId}`, { method: "PATCH", body: JSON.stringify(body) }),
+  createSection: (body: { parent_id?: string | null; scope: Scope; title: string; kind?: string }) =>
+    req<ApiSection>("/sections", { method: "POST", body: JSON.stringify(body) }),
 
-  deleteClassroom: (classroomId: string) =>
-    req<{ ok: boolean }>(`/classrooms/${classroomId}`, { method: "DELETE" }),
+  updateSection: (
+    sectionId: string,
+    body: { title?: string; kind?: string | null; position?: number; parent_id?: string | null }
+  ) => req<ApiSection>(`/sections/${sectionId}`, { method: "PATCH", body: JSON.stringify(body) }),
 
-  /** `publishedOnly` is the confirmation gate as the API sees it. The student
-   *  app asks with it set, and an unconfirmed lesson is not returned at all —
-   *  not hidden in the UI, absent from the response. */
-  lessons: (classroomId: string, publishedOnly = false) =>
-    req<ApiLesson[]>(
-      `/classrooms/${classroomId}/lessons${publishedOnly ? "?published_only=true" : ""}`
-    ),
+  publishSection: (sectionId: string) =>
+    req<ApiSection>(`/sections/${sectionId}/publish`, { method: "POST" }),
 
-  createLesson: (classroomId: string, body: { title: string; chapter?: string }) =>
-    req<{ id: string }>(`/classrooms/${classroomId}/lessons`, {
+  unpublishSection: (sectionId: string) =>
+    req<ApiSection>(`/sections/${sectionId}/unpublish`, { method: "POST" }),
+
+  deleteSection: (sectionId: string) =>
+    req<{ ok: boolean }>(`/sections/${sectionId}`, { method: "DELETE" }),
+
+  // ---- problems -----------------------------------------------------------
+
+  /** Personal generation — the core loop. No section required; an unfiled
+   *  problem lands in the caller's own inbox (see myProblems). */
+  addProblem: (body: { text: string; level?: string; section_id?: string }) =>
+    req<{ problem_id: string; job_id: string }>("/problems", {
       method: "POST",
       body: JSON.stringify(body),
     }),
 
-  deleteLesson: (lessonId: string) =>
-    req<{ ok: boolean }>(`/lessons/${lessonId}`, { method: "DELETE" }),
+  addProblemImage: (file: File, opts?: { text?: string; level?: string; sectionId?: string }) => {
+    const form = new FormData();
+    form.append("file", file);
+    if (opts?.text?.trim()) form.append("text", opts.text.trim());
+    if (opts?.level?.trim()) form.append("level", opts.level.trim());
+    if (opts?.sectionId) form.append("section_id", opts.sectionId);
+    return reqForm<{ problem_id: string; job_id: string; image_path?: string }>("/problems/image", form);
+  },
 
-  publishLesson: (lessonId: string) =>
-    req<{ id: string; status: string }>(`/lessons/${lessonId}/publish`, { method: "POST" }),
-
-  /** Undoes publishLesson — visibility only, see the endpoint's docstring: it
-   *  does not touch any page's approval. */
-  unpublishLesson: (lessonId: string) =>
-    req<{ id: string; status: string }>(`/lessons/${lessonId}/unpublish`, { method: "POST" }),
-
-  problems: (lessonId: string, approvedOnly = false) =>
-    req<ApiProblem[]>(`/lessons/${lessonId}/problems${approvedOnly ? "?approved_only=true" : ""}`),
-
-  /** Queue a generation. Returns immediately — the model takes 30-90 seconds,
-   *  so the caller streams watchJob() rather than waiting on this. */
-  addProblem: (lessonId: string, body: { text: string; level?: string }) =>
-    req<{ problem_id: string; job_id: string }>(`/lessons/${lessonId}/problems`, {
+  /** Admin-only: files a problem straight into a global section. */
+  addGlobalProblem: (sectionId: string, body: { text: string; level?: string }) =>
+    req<{ problem_id: string; job_id: string }>(`/sections/${sectionId}/problems`, {
       method: "POST",
       body: JSON.stringify(body),
     }),
 
-  deleteProblem: (problemId: string) =>
-    req<{ ok: boolean }>(`/problems/${problemId}`, { method: "DELETE" }),
+  /** Admin-only bulk import — a past-papers book is forty questions; adding
+   *  them one at a time is the reason a global library stays empty. */
+  addGlobalProblemsBulk: (sectionId: string, items: { text: string; level?: string }[]) =>
+    req<{ problem_id: string; job_id: string }[]>(`/sections/${sectionId}/problems/bulk`, {
+      method: "POST",
+      body: JSON.stringify({ items }),
+    }),
+
+  addGlobalProblemImage: (sectionId: string, file: File, opts?: { text?: string; level?: string }) => {
+    const form = new FormData();
+    form.append("file", file);
+    if (opts?.text?.trim()) form.append("text", opts.text.trim());
+    if (opts?.level?.trim()) form.append("level", opts.level.trim());
+    return reqForm<{ problem_id: string; job_id: string; image_path?: string }>(
+      `/sections/${sectionId}/problems/image`,
+      form
+    );
+  },
+
+  sectionProblems: (sectionId: string) => req<ApiProblem[]>(`/sections/${sectionId}/problems`),
+
+  /** The personal library's inbox: every problem this account has ever
+   *  generated, filed or not, newest first. */
+  myProblems: () => req<ApiProblem[]>("/problems/mine"),
+
+  deleteProblem: (problemId: string) => req<{ ok: boolean }>(`/problems/${problemId}`, { method: "DELETE" }),
+
+  // ---- pages ----------------------------------------------------------------
 
   page: (pageId: string) => req<ApiPage>(`/pages/${pageId}`),
 
-  /** The confirmation. seconds_on_page is sent because rubber-stamping is this
-   *  design's silent failure and it has to be visible from the first day. */
+  /** The confirmation — global content only. seconds_on_page is sent because
+   *  rubber-stamping is this design's silent failure and has to be visible
+   *  from the first day. */
   review: (pageId: string, body: { action: "approved" | "rejected"; note?: string; seconds_on_page?: number }) =>
     req<ApiPage>(`/pages/${pageId}/review`, { method: "POST", body: JSON.stringify(body) }),
 
-  /** Ask a question about one page. Context is assembled server-side from the
-   *  *approved* page only — never a fresh solve — which is what makes the
-   *  returned `cites` (step numbers) meaningful: they point at steps a teacher
-   *  actually looked at, not at something the chat made up. 409 means the page
-   *  hasn't cleared review yet; callers should show that as "not available
-   *  yet", not retry it as a transient failure. */
+  /** Ask a question about a page. Global content needs `approved`; personal
+   *  content — which has no review gate at all — only needs `ready`, and
+   *  only for its own owner. 409 means the page isn't visible to ask about
+   *  yet; show that as "not available", not a transient failure. */
   askPage: (pageId: string, question: string) =>
     req<{ answer: string; cites: number[] }>(`/pages/${pageId}/ask`, {
       method: "POST",
       body: JSON.stringify({ question }),
     }),
-
-  /** A photo instead of typed text. The model reads the image directly rather
-   *  than this app OCRing it first — see Problem.extracted_text's docstring in
-   *  apps/api/app/models.py for why the response still needs to be checked
-   *  against what the model understood the problem to be before anyone trusts
-   *  the page it produces. */
-  uploadProblemImage: (lessonId: string, file: File, text?: string) => {
-    const form = new FormData();
-    form.append("file", file);
-    if (text && text.trim()) {
-      form.append("text", text.trim());
-    }
-    return reqForm<{ problem_id: string; job_id: string; image_path?: string }>(`/lessons/${lessonId}/problems/image`, form);
-  },
 };
 
 /** Stream one job's progress.
@@ -221,12 +225,8 @@ export const api = {
  * so the waiting screen shows the work: which stage, and what the checker
  * found. Returns a stop function.
  */
-export function watchJob(
-  jobId: string,
-  onEvent: (e: JobEvent) => void,
-  onDone: (e: JobEvent) => void
-): () => void {
-  const src = new EventSource(`${API}/jobs/${jobId}/events`);
+export function watchJob(jobId: string, onEvent: (e: JobEvent) => void, onDone: (e: JobEvent) => void): () => void {
+  const src = new EventSource(`${API}/jobs/${jobId}/events`, { withCredentials: true });
   let closed = false;
   const close = () => {
     if (!closed) {
@@ -248,16 +248,10 @@ export function watchJob(
     }
   };
   /* An SSE error here is a dropped connection, not a failed job — report it,
-     but do NOT close(). A generation reliably takes tens of seconds to
-     minutes, plenty of time for one connection to drop, and calling close()
-     here used to hand the browser's native EventSource reconnection nothing
-     to do: the stream just stayed dead, onDone() never fired, and the caller
-     (attachLiveJob, in lib/chat.ts) was left with no jobId-to-pageId result
-     forever — a live generation that finished fine on the worker with no way
-     for this tab to ever learn its pageId. The server has nothing to resume:
-     GET /jobs/{id}/events just re-reads the job row fresh on every new
-     connection, so leaving `src` open and letting the browser's own retry
-     reconnect is enough to pick the stream back up once it can. */
+     but do NOT close(). Generation reliably takes tens of seconds to minutes,
+     plenty of time for one connection to drop, and the browser's own
+     EventSource retry will reconnect: GET /jobs/{id}/events just re-reads the
+     job row fresh on every new connection, so there is nothing to resume. */
   src.onerror = () => {
     onEvent({ state: "running", stage: "reconnecting", progress: null, error: null });
   };
@@ -266,29 +260,28 @@ export function watchJob(
 
 export const PAGES_URL = import.meta.env.VITE_PAGES_URL ?? "http://localhost:8080";
 
-/** Worker output is served from /generated/, the fixtures from /pages/. Both
- *  live on the pages origin; only this function should know which is which. */
-export type PageKind = "draft" | "generated" | "fixture";
+/** A generated page is served from one of two paths depending on approval —
+ *  see apps/api/app/main.py's _publish_page_file and CLAUDE.md's "a page a
+ *  teacher has not approved is not in the students' path at all". */
+export type PageKind = "draft" | "generated";
 
-/* Three paths on the pages origin, one per source:
- *
- *   /pages/      fixtures that ship in this repo
- *   /drafts/     the storage volume — a generated page awaiting review
- *   /generated/  the published volume — a page a teacher approved
- *
- * The draft path exists because hardening the gate removed it and took teacher
- * review with it: only approved pages were served, so the page a teacher is
- * supposed to look at before approving returned 404. A reviewer who cannot see
- * the page cannot review it, and the whole product rests on that step.
- *
- * Being explicit about what this is: with no authentication anywhere in this
- * system, /drafts/ is a product boundary, not a security one. The student app
- * never links it and the API never returns an unapproved page's path — but a
- * guessed URL would serve it. The separation that does hold is /generated/,
- * which physically contains only approved pages, so nothing can leak one by
- * accident. Real protection here needs auth on the pages origin. */
-export function pageSrc(htmlPath: string, kind: PageKind = "generated") {
-  if (kind === "fixture") return `${PAGES_URL}/pages/${htmlPath}`;
-  if (kind === "draft") return `${PAGES_URL}/drafts/${htmlPath}`;
-  return `${PAGES_URL}/generated/${htmlPath}`;
+/* draft      -> the storage volume, /drafts/  — anything not yet approved,
+                 including every personal page (which never goes through
+                 review at all — see models.py's Review docstring).
+   generated  -> the published volume, /generated/ — approved global content
+                 only; this path physically cannot contain anything else.
+
+   With no authentication on the pages origin itself, /drafts/ is a product
+   boundary, not a security one: a page id is a uuid4 filename, not linked
+   anywhere a stranger would find it, but a guessed URL would still serve it.
+   Real protection needs auth on the pages origin — not built yet. */
+export function pageSrc(htmlPath: string, kind: PageKind) {
+  return kind === "generated" ? `${PAGES_URL}/generated/${htmlPath}` : `${PAGES_URL}/drafts/${htmlPath}`;
+}
+
+/** Which path a page is actually reachable at, given what the API says about
+ *  it — the one place this decision gets made, so a screen doesn't have to
+ *  re-derive "approved global" vs "everything else" itself. */
+export function pageKindOf(page: ApiPage): PageKind {
+  return page.status === "approved" ? "generated" : "draft";
 }

@@ -1357,13 +1357,15 @@ button.chip {
 }
 
 /* ---------------------------------------------------------------------------
-   Chat screens (Figma: 35:629 "New Chat", 35:675 "Chat", teacher; 48:6460
-   "Chat", student). One shared shell — sidebar + main panel + a prompt input
-   pinned to the bottom of the main panel — used by TeacherChat.tsx and (minus
-   the sidebar) StudentLessonChat.tsx. The generated-lesson card ("gen-card")
-   and its report are shared by both teacher and student views; only the
-   teacher's ever shows a report or a publish control, since only the teacher
-   makes the publish decision (see lib/chat.ts).
+   Chat-shaped screens (Figma: 35:629 "New Chat", 35:675 "Chat" — drawn for
+   the old classroom design, reused as-is for the section pivot's generation
+   screen). One shell — a main panel plus a prompt input pinned to its bottom
+   — used by pages/Generate.tsx (chat-shell-noside: no sidebar, one
+   generation at a time, since "history" is just the library now — see
+   GET /problems/mine). The generated-lesson card ("gen-card") and its report
+   are shared by every screen that renders a ProblemArtifact
+   (components/ProblemArtifact.tsx); only an admin reviewing global content
+   ever sees the report or a publish/reject control.
 
    Sized against the viewport rather than the document (height: calc(100dvh -
    navbar), not min-height) because the design pins the input to the bottom of
@@ -1483,9 +1485,9 @@ button.chip {
 }
 .chat-msg-assistant { align-self: flex-start; max-width: 640px; font-size: var(--text-body); line-height: var(--lh-body); color: var(--ink); }
 
-/* Generated-lesson card — the animation plus, for the teacher, the check
-   report and the publish control. Shared by TeacherChat.tsx and
-   StudentLessonChat.tsx (the student version stops after gen-card-stage). */
+/* Generated-lesson card — the animation plus, for an admin reviewing global
+   content, the check report and the approve/reject control. Shared by every
+   screen that renders components/ProblemArtifact.tsx. */
 .gen-card {
   width: 100%;
   background: var(--card); border-radius: var(--radius);
@@ -1672,11 +1674,17 @@ button.chip {
 .lesson-chat-chip:hover { background: var(--rule); }
 .lesson-chat-chip:disabled { opacity: 0.5; cursor: default; }
 
-/* The student's own conversation for the current problem — POST
-   /pages/{page_id}/ask (see StudentLessonChat.tsx's sendQuestion). Sits below
-   the gen-card inside the same wide/fill thread, reusing chat-msg-user/
-   -assistant from the teacher's message bubbles so the two chat surfaces read
-   as one visual language rather than two different ones. */
+/* The tutor conversation for one page — POST /pages/{page_id}/ask, called
+   from components/ProblemArtifact.tsx's AskPanel, in the artifact viewer's
+   side panel rather than a dedicated screen (there is no more per-lesson
+   chat screen to hang it off of — see the section pivot). Reuses
+   chat-msg-user/-assistant so it reads as the same chat surface everywhere
+   it appears, not a bespoke one per screen.
+
+   .lesson-chat-chip below is now dead: it styled the three suggested-question
+   chips the old per-lesson student screen showed above its input, which this
+   pass's AskPanel does not have room for (a side panel, not a full page) and
+   has not rebuilt. Left rather than removed in case that comes back. */
 .lesson-chat-messages { display: flex; flex-direction: column; gap: var(--space-md); padding-top: var(--space-sm); width: 100%; }
 /* A demo-mode or failure notice, not a real answer — italic and quieter so it
    never reads as if the model actually answered. */
@@ -1948,3 +1956,63 @@ button.chip {
 .panel-error-title { margin: 0; font-weight: 600; font-size: var(--text-body); }
 .panel-error-body { margin: 0; font-size: var(--text-body-sm); line-height: var(--lh-body-sm); color: var(--ink); }
 .panel-error-detail { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: var(--ink-2); word-break: break-word; }
+
+/* ---------------------------------------------------------------------------
+   The section pivot's own screens: Library, SectionView, Generate, and the
+   admin pages. Reuses every primitive above (ui-btn, ui-field, gen-card,
+   chat-*, artifact-*, panel-error) rather than a fresh visual language — the
+   only genuinely new layout here is the library/section grid and the admin
+   tree, neither of which existed in any shape before this pivot.
+   --------------------------------------------------------------------------- */
+
+.login-switch { margin: var(--space-md) 0 0; text-align: center; font-size: var(--text-body-sm); color: var(--ink-2); }
+.login-switch a { color: var(--primary); font-weight: 500; }
+
+.library-section { margin-top: var(--space-2xl); }
+.library-section-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-md); margin-bottom: var(--space-md); }
+.library-section-head .ui-section-title { margin: 0; }
+
+.library-folder-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--space-md);
+}
+.library-problem-grid { display: flex; flex-direction: column; gap: var(--space-md); }
+
+.section-back { margin-bottom: var(--space-lg); }
+
+/* The admin tree — indentation via nested <ul>/<li>, not a computed --depth
+   custom property: three levels deep (MAX_SECTION_DEPTH) is little enough
+   that a plain margin per nesting level reads fine, and it's one line of CSS
+   instead of wiring a depth value through from the API response. */
+.admin-tree, .admin-tree-children { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-sm); }
+.admin-tree-children { margin-top: var(--space-sm); margin-left: var(--space-xl); border-left: 2px solid var(--rule); padding-left: var(--space-lg); }
+.admin-tree-row {
+  display: flex; align-items: center; gap: var(--space-md); flex-wrap: wrap;
+  padding: var(--space-sm) var(--space-lg);
+  background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius);
+}
+.admin-tree-title { font-weight: 600; color: var(--ink); text-decoration: none; }
+.admin-tree-title:hover { color: var(--primary); }
+.admin-tree-kind { font-size: var(--text-body-sm); color: var(--ink-3); }
+.admin-tree-actions { margin-left: auto; display: flex; gap: var(--space-sm); }
+.admin-home-actions { display: flex; gap: var(--space-md); }
+
+.admin-add-forms { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--space-lg); }
+.admin-add-form {
+  padding: var(--space-lg); background: var(--card); border: 1px solid var(--rule); border-radius: var(--radius-card);
+}
+.admin-add-form-row { display: flex; align-items: center; gap: var(--space-sm); }
+
+.admin-review-row { display: flex; flex-direction: column; gap: var(--space-xs); }
+.admin-review-section-link { font-size: var(--text-body-sm); color: var(--ink-2); text-decoration: none; }
+.admin-review-section-link:hover { color: var(--primary); }
+
+/* The tutor Q&A panel inside an artifact viewer's side slot (see
+   components/ProblemArtifact.tsx's AskPanel) — the same conversation surface
+   the old per-lesson student screen had, just living in the viewer's aside
+   instead of a dedicated screen, since there is no more per-lesson screen to
+   give it its own column. */
+.ask-panel { display: flex; flex-direction: column; height: 100%; gap: var(--space-md); }
+.ask-panel .lesson-chat-messages { flex: 1 1 auto; overflow-y: auto; }
+.ask-panel-input { flex: 0 0 auto; display: flex; align-items: center; gap: var(--space-sm); border-top: 1px solid var(--rule); padding-top: var(--space-md); }
+.ask-panel-input .chat-input-field { border: 1px solid var(--rule); border-radius: var(--radius); padding: var(--space-sm) var(--space-md); }
