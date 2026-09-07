@@ -67,8 +67,29 @@ def verify_password(password: str, stored: str) -> bool:
     return hmac.compare_digest(check.hex(), digest_hex)
 
 
+# A fixed hash to check a login attempt against when the email doesn't exist,
+# so that path spends the same ~250ms in PBKDF2 the real path does. Without
+# this, "no such user" returns in a couple of milliseconds and "wrong
+# password" takes a quarter of a second — a 100x gap that is a working email
+# enumeration oracle with no statistics required, over a login endpoint with
+# no other rate limit yet (see docs/BACKLOG.md). Generated once per process,
+# not persisted anywhere — it never needs to verify anything real.
+DUMMY_PASSWORD_HASH = hash_password(secrets.token_urlsafe(32))
+
+
 def _cookie_secure() -> bool:
     return os.environ.get("COOKIE_SECURE", "false").lower() == "true"
+
+
+def _cookie_samesite() -> str:
+    """"lax" works today because web and api are both on localhost, which is
+    same-site. The moment they're on different registrable domains — which
+    WEB_ORIGIN's comma-list (main.py) exists to support — Lax silently stops
+    sending the cookie on cross-site requests: login returns 200 with a user
+    body and every request after it 401s, the worst kind of thing to debug
+    blind. Set COOKIE_SAMESITE=none (and COOKIE_SECURE=true — a browser
+    refuses None without Secure) once that's the real deployment shape."""
+    return os.environ.get("COOKIE_SAMESITE", "lax").lower()
 
 
 def start_session(db: DbSession, user: User, response: Response) -> None:
@@ -80,7 +101,7 @@ def start_session(db: DbSession, user: User, response: Response) -> None:
         COOKIE_NAME,
         token,
         httponly=True,
-        samesite="lax",
+        samesite=_cookie_samesite(),
         secure=_cookie_secure(),
         max_age=int(SESSION_TTL.total_seconds()),
         path="/",

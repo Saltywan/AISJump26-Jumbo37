@@ -41,6 +41,12 @@ services:
       # http (local dev, a plain tunnel) needs this unset/false or the
       # session cookie never gets sent back.
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      # "lax" (the default) only works while web and api are same-site, which
+      # is true for localhost:5173/localhost:8000 but stops being true the
+      # moment they're on different registrable domains — see auth.py's
+      # _cookie_samesite(). Set to "none" then, and COOKIE_SECURE=true with
+      # it — a browser refuses SameSite=None without Secure.
+      COOKIE_SAMESITE: ${COOKIE_SAMESITE:-lax}
     ports: ["8000:8000"]
     # the source is mounted so an edit reloads instead of needing a rebuild;
     # the image still COPYs it, so a built image runs standalone

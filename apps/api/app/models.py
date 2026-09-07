@@ -244,6 +244,14 @@ class Job(Base, TimestampMixin):
     id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_id)
     kind: Mapped[str] = mapped_column(String(20), nullable=False)  # generate | tutor_ask
     target_id: Mapped[str] = mapped_column(String(32), nullable=False)
+    # Set only for tutor_ask (see main.py's ask_page). Lets handle_tutor_ask
+    # (apps/worker/worker.py) re-check who is actually allowed to see the
+    # answer it writes into progress_json, rather than only re-checking the
+    # page's status and trusting that whoever queued the job was already
+    # entitled to — which was true when the job was created, but the point of
+    # re-checking anything here is that "was true when queued" is not the
+    # same claim as "still true now."
+    requested_by: Mapped[Optional[str]] = mapped_column(ForeignKey("app_user.id", ondelete="SET NULL"))
     state: Mapped[str] = mapped_column(String(16), default="queued", nullable=False)
     stage: Mapped[Optional[str]] = mapped_column(String(50))
     progress_json: Mapped[Optional[dict]] = mapped_column(JSON)

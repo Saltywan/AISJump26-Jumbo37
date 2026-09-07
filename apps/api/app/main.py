@@ -42,9 +42,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy import func
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
-from .auth import current_user, end_session, hash_password, require_admin, start_session, verify_password
+from .auth import DUMMY_PASSWORD_HASH, current_user, end_session, hash_password, require_admin, start_session, verify_password
 from .db import SessionLocal, get_session, init_db
 from .models import Job, Page, Problem, Review, Section, User
 
@@ -99,16 +99,22 @@ app.add_middleware(
 
 
 def _bootstrap_admins(db: Session) -> None:
-    """ADMIN_EMAILS is a comma-separated allowlist, checked on every startup.
-    It promotes an EXISTING account — it never creates one, because that would
-    mean either inventing a password nobody knows or leaving one blank, and
-    both are worse than "the admin has to register first, then restart the
-    api once." There is deliberately no endpoint that grants admin; this env
-    var is the only path."""
-    emails = [e.strip().lower() for e in os.environ.get("ADMIN_EMAILS", "").split(",") if e.strip()]
-    if not emails:
-        return
+    """ADMIN_EMAILS is a comma-separated allowlist, checked on every startup —
+    both ways. It promotes an EXISTING account into the list and demotes any
+    admin who has fallen out of it, because a var whose whole job is being the
+    single source of truth for who can write the global library is not that
+    if removing an email and restarting leaves the old admin able to write it
+    forever. It never creates an account, because that would mean either
+    inventing a password nobody knows or leaving one blank, and both are worse
+    than "register first, then restart the api once." There is deliberately
+    no endpoint that grants or revokes admin; this env var is the only path
+    either way."""
+    emails = {e.strip().lower() for e in os.environ.get("ADMIN_EMAILS", "").split(",") if e.strip()}
     changed = False
+    for user in db.query(User).filter(User.role == "admin").all():
+        if user.email.lower() not in emails:
+            user.role = "user"
+            changed = True
     for email in emails:
         user = db.query(User).filter(func.lower(User.email) == email).first()
         if user is not None and user.role != "admin":
@@ -254,17 +260,7 @@ def page_out(p: Page) -> dict:
     }
 
 
-def _problem_out(prob: Problem, page: Optional[Page], db: Session) -> dict:
-    job_info = None
-    if page is None:
-        active_job = (
-            db.query(Job)
-            .filter(Job.target_id == prob.id, Job.kind == "generate")
-            .order_by(Job.created_at.desc())
-            .first()
-        )
-        if active_job:
-            job_info = {"id": active_job.id, "state": active_job.state, "stage": active_job.stage}
+def _problem_out(prob: Problem, page: Optional[Page], job_info: Optional[dict]) -> dict:
     return {
         "id": prob.id,
         "section_id": prob.section_id,
@@ -279,6 +275,25 @@ def _problem_out(prob: Problem, page: Optional[Page], db: Session) -> dict:
         "page": page_out(page) if page else None,
         "job": job_info,
     }
+
+
+def _active_generate_jobs(db: Session, problem_ids: list[str]) -> dict[str, dict]:
+    """The most recent `generate` job for each of these problems, one query
+    total rather than one per page-less problem. list_my_problems on a user
+    with a few hundred problems was doing exactly that — a few hundred round
+    trips to render their own home screen — before this existed."""
+    if not problem_ids:
+        return {}
+    rows = (
+        db.query(Job)
+        .filter(Job.target_id.in_(problem_ids), Job.kind == "generate")
+        .order_by(Job.target_id, Job.created_at.desc())
+        .all()
+    )
+    out: dict[str, dict] = {}
+    for j in rows:
+        out.setdefault(j.target_id, {"id": j.id, "state": j.state, "stage": j.stage})
+    return out
 
 
 def _current_page(prob: Problem) -> Optional[Page]:
@@ -312,7 +327,14 @@ def register(body: RegisterIn, response: Response, db: Session = Depends(get_ses
 def login(body: LoginIn, response: Response, db: Session = Depends(get_session)):
     email = body.email.strip().lower()
     user = db.query(User).filter(func.lower(User.email) == email).first()
-    if user is None or not verify_password(body.password, user.password_hash):
+    # Checking the password against DUMMY_PASSWORD_HASH when there's no such
+    # user, rather than short-circuiting, matters: PBKDF2 at this iteration
+    # count takes ~250ms, and returning instantly for "no such email" against
+    # ~250ms for "wrong password" is a hundredfold timing gap — a working
+    # email-enumeration oracle with no statistics required, on an endpoint
+    # with no other rate limit yet (see docs/BACKLOG.md).
+    ok = verify_password(body.password, user.password_hash if user else DUMMY_PASSWORD_HASH)
+    if user is None or not ok:
         raise HTTPException(401, "wrong email or password")
     start_session(db, user, response)
     return _user_out(user)
@@ -355,25 +377,41 @@ def _is_section_visible(db: Session, section: Section) -> bool:
     """True only if this section AND every ancestor up to the root is
     published — a topic is not visible just because its book happens to be,
     nor the reverse. Cheap here because MAX_SECTION_DEPTH keeps the walk to
-    at most three hops; would need a real query if that cap ever grows a lot."""
+    at most three hops; would need a real query if that cap ever grows a lot.
+
+    `seen` guards against a cycle even though update_section now refuses to
+    create one (`_is_ancestor_or_self`) — this walk is unbounded otherwise,
+    and one cyclic row from anywhere else (seed data, a manual DB fix, a
+    future code path that forgets the check) would hang every request that
+    reaches it rather than 500ing on just that section."""
     node: Optional[Section] = section
+    seen = set()
     while node is not None:
         if node.status != "published":
             return False
+        if node.id in seen:
+            return False  # cyclic; treat as unpublished rather than hang
+        seen.add(node.id)
         node = db.get(Section, node.parent_id) if node.parent_id else None
     return True
 
 
-def _has_approved_descendant(section: Section) -> bool:
+def _has_approved_descendant(section: Section, _seen: Optional[set] = None) -> bool:
     """Walks the whole subtree — a section may publish once ANY problem under
     it, at any depth, has an approved page. Small trees at this scale; a plain
-    recursive walk over already-loaded relationships is enough."""
+    recursive walk over already-loaded relationships is enough. `_seen` is the
+    same cycle guard as _is_section_visible's, for the same reason: recursion
+    on a cycle is a stack overflow, not just a slow query."""
+    seen = _seen if _seen is not None else set()
+    if section.id in seen:
+        return False
+    seen.add(section.id)
     for prob in section.problems:
         page = _current_page(prob)
         if page is not None and page.status == "approved":
             return True
     for child in section.children:
-        if child.archived_at is None and _has_approved_descendant(child):
+        if child.archived_at is None and _has_approved_descendant(child, seen):
             return True
     return False
 
@@ -386,16 +424,86 @@ def _require_section_write(s: Section, user: User) -> None:
         raise HTTPException(403, "not your section")
 
 
+def _ancestor_depth(db: Session, parent_id: Optional[str]) -> int:
+    """The parent's REAL depth, counted by walking to the root, not read off
+    its stored `depth` column. On create the two always agree; on move they
+    can silently diverge (see update_section), and trusting the column there
+    let a stale, under-reported depth pass the cap check indefinitely — move
+    a subtree deeper, its old `depth` doesn't move with it, and the next
+    create under it computes from the stale number. update_section fixes the
+    stored column up afterward (`_reflow_depths`), but this cap check counts
+    for itself precisely so it can never be fooled by a column that hasn't
+    been fixed up yet, or ever."""
+    depth = 0
+    node_id = parent_id
+    seen = set()
+    while node_id is not None:
+        if node_id in seen:
+            raise HTTPException(500, "corrupt section tree: cycle detected")
+        seen.add(node_id)
+        node = db.get(Section, node_id)
+        if node is None:
+            raise HTTPException(404, "no such parent section")
+        depth += 1
+        node_id = node.parent_id
+    return depth
+
+
 def _compute_depth(db: Session, parent_id: Optional[str]) -> tuple[int, Optional[Section]]:
     if parent_id is None:
         return 0, None
     parent = db.get(Section, parent_id)
     if parent is None or parent.archived_at is not None:
         raise HTTPException(404, "no such parent section")
-    depth = parent.depth + 1
+    depth = _ancestor_depth(db, parent_id)
     if depth > MAX_SECTION_DEPTH:
         raise HTTPException(400, f"sections nest at most {MAX_SECTION_DEPTH + 1} levels deep")
     return depth, parent
+
+
+def _is_ancestor_or_self(db: Session, candidate_id: str, of_parent_id: Optional[str]) -> bool:
+    """True if `candidate_id` is `of_parent_id` itself or one of ITS ancestors.
+    Used to refuse `PATCH .../parent_id` moves that would make a section its
+    own descendant. Without this, `_is_section_visible` (an unbounded `while
+    node is not None` walk) loops forever on the resulting cycle the first
+    time anyone hits GET /sections/global, and `_has_approved_descendant`
+    (unbounded recursion) blows the stack the first time anyone publishes —
+    both reachable by ANY signed-in user moving their own personal section
+    under itself, not just an admin mistake on the global tree."""
+    node_id = of_parent_id
+    seen = set()
+    while node_id is not None:
+        if node_id == candidate_id:
+            return True
+        if node_id in seen:
+            return True  # already-cyclic elsewhere; refuse rather than loop
+        seen.add(node_id)
+        node = db.get(Section, node_id)
+        node_id = node.parent_id if node else None
+    return False
+
+
+def _subtree_height(section: Section) -> int:
+    """0 for a leaf, else 1 + the tallest child subtree. Needed before a move
+    is applied: moving a subtree with descendants deeper under a new parent
+    can push ITS descendants past MAX_SECTION_DEPTH even when the section
+    being moved lands within the cap itself."""
+    live_children = [c for c in section.children if c.archived_at is None]
+    if not live_children:
+        return 0
+    return 1 + max(_subtree_height(c) for c in live_children)
+
+
+def _reflow_depths(section: Section) -> None:
+    """After a move, `section.depth` is already correct — this fixes up
+    everything BELOW it, which `_compute_depth` has no reason to touch.
+    Skipping this is what let a stale descendant depth pass the cap check on
+    a later create (see _ancestor_depth); this closes that at the source
+    instead of only guarding against it downstream."""
+    for child in section.children:
+        if child.archived_at is None:
+            child.depth = section.depth + 1
+            _reflow_depths(child)
 
 
 @app.get("/sections/global")
@@ -469,22 +577,26 @@ def update_section(
     _require_section_write(s, user)
 
     data = body.model_dump(exclude_unset=True)
-    if "title" in data and data["title"] and data["title"].strip():
+    if "title" in data:
+        if not (data["title"] and data["title"].strip()):
+            raise HTTPException(400, "title is required")
         s.title = data["title"].strip()
     if "kind" in data:
         s.kind = (data["kind"] or "").strip() or None
     if "position" in data and data["position"] is not None:
         s.position = data["position"]
     if "parent_id" in data:
-        # Depth on this row is recomputed; a moved subtree's OWN descendants
-        # keep their old depth values until they are individually touched.
-        # Fine at this scale (three levels, POC content) and flagged rather
-        # than silently wrong — a real fix walks the subtree on every move.
-        depth, parent = _compute_depth(db, data["parent_id"])
+        new_parent_id = data["parent_id"]
+        if new_parent_id is not None and _is_ancestor_or_self(db, s.id, new_parent_id):
+            raise HTTPException(400, "cannot move a section under itself or one of its own descendants")
+        depth, parent = _compute_depth(db, new_parent_id)
         if parent is not None and (parent.scope != s.scope or parent.owner_id != s.owner_id):
             raise HTTPException(400, "a section must nest under one of the same scope (and owner, if personal)")
-        s.parent_id = data["parent_id"]
+        if depth + _subtree_height(s) > MAX_SECTION_DEPTH:
+            raise HTTPException(400, f"moving here would nest sections more than {MAX_SECTION_DEPTH + 1} levels deep")
+        s.parent_id = new_parent_id
         s.depth = depth
+        _reflow_depths(s)
     db.commit()
     return _section_out(s)
 
@@ -524,18 +636,46 @@ def unpublish_section(section_id: str, admin: User = Depends(require_admin), db:
     return _section_out(s)
 
 
+def _collect_problems(section: Section) -> list[Problem]:
+    out = list(section.problems)
+    for child in section.children:
+        out.extend(_collect_problems(child))
+    return out
+
+
 @app.delete("/sections/{section_id}")
 def delete_section(section_id: str, user: User = Depends(current_user), db: Session = Depends(get_session)):
     """Deletes the section and its whole subtree (ON DELETE CASCADE on
-    parent_id). Problems filed anywhere in that subtree are NOT deleted —
-    their section_id is set to NULL (ON DELETE SET NULL) and they fall back
-    to being unfiled. Deleting an organising folder should not silently
-    destroy the generations inside it; deleting a specific problem (see
-    DELETE /problems/{id}) is the explicit, separate action for that."""
+    parent_id). What happens to the problems filed anywhere in that subtree
+    differs by scope, on purpose:
+
+    Personal problems are left alone. Their section_id is set to NULL (ON
+    DELETE SET NULL) and they fall back to being unfiled — deleting a folder
+    must not silently destroy someone's own generated homework, and deleting
+    a specific problem (see DELETE /problems/{id}) is the separate, explicit
+    action for that.
+
+    Global problems are deleted outright, along with their pages' files —
+    mirroring the archived delete_lesson (see archive/b2b-classroom-poc).
+    They CANNOT be left merely unfiled the way a personal one can: nothing in
+    this API lists or manages a global problem with no section (there is no
+    "global inbox"), so orphaning one here would leave its file sitting in
+    PUBLISHED_DIR, served forever, with no row left that could ever unpublish
+    or delete it again. An admin deleting a book means deleting what's in it."""
     s = db.get(Section, section_id)
     if s is None:
         raise HTTPException(404, "no such section")
     _require_section_write(s, user)
+
+    for prob in _collect_problems(s):
+        if prob.scope == "global":
+            for page in prob.pages:
+                _unpublish_page_file(page.html_path)
+                _delete_storage_file(page.html_path)
+            if prob.image_path:
+                _delete_storage_file(prob.image_path)
+            db.delete(prob)
+
     db.delete(s)
     db.commit()
     return {"ok": True}
@@ -549,6 +689,8 @@ def add_problem(body: ProblemIn, user: User = Depends(current_user), db: Session
     """Personal generation — the core loop. No section is required: an unfiled
     problem lands in the caller's inbox (see GET /problems/mine) rather than
     forcing a filing decision before the thing the user actually came for."""
+    if not body.text.strip():
+        raise HTTPException(400, "text is required")
     section = None
     if body.section_id:
         section = db.get(Section, body.section_id)
@@ -647,6 +789,8 @@ async def add_problem_image(
 def add_global_problem(
     section_id: str, body: GlobalProblemIn, admin: User = Depends(require_admin), db: Session = Depends(get_session)
 ):
+    if not body.text.strip():
+        raise HTTPException(400, "text is required")
     section = db.get(Section, section_id)
     if section is None or section.archived_at is not None:
         raise HTTPException(404, "no such section")
@@ -685,6 +829,8 @@ def add_global_problems_bulk(
         raise HTTPException(400, "not a global section")
     if not body.items:
         raise HTTPException(400, "no problems given")
+    if any(not item.text.strip() for item in body.items):
+        raise HTTPException(400, "every problem needs text")
     n = db.query(Problem).filter(Problem.section_id == section_id).count()
     out = []
     for i, item in enumerate(body.items):
@@ -760,13 +906,21 @@ def list_section_problems(section_id: str, user: User = Depends(current_user), d
         return []
 
     approved_only = section.scope == "global" and user.role != "admin"
-    rows = db.query(Problem).filter(Problem.section_id == section_id).order_by(Problem.position).all()
+    rows = (
+        db.query(Problem)
+        .options(selectinload(Problem.pages))
+        .filter(Problem.section_id == section_id)
+        .order_by(Problem.position)
+        .all()
+    )
+    pages = {p.id: _current_page(p) for p in rows}
+    jobs = _active_generate_jobs(db, [p.id for p in rows if pages[p.id] is None])
     out = []
     for prob in rows:
-        page = _current_page(prob)
+        page = pages[prob.id]
         if approved_only and (page is None or page.status != "approved"):
             continue
-        out.append(_problem_out(prob, page, db))
+        out.append(_problem_out(prob, page, jobs.get(prob.id)))
     return out
 
 
@@ -774,8 +928,16 @@ def list_section_problems(section_id: str, user: User = Depends(current_user), d
 def list_my_problems(user: User = Depends(current_user), db: Session = Depends(get_session)):
     """The personal library's inbox: every problem this user has ever
     generated, filed or not, newest first."""
-    rows = db.query(Problem).filter(Problem.owner_id == user.id).order_by(Problem.created_at.desc()).all()
-    return [_problem_out(prob, _current_page(prob), db) for prob in rows]
+    rows = (
+        db.query(Problem)
+        .options(selectinload(Problem.pages))
+        .filter(Problem.owner_id == user.id)
+        .order_by(Problem.created_at.desc())
+        .all()
+    )
+    pages = {p.id: _current_page(p) for p in rows}
+    jobs = _active_generate_jobs(db, [p.id for p in rows if pages[p.id] is None])
+    return [_problem_out(prob, pages[prob.id], jobs.get(prob.id)) for prob in rows]
 
 
 @app.delete("/problems/{problem_id}")
@@ -809,23 +971,44 @@ def delete_problem(problem_id: str, user: User = Depends(current_user), db: Sess
 # ----------------------------------------------------------------- pages ----
 
 
+def _page_visible(page: Page, prob: Optional[Problem], user: User) -> bool:
+    """The one access rule for a page, used everywhere a page is read —
+    GET /pages/{id}, POST /pages/{id}/ask, and the job endpoints below for
+    whatever page a job's target resolves to. Written once specifically so it
+    cannot drift the way it already has once (ask_page's own docstring used
+    to claim this endpoint had no check at all, and separately claimed the
+    worker's re-check "mirrors" this exactly when it had quietly stopped
+    doing so — see apps/worker/worker.py's handle_tutor_ask).
+
+    An admin sees everything, for review. Anyone signed in sees an approved
+    (global) page. A personal page's owner sees it once it's `ready` — no
+    review gate applies to personal content at all (see models.py's Review
+    docstring), so `ready` is as far as "done" ever gets for one."""
+    if user.role == "admin":
+        return True
+    if page.status == "approved":
+        return True
+    return bool(prob and prob.scope == "personal" and prob.owner_id == user.id and page.status == "ready")
+
+
 @app.get("/pages/{page_id}")
 def get_page(page_id: str, user: User = Depends(current_user), db: Session = Depends(get_session)):
     p = db.get(Page, page_id)
     if p is None:
+        raise HTTPException(404, "no such page")
+    prob = db.get(Problem, p.problem_id)
+    # 404, not 403 — a stranger asking about someone's personal page gets the
+    # same response whether the id is wrong or just not theirs to see, so the
+    # response itself can't be used to confirm a guessed id exists.
+    if not _page_visible(p, prob, user):
         raise HTTPException(404, "no such page")
     return page_out(p)
 
 
 @app.post("/pages/{page_id}/ask")
 def ask_page(page_id: str, body: AskIn, user: User = Depends(current_user), db: Session = Depends(get_session)):
-    """The tutor chat. For global content this still requires `approved` — a
-    draft has not been through review, and letting anyone ask an
-    unconstrained model about it beside the review gate quietly defeats the
-    point of that gate. For personal content there is no review gate at all
-    (see models.py's Review docstring), so `ready` is enough — but only for
-    its own owner; this is the one place a personal page's access actually is
-    checked, unlike GET /pages/{id} itself.
+    """The tutor chat. See _page_visible for the access rule this shares with
+    GET /pages/{id} — the same rule, one definition, checked by both.
 
     Context comes ONLY from the page itself (its steps, each step's why, the
     answer and its sanity check) — never from a fresh solve. The model call
@@ -836,16 +1019,24 @@ def ask_page(page_id: str, body: AskIn, user: User = Depends(current_user), db: 
     if page is None:
         raise HTTPException(404, "no such page")
     prob = db.get(Problem, page.problem_id)
-    allowed = page.status == "approved" or (
-        prob is not None and prob.scope == "personal" and prob.owner_id == user.id and page.status == "ready"
-    )
-    if not allowed:
+    if not _page_visible(page, prob, user):
         raise HTTPException(409, {"error": "page is not available to ask about yet"})
     question = (body.question or "").strip()
     if not question:
         raise HTTPException(400, "question is required")
 
-    job = Job(kind="tutor_ask", target_id=page.id, state="queued", progress_json={"question": question})
+    # requested_by lets handle_tutor_ask (apps/worker/worker.py) re-check WHO
+    # is allowed to see the answer it's about to write, not just whether the
+    # page's status still permits asking about it at all — see that
+    # function's docstring for why a status-only re-check isn't the same
+    # claim as the one this endpoint just made.
+    job = Job(
+        kind="tutor_ask",
+        target_id=page.id,
+        requested_by=user.id,
+        state="queued",
+        progress_json={"question": question},
+    )
     db.add(job)
     db.commit()
     job_id = job.id
@@ -950,16 +1141,37 @@ def review_page(page_id: str, body: ReviewIn, admin: User = Depends(require_admi
 # ------------------------------------------------------------------ jobs ----
 
 
+def _job_visible(db: Session, job: Job, user: User) -> bool:
+    """A job's `progress_json` can hold real content — a tutor_ask's question
+    and answer, in particular (see handle_tutor_ask in apps/worker/worker.py)
+    — so this needs the same ownership check page reads get, not just "is
+    signed in". `target_id` means a different table depending on `kind`:
+    a Problem for `generate`, a Page for `tutor_ask` (whose own visibility in
+    turn depends on its Problem — see _page_visible)."""
+    if user.role == "admin":
+        return True
+    if job.kind == "generate":
+        prob = db.get(Problem, job.target_id)
+        return prob is None or prob.scope == "global" or prob.owner_id == user.id
+    if job.kind == "tutor_ask":
+        page = db.get(Page, job.target_id)
+        if page is None:
+            return True
+        prob = db.get(Problem, page.problem_id)
+        return _page_visible(page, prob, user)
+    return True
+
+
 @app.get("/jobs/{job_id}")
 def get_job(job_id: str, user: User = Depends(current_user), db: Session = Depends(get_session)):
     j = db.get(Job, job_id)
-    if j is None:
+    if j is None or not _job_visible(db, j, user):
         raise HTTPException(404, "no such job")
     return {"id": j.id, "state": j.state, "stage": j.stage, "progress": j.progress_json, "error": j.error}
 
 
 @app.get("/jobs/{job_id}/events")
-async def job_events(job_id: str, user: User = Depends(current_user)):
+async def job_events(job_id: str, user: User = Depends(current_user), db: Session = Depends(get_session)):
     """Server-sent events for one job.
 
     Generation takes 30-90 seconds. A spinner for that long kills a live demo,
@@ -968,6 +1180,9 @@ async def job_events(job_id: str, user: User = Depends(current_user)):
     found. Watching a page get audited is a better thing to look at than a
     spinner, and it is honest about what the system actually does.
     """
+    j = db.get(Job, job_id)
+    if j is None or not _job_visible(db, j, user):
+        raise HTTPException(404, "no such job")
 
     async def stream():
         last = None

@@ -547,18 +547,24 @@ def handle_tutor_ask(db, job: Job) -> None:
     stored HTML — never from a fresh solve.
 
     The access rule is re-checked here, not just trusted from the API, since
-    a page's state could change while a chat job sits queued behind a
-    generation. It has to match main.py's ask_page() exactly: global content
-    needs `approved` (the review gate), but personal content has no review
-    gate at all (see models.py's Review docstring) and only ever needs
-    `ready` — a personal page's owner is the only one who can reach this job
-    in the first place, so `ready` is already as far as it goes."""
+    a page's state — or, for personal content, who the asker even was —
+    could have been true when ask_page() queued this job and not be true any
+    more by the time a job sits behind a generation and actually runs. It has
+    to match main.py's _page_visible() exactly: global content needs
+    `approved` (the review gate); personal content has no review gate at all
+    (see models.py's Review docstring) and needs `ready` AND that the asker
+    (job.requested_by) still owns it — ownership is the one thing a
+    status-only re-check cannot see, which is why the check is on the job's
+    requester and not just on the page."""
     page = db.get(Page, job.target_id)
     if page is None:
         raise RuntimeError(f"page {job.target_id} is gone")
     problem = db.get(Problem, page.problem_id) if page.problem_id else None
     is_personal_ready = (
-        problem is not None and problem.scope == "personal" and page.status == "ready"
+        problem is not None
+        and problem.scope == "personal"
+        and problem.owner_id == job.requested_by
+        and page.status == "ready"
     )
     if page.status != "approved" and not is_personal_ready:
         raise RuntimeError("page is not approved")
