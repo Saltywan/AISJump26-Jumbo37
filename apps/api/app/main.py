@@ -69,19 +69,28 @@ MAX_SECTION_DEPTH = 2
 
 def _ensure_lib_link() -> None:
     """Generated pages load ./lib/shell.js relative to themselves. In the pages
-    container PUBLISHED_DIR is mounted at html/generated and the kit's lib at
-    html/lib, so a `lib` symlink inside PUBLISHED_DIR resolves to the vendored
-    kit — the same arrangement the fixtures already use. It is a relative
-    symlink, so it resolves correctly in whichever container reads it (nginx)
-    regardless of where this process has PUBLISHED_DIR mounted. Without it every
-    approved page 404s its own shell and renders nothing."""
-    try:
-        PUBLISHED_DIR.mkdir(parents=True, exist_ok=True)
-        link = PUBLISHED_DIR / "lib"
-        if not link.exists() and not link.is_symlink():
-            link.symlink_to("../lib")
-    except OSError:
-        pass
+    container PUBLISHED_DIR is mounted at html/generated and STORAGE_DIR at
+    html/drafts, with the kit's lib at html/lib alongside both — so a `lib`
+    symlink inside each one resolves to the vendored kit, the same arrangement
+    the fixtures already use. They are relative symlinks, so each resolves
+    correctly in whichever container reads it (nginx) regardless of where this
+    process has the two dirs mounted.
+
+    Both directories need the link, not just PUBLISHED_DIR: STORAGE_DIR is
+    where every personal page is served from (personal content has no review
+    gate — see models.py's Review docstring) and where a global page sits
+    while awaiting review, so without this half a page in either state 404s
+    its own shell and renders nothing, even though the checker reports it
+    clean — check.mjs reads pages straight off disk and never goes through
+    nginx's directory layout at all, so this gap has no automated check."""
+    for base in (PUBLISHED_DIR, STORAGE_DIR):
+        try:
+            base.mkdir(parents=True, exist_ok=True)
+            link = base / "lib"
+            if not link.exists() and not link.is_symlink():
+                link.symlink_to("../lib")
+        except OSError:
+            pass
 
 
 # Real sessions need allow_credentials=True, which the browser refuses to pair

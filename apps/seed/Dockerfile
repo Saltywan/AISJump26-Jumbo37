@@ -1,6 +1,6 @@
 # Runs scripts/seed-samples.mjs once, from inside the compose network, so that
 # `docker compose --profile backend up` on a clean machine produces a system
-# with content in it. Before this, a first run left every lesson empty, which
+# with content in it. Before this, a first run left the library empty, which
 # is indistinguishable from a broken install if you have never seen the app.
 #
 # Self-contained (COPY, not a mount) because the point of it is to work from a
@@ -9,7 +9,7 @@ FROM node:20-alpine
 
 # The seeder writes Problem and Page rows with SQL — there is no HTTP endpoint
 # that creates a page without queueing a real model run. See the script's
-# "THE TWO HARD PARTS" comment.
+# "THE THREE HARD PARTS" comment.
 RUN apk add --no-cache postgresql-client
 
 WORKDIR /repo

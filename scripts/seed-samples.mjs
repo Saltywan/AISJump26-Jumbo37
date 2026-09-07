@@ -1,24 +1,35 @@
-// Populate the API with a believable demo set — a few classrooms, lessons
-// under them, and problems whose pages are the 68 real generated pages
-// already in the repo (apps/pages/static/pages, listed in
-// apps/web/src/manifest.ts, checked by apps/pages/static/checks.json) —
-// instead of the app showing an almost-empty database until someone spends
-// 30-90 seconds and real model money generating one page at a time.
+// Populate the API with a believable demo set — a couple of "books" of
+// exam-style problems, "topics" under each, and problems whose pages are the
+// 68 real generated pages already in the repo (apps/pages/static/pages,
+// listed in apps/web/src/manifest.ts, checked by
+// apps/pages/static/checks.json) — instead of the app showing an
+// almost-empty database until someone spends 30-90 seconds and real model
+// money generating one page at a time.
 //
 //   node scripts/seed-samples.mjs
 //
 // Run from the repo root, on the HOST, with the stack up
 // (`docker compose --profile backend up`). It talks to the API over HTTP at
 // http://localhost:8000 (override with API_URL) for everything the API can
-// do on its own, and shells out to `docker compose exec`/`cp` for the two
-// things it can't be asked to do over HTTP: writing Problem/Page rows for
-// pages that were never actually generated, and placing their HTML where a
-// real generation would have (see "THE TWO HARD PARTS" below). No npm
-// dependencies — Node 18+'s built-in fetch and child_process are enough.
+// do on its own, and shells out to `docker compose exec`/`cp` for the things
+// it can't be asked to do over HTTP: writing Problem/Page rows for pages that
+// were never actually generated, placing their HTML where a real generation
+// would have, and promoting its own seed account to admin (see "THE THREE
+// HARD PARTS" below).
+//
+// This is the section-pivot rewrite. The classroom/lesson-era version of
+// this script (three named classrooms, five fixed chapters, no login) is
+// archived on `archive/b2b-classroom-poc` — read it first if this one's
+// shape is confusing, since most of the design carries straight over: same
+// fixture files, same defect curation, same idempotency guarantees, same
+// "real endpoints for structure, raw SQL for the two things nothing else can
+// do" split. What's new is entirely because content now has an owner and an
+// admin role rather than being open to whoever calls the API.
 //
 // ---------------------------------------------------------------------------
-// THE TWO HARD PARTS (read apps/api/app/main.py's review_page/publish_lesson
-// and the STORAGE_DIR/PUBLISHED_DIR split before changing any of this):
+// THE THREE HARD PARTS (read apps/api/app/main.py's review_page/publish_section
+// and the STORAGE_DIR/PUBLISHED_DIR split, plus models.py's Section/Problem
+// docstrings, before changing any of this):
 //
 // 1. There is no "generate.py, but instantly and for free" endpoint. Real
 //    generation runs a model and a checker (apps/worker/worker.py) and lands
@@ -27,10 +38,10 @@
 //    STORAGE_DIR/<problem_id>.html (via `docker compose cp`, since STORAGE_DIR
 //    is a volume private to the api/worker containers) and inserts the
 //    Problem/Page rows directly with `docker compose exec db psql` — there is
-//    no POST /lessons/{id}/problems path that doesn't queue a real worker Job.
-//    Every Page row it writes carries the file's REAL checks.json entry, not
-//    a fabricated one, so a page with genuine collisions still looks like it
-//    does after seeding.
+//    no POST /sections/{id}/problems path that doesn't queue a real worker
+//    Job. Every Page row it writes carries the file's REAL checks.json entry,
+//    not a fabricated one, so a page with genuine collisions still looks like
+//    it does after seeding.
 //
 // 2. Confirmation is real, not skipped. Approving a page is what makes the
 //    API copy STORAGE_DIR/<html> into PUBLISHED_DIR/<html> — see
@@ -38,11 +49,25 @@
 //    makes a page reachable by URL at all. So step 1 only ever writes a page
 //    as status='ready' (a draft); this script then calls the real
 //    POST /pages/{id}/review endpoint to approve the ones meant to be
-//    visible, and calls the real POST /lessons/{id}/publish once every
-//    problem in a lesson is approved. Pages meant to stay drafts (see
+//    visible, and POST /sections/{id}/publish for each level of the tree
+//    that needs it (see publishIfReady() — a topic being published does not
+//    make its book visible; _is_section_visible requires every ancestor
+//    published, so both need the call). Pages meant to stay drafts (see
 //    DEFECT_FILES below) are never reviewed at all — that IS the point: they
 //    exist in the database, sitting behind the same gate a real draft would
-//    sit behind, invisible to students and to GET .../problems?approved_only.
+//    sit behind, invisible to everyone but an admin viewing the review queue.
+//
+// 3. Every write needs a real admin session — global sections and the
+//    problems filed into them are admin-only writes now (see
+//    models.py's Section/Problem docstrings on scope+owner_id), and auth is
+//    a real cookie-based login, not an open API. This script logs in as its
+//    own seed account (SEED_ADMIN_EMAIL below), registering it first if it
+//    doesn't exist, and promotes it to admin with one raw SQL UPDATE if it
+//    isn't already — the one thing here that bypasses a real endpoint,
+//    because ADMIN_EMAILS-driven promotion only runs at API startup and this
+//    script has no way to restart that process. It never fabricates a
+//    session token or skips login some other way; it does the same
+//    register-then-promote a human operator would.
 // ---------------------------------------------------------------------------
 //
 // IDEMPOTENCY — this repo has a documented bug where a version of this idea
@@ -51,31 +76,23 @@
 // different mechanisms guard against that here, matched to how each kind of
 // row gets its id:
 //
-//   - Classrooms and lessons come from the real POST endpoints, which mint
-//     their own server-side ids — calling POST twice makes two rows, full
-//     stop. So this always does GET-then-match-by-name (classrooms) or
-//     GET-then-match-by-title (lessons) FIRST and only POSTs on a miss,
-//     exactly the pattern syncSeedToServer itself now uses.
+//   - Sections come from the real POST endpoint, which mints its own
+//     server-side id — calling POST twice makes two rows, full stop. So this
+//     always does GET-then-match-by-(parent, title) FIRST and only POSTs on
+//     a miss, exactly the pattern syncSeedToServer itself now uses.
 //   - Problems and pages are inserted directly with SQL, so this mints their
-//     ids itself — deterministically, as sha1("<classroom name>::<lesson
+//     ids itself — deterministically, as sha1("<book title>::<topic
 //     title>::<file>") — and every INSERT is `ON CONFLICT (id) DO NOTHING`.
 //     Same inputs, same ids, every run; a second run's inserts are no-ops.
-//   - The review/publish calls are read-checked first (GET the page/lesson,
+//   - The review/publish calls are read-checked first (GET the page/section,
 //     skip if already in the target state) so re-running this doesn't pile
 //     up duplicate Review rows or re-copy files that are already published.
 //
-// NOT TOUCHING OTHER AGENTS' DATA — this is a shared dev database (see the
-// classrooms list before this script ever ran: three near-duplicate "Physics
-// ม.4/1" rows and a stray "ห้องเรียนทดสอบ" test classroom already existed from
-// other work in this repo). ensureClassroom() below disambiguates same-named
-// classrooms by matching `subject` too, not name alone, so it lands on the
-// one THIS script created/expects rather than a stray duplicate. And before
-// seeding any lesson, this reads its existing problems and refuses to touch
-// a lesson that already contains a problem this script didn't create — one
-// of the classrooms already had a lesson with 3 REAL generated-and-approved
-// problems in it (evidently from earlier manual testing of the confirmation
-// flow), and this script leaves that lesson alone entirely rather than mixing
-// fixture stand-ins into it.
+// NOT TOUCHING OTHER AGENTS' DATA — this is a shared dev database. Before
+// seeding any topic, this reads its existing problems and refuses to touch a
+// topic that already contains a problem this script didn't create, the same
+// guard the classroom-era version had for a lesson someone had already
+// generated real content into by hand.
 import { execFileSync } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
@@ -90,6 +107,14 @@ const KIT_VERSION_FILE = path.join(REPO_ROOT, "packages/kit/VERSION");
 
 const API_URL = process.env.API_URL ?? "http://localhost:8000";
 
+// This script's own account — registered if missing, promoted to admin by
+// raw SQL if not already (see "THE THREE HARD PARTS" #3 above). Override
+// with SEED_ADMIN_EMAIL/SEED_ADMIN_PASSWORD if that address is already taken
+// by a real person in whatever database this is pointed at.
+const SEED_ADMIN_EMAIL = process.env.SEED_ADMIN_EMAIL ?? "seed-admin@jumpais.local";
+const SEED_ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD ?? "seed-admin-password";
+const SEED_ADMIN_NAME = "Seed Admin";
+
 /* Two ways to run this, and they differ only in how the two functions under
  * "http/db i/o" reach the database and the storage volume.
  *
@@ -103,7 +128,7 @@ const API_URL = process.env.API_URL ?? "http://localhost:8000";
  * there, and would be the wrong tool anyway.
  *
  * The container path exists so that `docker compose --profile backend up`
- * alone produces a populated system. A first run that leaves every lesson
+ * alone produces a populated system. A first run that leaves the library
  * empty looks exactly like a broken install to someone who has never seen
  * this app, and "now run this second command" is a step a demo will skip. */
 const IN_CONTAINER = process.env.SEED_IN_CONTAINER === "1";
@@ -113,39 +138,34 @@ const EFFORT = process.env.GEN_EFFORT ?? "high";
 
 // ---------------------------------------------------------------- demo data --
 
-// Same three classrooms and the same five chapter titles lib/classroom.ts's
-// local seed() has always used, on purpose: a teacher's browser that has
-// never talked to this backend before seeds those exact names locally, and
-// its syncSeedToServer() adopts a server classroom's id the moment it finds
-// one with a matching name — so seeding under these names is what makes the
-// teacher's own classroom list (which reads localStorage, not the API — see
-// that file) land on real, generated content instead of an empty shell.
-const CLASSROOMS = [
-  { key: "phys41", name: "Physics ม.4/1", subject: "ห้องเรียนวิชาฟิสิกส์", level: "ม.4" },
-  { key: "phys42", name: "Physics ม.4/2", subject: "ห้องเรียนวิชาฟิสิกส์", level: "ม.4" },
-  { key: "phys51", name: "Physics ม.5/1", subject: "ห้องเรียนวิชาฟิสิกส์ ม.5", level: "ม.5" },
+// Two "books" — the top-level unit a real exam-question bank is organised
+// by (see models.py's Section docstring: a book is just a root section,
+// parent_id IS NULL). Same physics fixtures the classroom-era seed used,
+// just filed under books-and-topics instead of classrooms-and-chapters.
+const BOOKS = [
+  { key: "phys_m4", title: "ฟิสิกส์ ม.4 ตะลุยโจทย์", kind: "book" },
+  { key: "phys_m5", title: "ฟิสิกส์ ม.5 ตะลุยโจทย์", kind: "book" },
 ];
 
-// The exact five chapters CHAPTER_TEMPLATES in lib/classroom.ts describes,
-// each backed for real here by the physics fixtures it only ever gestures at
-// (that file's own pageFiles are cosmetic — a local lesson count, not
-// anything the API knows about).
-const CHAPTERS = [
-  { title: "บทที่ 1: การเคลื่อนที่แบบโปรเจกไทล์", files: ["p02_1.html", "p02_2.html", "p01_1.html", "p01_2.html", "p07_1.html"] },
-  { title: "บทที่ 2: พลังงานและงาน", files: ["p03_1.html", "p03_2.html", "p04_1.html", "p05_1.html", "p07_2.html"] },
-  { title: "บทที่ 3: สมดุลกลและการชน", files: ["p08_1.html", "p08_2.html", "p09_1.html", "p09_2.html", "p06_1.html"] },
-  { title: "บทที่ 4: คลื่นและแสง", files: ["p10_1.html", "p10_2.html", "p11_1.html", "p16_1.html", "p17_1.html"] },
-  { title: "บทที่ 5: ไฟฟ้าและแม่เหล็ก", files: ["p12_1.html", "p12_2.html", "p13_1.html", "p14_1.html", "p14_2.html"] },
+// The exact five chapters CHAPTER_TEMPLATES in the archived lib/classroom.ts
+// described, each backed for real here by the physics fixtures it only ever
+// gestured at — now "topics" (children of a book) rather than "lessons"
+// (children of a classroom).
+const TOPICS = [
+  { title: "การเคลื่อนที่แบบโปรเจกไทล์", files: ["p02_1.html", "p02_2.html", "p01_1.html", "p01_2.html", "p07_1.html"] },
+  { title: "พลังงานและงาน", files: ["p03_1.html", "p03_2.html", "p04_1.html", "p05_1.html", "p07_2.html"] },
+  { title: "สมดุลกลและการชน", files: ["p08_1.html", "p08_2.html", "p09_1.html", "p09_2.html", "p06_1.html"] },
+  { title: "คลื่นและแสง", files: ["p10_1.html", "p10_2.html", "p11_1.html", "p16_1.html", "p17_1.html"] },
+  { title: "ไฟฟ้าและแม่เหล็ก", files: ["p12_1.html", "p12_2.html", "p13_1.html", "p14_1.html", "p14_2.html"] },
 ];
 
-// Two more problems, filed into Physics ม.4/1's chapter 5 only — a teacher's
-// inbox realistically has a couple of things that arrived and haven't been
-// sorted into the right chapter yet, and this is also the one page in the
-// whole 68-fixture set with a failed board element (checks.json's
-// jsx.failed), which chapters built only from the physics fixtures don't
-// have one of. Both stay unapproved, same as the rest of this chapter's
-// defective pages below.
-const MISC_DRAFTS_FOR = { phys41: { chapterTitle: CHAPTERS[4].title, files: ["m19_2.html", "m21_1.html"] } };
+// Two more problems, filed into the ม.4 book's last topic only — a library
+// realistically has a couple of things that arrived and haven't been sorted
+// into the right topic yet, and this is also the one page in the whole
+// 68-fixture set with a failed board element (checks.json's jsx.failed),
+// which topics built only from the physics fixtures don't have one of. Both
+// stay unapproved, same as the rest of this topic's defective pages below.
+const MISC_DRAFTS_FOR = { phys_m4: { topicTitle: TOPICS[4].title, files: ["m19_2.html", "m21_1.html"] } };
 
 // Pages this seed deliberately leaves unapproved — real defects from
 // checks.json, chosen to cover the three kinds the brief calls out:
@@ -154,7 +174,7 @@ const MISC_DRAFTS_FOR = { phys41: { chapterTitle: CHAPTERS[4].title, files: ["m1
 //                    single backslash, checks.json's `collapsed`)
 //   m19_2            a failed board element (jsx.failed: riemannsum threw)
 //   m21_1            11 label collisions — the most dramatic case in the set
-// A lesson containing any of these never gets published, so the review
+// A topic containing any of these never gets published, so the review
 // screen has real, worth-looking-at drafts waiting rather than everything
 // arriving pre-approved.
 const DEFECT_FILES = new Set(["p04_1.html", "p16_1.html", "p12_1.html", "p14_2.html", "m19_2.html", "m21_1.html"]);
@@ -193,8 +213,16 @@ function sqlJson(value) {
 
 // ------------------------------------------------------------- http/db i/o --
 
+// The session cookie, captured once at login and attached to every request
+// after — Node's fetch has no cookie jar of its own, and this script only
+// ever needs the one cookie, so a module-level string is simpler than
+// pulling in a jar library for it.
+let sessionCookie = null;
+
 async function apiGet(pathname) {
-  const res = await fetch(`${API_URL}${pathname}`);
+  const res = await fetch(`${API_URL}${pathname}`, {
+    headers: sessionCookie ? { Cookie: sessionCookie } : {},
+  });
   if (!res.ok) throw new Error(`GET ${pathname} -> ${res.status}`);
   return res.json();
 }
@@ -202,7 +230,10 @@ async function apiGet(pathname) {
 async function apiPost(pathname, body) {
   const res = await fetch(`${API_URL}${pathname}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(sessionCookie ? { Cookie: sessionCookie } : {}),
+    },
     body: JSON.stringify(body ?? {}),
   });
   if (!res.ok) throw new Error(`POST ${pathname} -> ${res.status}: ${await res.text()}`);
@@ -212,19 +243,19 @@ async function apiPost(pathname, body) {
 /** Run every INSERT in one `psql` call, piped over stdin — much cheaper than
  *  one `docker compose exec` per row for ~70 problems + pages. */
 function runSql(sql) {
-  if (!sql.trim()) return;
+  if (!sql.trim()) return "";
   const psql = ["psql", "-U", "jumpais", "-d", "jumpais", "-v", "ON_ERROR_STOP=1"];
   const [cmd, args] = IN_CONTAINER
     ? [psql[0], ["-h", process.env.PGHOST ?? "db", ...psql.slice(1)]]
     : ["docker", ["compose", "exec", "-T", "db", ...psql]];
-  execFileSync(cmd, args, { cwd: REPO_ROOT, input: sql, stdio: ["pipe", "inherit", "inherit"] });
+  return execFileSync(cmd, args, { cwd: REPO_ROOT, input: sql, encoding: "utf8" });
 }
 
 /** Copies a fixture's HTML into the api container's STORAGE_DIR at the exact
  *  path (`<problem_id>.html`, flat, no subdirectory) apps/worker/worker.py's
  *  handle_generate() writes a real draft to — see that function's
  *  `final_name = f"{problem.id}.html"`. review_page() (main.py) looks for the
- *  file at STORAGE_DIR/<html_path> the moment a teacher approves it, so it
+ *  file at STORAGE_DIR/<html_path> the moment an admin approves it, so it
  *  has to already be sitting there under exactly this name. */
 function copyIntoStorage(localFile, problemId) {
   if (IN_CONTAINER) {
@@ -237,57 +268,83 @@ function copyIntoStorage(localFile, problemId) {
   });
 }
 
+// ------------------------------------------------------------------ auth ---
+
+/** Logs in as SEED_ADMIN_EMAIL, registering it first on a fresh database,
+ *  and promotes it to admin with one raw SQL UPDATE if ADMIN_EMAILS didn't
+ *  already do it at API startup (see "THE THREE HARD PARTS" #3). Sets the
+ *  module-level `sessionCookie` used by every apiGet/apiPost after this. */
+async function loginAsSeedAdmin() {
+  let res = await fetch(`${API_URL}/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: SEED_ADMIN_EMAIL, password: SEED_ADMIN_PASSWORD }),
+  });
+  if (res.status === 401) {
+    // No such account yet on a fresh database — register it. A 401 here
+    // could also mean the password changed out from under a stale
+    // SEED_ADMIN_PASSWORD, but this account exists for no purpose other than
+    // seeding, so "just re-register" would fail loudly (409) if that were
+    // ever true for a real reason worth investigating.
+    res = await fetch(`${API_URL}/auth/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: SEED_ADMIN_EMAIL, password: SEED_ADMIN_PASSWORD, name: SEED_ADMIN_NAME }),
+    });
+    console.log(`  + registered ${SEED_ADMIN_EMAIL}`);
+  }
+  if (!res.ok) throw new Error(`login/register as ${SEED_ADMIN_EMAIL} -> ${res.status}: ${await res.text()}`);
+
+  const setCookie = res.headers.get("set-cookie");
+  const m = setCookie && /jumpais_session=[^;]+/.exec(setCookie);
+  if (!m) throw new Error("no session cookie in login/register response");
+  sessionCookie = m[0];
+
+  const me = await apiGet("/auth/me");
+  if (me.role !== "admin") {
+    runSql(`UPDATE app_user SET role = 'admin' WHERE id = ${sqlQuote(me.id)};`);
+    console.log(`  + promoted ${SEED_ADMIN_EMAIL} to admin`);
+  }
+  return me.id;
+}
+
 // -------------------------------------------------------------- ensure*() --
 
-async function ensureClassroom({ name, subject, level }) {
-  const existing = await apiGet("/classrooms");
-  const candidates = existing.filter((c) => c.name === name);
-  const exact = candidates.find((c) => (c.subject ?? "") === (subject ?? ""));
-  const hit = exact ?? candidates[0];
+async function ensureSection({ parentId, scope, title, kind }, cache) {
+  const hit = cache.find((s) => s.parent_id === (parentId ?? null) && s.title === title);
   if (hit) {
-    if (candidates.length > 1) {
-      console.log(`  ! ${candidates.length} classrooms already named "${name}" — using ${hit.id} (subject matches)`);
-    }
-    console.log(`  = classroom "${name}" -> ${hit.id} (existing)`);
-    return hit.id;
+    console.log(`  ${"  ".repeat(parentId ? 1 : 0)}= section "${title}" -> ${hit.id} (existing)`);
+    return hit;
   }
-  const { id } = await apiPost("/classrooms", { name, subject, level });
-  console.log(`  + classroom "${name}" -> ${id} (created)`);
-  return id;
+  const created = await apiPost("/sections", { parent_id: parentId ?? null, scope, title, kind });
+  cache.push(created);
+  console.log(`  ${"  ".repeat(parentId ? 1 : 0)}+ section "${title}" -> ${created.id} (created)`);
+  return created;
 }
 
-async function ensureLesson(classroomId, title) {
-  const existing = await apiGet(`/classrooms/${classroomId}/lessons`);
-  const hit = existing.find((l) => l.title === title);
-  if (hit) return hit;
-  const { id } = await apiPost(`/classrooms/${classroomId}/lessons`, { title });
-  console.log(`    + lesson "${title}" -> ${id} (created)`);
-  return { id, title, status: "draft", problem_count: 0 };
-}
+// ------------------------------------------------------------- seedTopic() --
 
-// ------------------------------------------------------------ seedLesson() --
-
-/** Seeds one lesson with `files`. Refuses to touch a lesson that already has
- *  a problem this script didn't create (see the module comment's "NOT
- *  TOUCHING OTHER AGENTS' DATA") — it reads the lesson's current problems and
- *  bails the moment it finds an id outside the set it expects for this exact
- *  (classroom name, lesson title, files) triple. */
-async function seedLesson(classroomName, classroomId, level, lesson, files) {
-  const expectedIds = new Set(files.map((f) => idFor(classroomName, lesson.title, f)));
-  const existingProblems = lesson.problem_count > 0 ? await apiGet(`/lessons/${lesson.id}/problems`) : [];
+/** Seeds one topic section with `files`. Refuses to touch a topic that
+ *  already has a problem this script didn't create (see the module
+ *  comment's "NOT TOUCHING OTHER AGENTS' DATA") — it reads the topic's
+ *  current problems and bails the moment it finds an id outside the set it
+ *  expects for this exact (book title, topic title, files) triple. */
+async function seedTopic(bookTitle, adminId, topic, files) {
+  const expectedIds = new Set(files.map((f) => idFor(bookTitle, topic.title, f)));
+  const existingProblems = await apiGet(`/sections/${topic.id}/problems`);
   const foreign = existingProblems.filter((p) => !expectedIds.has(p.id));
   if (foreign.length > 0) {
-    console.log(`    - "${lesson.title}": has ${foreign.length} problem(s) this script didn't create — leaving it alone`);
+    console.log(`    - "${topic.title}": has ${foreign.length} problem(s) this script didn't create — leaving it alone`);
     return;
   }
   const existingIds = new Set(existingProblems.map((p) => p.id));
-  const missing = files.filter((f) => !existingIds.has(idFor(classroomName, lesson.title, f)));
+  const missing = files.filter((f) => !existingIds.has(idFor(bookTitle, topic.title, f)));
 
   let sql = "";
   const toReview = []; // { pageId, file }
   files.forEach((file, i) => {
-    const problemId = idFor(classroomName, lesson.title, file);
-    const pageId = idFor(classroomName, lesson.title, file, "page");
+    const problemId = idFor(bookTitle, topic.title, file);
+    const pageId = idFor(bookTitle, topic.title, file, "page");
     toReview.push({ pageId, file });
     if (!missing.includes(file)) return; // already inserted by an earlier run
 
@@ -300,8 +357,8 @@ async function seedLesson(classroomName, classroomId, level, lesson, files) {
     copyIntoStorage(file, problemId);
 
     sql += `
-INSERT INTO problem (id, lesson_id, position, source, raw_text, extracted_text, level)
-VALUES (${sqlQuote(problemId)}, ${sqlQuote(lesson.id)}, ${i}, 'text', ${sqlQuote(title)}, ${sqlQuote(title)}, ${sqlQuote(level)})
+INSERT INTO problem (id, section_id, scope, owner_id, created_by, position, source, raw_text, extracted_text, level)
+VALUES (${sqlQuote(problemId)}, ${sqlQuote(topic.id)}, 'global', NULL, ${sqlQuote(adminId)}, ${i}, 'text', ${sqlQuote(title)}, ${sqlQuote(title)}, NULL)
 ON CONFLICT (id) DO NOTHING;
 INSERT INTO page (id, problem_id, kit_version, model, effort, html_path, path_chosen, checks_json, status)
 VALUES (${sqlQuote(pageId)}, ${sqlQuote(problemId)}, ${sqlQuote(KIT_VERSION)}, ${sqlQuote(MODEL)}, ${sqlQuote(EFFORT)}, ${sqlQuote(`${problemId}.html`)}, ${sqlQuote(pathChosen)}, ${sqlJson(checks)}, 'ready')
@@ -310,9 +367,9 @@ ON CONFLICT (id) DO NOTHING;
   });
   if (missing.length > 0) {
     runSql(sql);
-    console.log(`    + "${lesson.title}": inserted ${missing.length} problem(s) (${missing.join(", ")})`);
+    console.log(`    + "${topic.title}": inserted ${missing.length} problem(s) (${missing.join(", ")})`);
   } else {
-    console.log(`    = "${lesson.title}": already has all ${files.length} seeded problem(s)`);
+    console.log(`    = "${topic.title}": already has all ${files.length} seeded problem(s)`);
   }
 
   // Confirmation: approve every non-defect page through the real endpoint —
@@ -332,19 +389,25 @@ ON CONFLICT (id) DO NOTHING;
     approvedNow++;
   }
   if (approvedNow > 0) console.log(`      approved ${approvedNow} page(s)`);
+}
 
-  // Publish only when nothing in this lesson is a deliberate draft — a
-  // lesson with any DEFECT_FILES problem can't publish anyway (main.py's
-  // publish_lesson requires every problem approved) and shouldn't: that's
-  // what leaves it sitting in the review queue on purpose.
-  const hasDefect = files.some((f) => DEFECT_FILES.has(f));
-  if (!hasDefect) {
-    const fresh = await apiGet(`/classrooms/${classroomId}/lessons`);
-    const current = fresh.find((l) => l.id === lesson.id);
-    if (current && current.status !== "published") {
-      await apiPost(`/lessons/${lesson.id}/publish`, {});
-      console.log(`      published`);
-    }
+/** Publishes a section if it has any approved descendant and isn't already
+ *  published — read-checked first so re-running this is a no-op once
+ *  everything's already live. Called once per level (see main()'s loop):
+ *  publish_section in main.py only ever affects the one section it's called
+ *  on, and _is_section_visible requires every ancestor published, not just
+ *  the section holding the problems (see models.py's Section docstring). */
+async function publishIfReady(section, cache) {
+  const fresh = cache.find((s) => s.id === section.id) ?? section;
+  if (fresh.status === "published") return;
+  try {
+    const published = await apiPost(`/sections/${section.id}/publish`, {});
+    Object.assign(fresh, published);
+    console.log(`      published "${section.title}"`);
+  } catch (e) {
+    // 409 "no approved problems to publish" is expected for a topic that's
+    // all-defect (see DEFECT_FILES) — everything else is a real failure.
+    if (!String(e.message).includes("409")) throw e;
   }
 }
 
@@ -361,13 +424,14 @@ async function waitForApi() {
   const attempts = IN_CONTAINER ? 60 : 1;
   for (let i = 0; i < attempts; i += 1) {
     try {
-      await apiGet("/healthz");
-      return true;
+      const res = await fetch(`${API_URL}/healthz`);
+      if (res.ok) return true;
     } catch {
-      if (i === attempts - 1) return false;
-      if (i === 0) console.log(`waiting for ${API_URL} …`);
-      await new Promise((r) => setTimeout(r, 2000));
+      // connection refused — API not up yet, fall through to retry/fail below
     }
+    if (i === attempts - 1) return false;
+    if (i === 0) console.log(`waiting for ${API_URL} …`);
+    await new Promise((r) => setTimeout(r, 2000));
   }
   return false;
 }
@@ -379,24 +443,40 @@ async function main() {
     return;
   }
 
-  for (const classroom of CLASSROOMS) {
-    console.log(`\n${classroom.name}`);
-    const classroomId = await ensureClassroom(classroom);
-    for (const chapter of CHAPTERS) {
-      const lesson = await ensureLesson(classroomId, chapter.title);
-      await seedLesson(classroom.name, classroomId, classroom.level, lesson, chapter.files);
+  console.log("seed admin");
+  const adminId = await loginAsSeedAdmin();
+
+  const sectionCache = await apiGet("/sections/global");
+
+  for (const book of BOOKS) {
+    console.log(`\n${book.title}`);
+    const bookSection = await ensureSection({ scope: "global", title: book.title, kind: book.kind }, sectionCache);
+    for (const topicDef of TOPICS) {
+      const topic = await ensureSection(
+        { parentId: bookSection.id, scope: "global", title: topicDef.title, kind: "topic" },
+        sectionCache
+      );
+      await seedTopic(book.title, adminId, topic, topicDef.files);
+      await publishIfReady(topic, sectionCache);
     }
-    const misc = MISC_DRAFTS_FOR[classroom.key];
+    const misc = MISC_DRAFTS_FOR[book.key];
     if (misc) {
-      const lesson = await ensureLesson(classroomId, misc.chapterTitle);
-      // Appended to the same chapter-5 lesson, past its usual 5 files — see
-      // seedLesson's foreign-problem guard for why this is safe to call a
-      // second time with a longer file list than the plain CHAPTERS pass
-      // used (the first 5 ids are already expected/present, so it just adds
-      // the 2 new ones and leaves the rest alone).
-      const chapter5 = CHAPTERS.find((c) => c.title === misc.chapterTitle);
-      await seedLesson(classroom.name, classroomId, classroom.level, lesson, [...chapter5.files, ...misc.files]);
+      const topic = sectionCache.find((s) => s.parent_id === bookSection.id && s.title === misc.topicTitle);
+      // Appended to the same last-topic section, past its usual 5 files —
+      // see seedTopic's foreign-problem guard for why this is safe to call a
+      // second time with a longer file list than the plain TOPICS pass used
+      // (the first 5 ids are already expected/present, so it just adds the 2
+      // new ones and leaves the rest alone).
+      const baseTopic = TOPICS.find((t) => t.title === misc.topicTitle);
+      await seedTopic(book.title, adminId, topic, [...baseTopic.files, ...misc.files]);
+      await publishIfReady(topic, sectionCache);
     }
+    // The book itself needs its own publish call too — see publishIfReady's
+    // docstring. It naturally lands last: _has_approved_descendant walks the
+    // whole subtree, so it only succeeds once at least one topic under it
+    // already has an approved page, which every non-all-defect topic above
+    // already does by this point.
+    await publishIfReady(bookSection, sectionCache);
   }
 
   console.log("\ndone.");
