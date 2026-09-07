@@ -190,12 +190,19 @@ security boundary; the role picker on the login screen is a demo control.
 No CAS — the model computes its own arithmetic. This is the largest correctness
 gap in the product and nothing in the UI mitigates it.
 
-Chat follow-up replies beyond the initial generated problem stay local.
-Problem authoring, generated pages, review statuses, and review checks are
-all persisted in PostgreSQL and synced across sessions.
+Chat follow-up replies beyond the initial generated problem stay local, and a
+follow-up cannot revise the page it followed — asking the model to fix or
+tune a generated solution in the same thread is not built. See
+`docs/BACKLOG.md` for what that needs (a `superseded_by` chain already exists
+in the schema for exactly this and nothing creates one yet).
+
+No suggested-question generation, quizzes, or weak/strong-point analysis.
+Also `docs/BACKLOG.md` — it depends on the section tree this pivot introduces.
 
 ## Docs
 
 `docs/BUILD-PLAN.html` — the five-stage build order and the review rationale.
 `docs/SCHEMA.md` — the data model, API surface, and why a lesson holds several problems.
+`docs/BACKLOG.md` — deferred work: server-side chat + in-thread page revision,
+the measured generation-latency breakdown, personalization/quizzes.
 `docs/PLAN.md` — superseded, kept for its API notes.
