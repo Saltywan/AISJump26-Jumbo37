@@ -11,7 +11,7 @@
  * server-owned, so this screen only ever has to hold ONE generation, not a
  * whole history of them.
  */
-import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type ClipboardEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { AppShell } from "../components/AppShell";
 import { ProblemArtifact } from "../components/ProblemArtifact";
@@ -19,6 +19,7 @@ import { useSession } from "../lib/session";
 import { api, watchJob, type ApiProblem, type JobEvent } from "../lib/api";
 import imageUrl from "../icons/image.svg";
 import sendUrl from "../icons/send.svg";
+import angleSmallLeftUrl from "../icons/angle-small-left.svg";
 
 const STAGE_LABEL: Record<string, string> = {
   queued: "เข้าคิวแล้ว",
@@ -38,10 +39,47 @@ export default function Generate() {
   const [problemId, setProblemId] = useState<string | null>(null);
   const [result, setResult] = useState<ApiProblem | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // A pasted or picked image sits here until Send, the same as typed text —
+  // pasting used to submit immediately, which meant a screenshot with a typo
+  // in the accompanying note (or no note at all when one was meant) queued a
+  // real model run there was no way to back out of. Preview blob: URL is
+  // this-tab-only and never persisted, same reasoning as the pre-pivot
+  // TeacherChat.tsx this is restoring the behaviour of.
+  const [stagedImage, setStagedImage] = useState<File | null>(null);
+  const [stagedPreviewUrl, setStagedPreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const stopWatch = useRef<(() => void) | null>(null);
 
   useEffect(() => () => stopWatch.current?.(), []);
+
+  function stageImage(file: File) {
+    if (!file.type.startsWith("image/")) return;
+    if (stagedPreviewUrl) URL.revokeObjectURL(stagedPreviewUrl);
+    setStagedImage(file);
+    setStagedPreviewUrl(URL.createObjectURL(file));
+  }
+
+  function clearStagedImage() {
+    if (stagedPreviewUrl) URL.revokeObjectURL(stagedPreviewUrl);
+    setStagedImage(null);
+    setStagedPreviewUrl(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
+  function onPaste(e: ClipboardEvent<HTMLInputElement>) {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (const item of items) {
+      if (item.type.startsWith("image/")) {
+        const file = item.getAsFile();
+        if (file) {
+          e.preventDefault();
+          stageImage(file);
+          return;
+        }
+      }
+    }
+  }
 
   function begin(jobId: string, pid: string) {
     setProblemId(pid);
@@ -68,10 +106,22 @@ export default function Generate() {
     );
   }
 
-  async function submitText() {
+  async function submit() {
     const t = text.trim();
-    if (!t) return;
+    if (!t && !stagedImage) return;
     setError(null);
+    if (stagedImage) {
+      const file = stagedImage;
+      setText("");
+      clearStagedImage();
+      try {
+        const { problem_id, job_id } = await api.addProblemImage(file, { text: t, sectionId });
+        begin(job_id, problem_id);
+      } catch {
+        setError("อัปโหลดรูปไม่สำเร็จ ลองใหม่อีกครั้ง");
+      }
+      return;
+    }
     setText("");
     try {
       const { problem_id, job_id } = await api.addProblem({ text: t, section_id: sectionId });
@@ -81,30 +131,25 @@ export default function Generate() {
     }
   }
 
-  async function submitImage(file: File) {
-    setError(null);
-    try {
-      const { problem_id, job_id } = await api.addProblemImage(file, { sectionId });
-      begin(job_id, problem_id);
-    } catch {
-      setError("อัปโหลดรูปไม่สำเร็จ ลองใหม่อีกครั้ง");
-    }
-  }
-
   function onFileChosen(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = "";
-    if (file) void submitImage(file);
+    if (file) stageImage(file);
   }
 
   if (!user) return null;
   const busy = !!problemId;
+  const backTo = sectionId ? `/library/section/${sectionId}` : "/";
 
   return (
     <AppShell wide>
       <div className="chat-shell chat-shell-noside">
         <div className="chat-main">
           <div className="chat-scroll">
+            <button type="button" className="chat-sidebar-back section-back" onClick={() => navigate(backTo)}>
+              <img src={angleSmallLeftUrl} alt="" width={20} height={20} />
+              <span>กลับ</span>
+            </button>
             {!result && !busy ? (
               <div className="chat-empty">
                 <h2>วันนี้อยากสร้างสื่อการสอนเกี่ยวกับอะไร?</h2>
@@ -143,33 +188,63 @@ export default function Generate() {
           </div>
 
           <div className="chat-input-bar">
-            <input ref={fileInputRef} type="file" accept="image/*" className="chat-input-file" onChange={onFileChosen} />
-            <button
-              type="button"
-              className="chat-input-attach"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={busy}
-              aria-label="แนบรูปโจทย์"
-              title="แนบรูปโจทย์"
-            >
-              <img src={imageUrl} alt="" width={20} height={20} />
-            </button>
-            <input
-              className="chat-input-field"
-              value={text}
-              disabled={busy}
-              onChange={(e) => setText(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  void submitText();
+            {stagedPreviewUrl ? (
+              <div className="chat-staged-attachment">
+                <div className="chat-staged-thumb-wrap">
+                  <img src={stagedPreviewUrl} alt="รูปที่เลือก" className="chat-staged-thumb" />
+                  <button
+                    type="button"
+                    className="chat-staged-remove"
+                    onClick={clearStagedImage}
+                    title="ลบรูปภาพ"
+                    aria-label="ลบรูปภาพ"
+                  >
+                    ×
+                  </button>
+                </div>
+                <span className="chat-staged-hint">แนบรูปภาพแล้ว — สามารถพิมพ์ข้อความเพิ่มเติมประกอบโจทย์ได้</span>
+              </div>
+            ) : null}
+            <div className="chat-input-row">
+              <input ref={fileInputRef} type="file" accept="image/*" className="chat-input-file" onChange={onFileChosen} />
+              <button
+                type="button"
+                className={`chat-input-attach${stagedImage ? " chat-input-attach-active" : ""}`}
+                onClick={() => fileInputRef.current?.click()}
+                disabled={busy}
+                aria-label="แนบรูปโจทย์"
+                title="แนบรูปโจทย์"
+              >
+                <img src={imageUrl} alt="" width={20} height={20} />
+              </button>
+              <input
+                className="chat-input-field"
+                value={text}
+                disabled={busy}
+                onChange={(e) => setText(e.target.value)}
+                onPaste={onPaste}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    void submit();
+                  }
+                }}
+                placeholder={
+                  stagedImage
+                    ? "พิมพ์ข้อความหรือคำแนะนำเพิ่มเติม (หรือไม่พิมพ์ก็ได้)..."
+                    : "พิมพ์โจทย์ที่นี่ หรือวางรูปภาพ (Ctrl+V / Cmd+V)"
                 }
-              }}
-              placeholder="พิมพ์โจทย์ที่นี่ หรือแนบรูปโจทย์"
-            />
-            <button type="button" className="chat-input-send" onClick={() => void submitText()} disabled={busy || !text.trim()} aria-label="ส่ง">
-              <img src={sendUrl} alt="" width={20} height={20} />
-            </button>
+              />
+              <button
+                type="button"
+                className="chat-input-send"
+                onClick={() => void submit()}
+                disabled={busy || (!text.trim() && !stagedImage)}
+                aria-label="ส่ง"
+              >
+                <img src={sendUrl} alt="" width={20} height={20} />
+              </button>
+            </div>
           </div>
         </div>
       </div>
