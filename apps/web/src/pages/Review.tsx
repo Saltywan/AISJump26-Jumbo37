@@ -15,7 +15,7 @@ import { StatusBadge } from "../components/Chips";
 // click target (packages/kit/lib/shell.js, Shell.go(n) on click), so "go to
 // step 3" is one real click once you're looking at the page, not a series of
 // "next" presses.
-const PAGES_URL = import.meta.env.VITE_PAGES_URL ?? "http://localhost:8080";
+import { PAGES_URL } from "../lib/api";
 
 export default function Review() {
   const { id } = useParams<{ id: string }>();

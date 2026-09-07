@@ -1,11 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { PAGES } from "../manifest";
-
-// The page origin is a different origin on purpose (see apps/pages/nginx.conf
-// and docker-compose.yml) — generated pages run model-written script and must
-// not share an origin, cookies, or storage with this app.
-const PAGES_URL = import.meta.env.VITE_PAGES_URL ?? "http://localhost:8080";
+import { PAGES_URL } from "../lib/api";
 
 export default function Viewer() {
   const { file } = useParams<{ file: string }>();

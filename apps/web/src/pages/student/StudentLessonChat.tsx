@@ -35,14 +35,12 @@ import { ArtifactCard, ArtifactViewer } from "../../components/Artifact";
 import { useSession } from "../../lib/session";
 import { classroomOf, lessonsOf, useClassroomStore } from "../../lib/classroom";
 import { useChatStore, studentVisibleFiles } from "../../lib/chat";
-import { api, isLive, pageSrc, ApiError, type ApiProblem } from "../../lib/api";
+import { api, isLive, pageSrc, PAGES_URL, ApiError, type ApiProblem } from "../../lib/api";
 import { PAGES } from "../../manifest";
 import angleSmallLeftUrl from "../../icons/angle-small-left.svg";
 import angleSmallRightUrl from "../../icons/angle-small-right.svg";
 import caretDownUrl from "../../icons/caret-down.svg";
 import sendUrl from "../../icons/send.svg";
-
-const PAGES_URL = import.meta.env.VITE_PAGES_URL ?? "http://localhost:8080";
 
 const SUGGESTED_QUESTIONS = ["ทำไมต้องหาจุดตัดแกน X?", "จุดยอดหายังไง และทำไมสำคัญ?", "รู้ได้ยังไงว่าคว่ำหรือหงาย"];
 

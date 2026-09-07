@@ -19,7 +19,7 @@
  * asks before promising anything.
  */
 
-const API = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
+const API = import.meta.env.VITE_API_URL || "/api";
 
 export interface ApiPage {
   id: string;
@@ -264,7 +264,7 @@ export function watchJob(
   return close;
 }
 
-export const PAGES_URL = import.meta.env.VITE_PAGES_URL ?? "http://localhost:8080";
+export const PAGES_URL = import.meta.env.VITE_PAGES_URL || "";
 
 /** Worker output is served from /generated/, the fixtures from /pages/. Both
  *  live on the pages origin; only this function should know which is which. */

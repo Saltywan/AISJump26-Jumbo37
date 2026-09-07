@@ -1,6 +1,11 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
+declare const process: { env: Record<string, string | undefined> };
+
+const apiTarget = process.env.API_TARGET || "http://api:8000";
+const pagesTarget = process.env.PAGES_TARGET || "http://pages:80";
+
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
@@ -8,5 +13,29 @@ export default defineConfig({
     host: true,
     port: 5173,
     strictPort: true,
+    allowedHosts: true,
+    proxy: {
+      "/api": {
+        target: apiTarget,
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ""),
+      },
+      "/pages": {
+        target: pagesTarget,
+        changeOrigin: true,
+      },
+      "/drafts": {
+        target: pagesTarget,
+        changeOrigin: true,
+      },
+      "/generated": {
+        target: pagesTarget,
+        changeOrigin: true,
+      },
+      "/lib": {
+        target: pagesTarget,
+        changeOrigin: true,
+      },
+    },
   },
 });

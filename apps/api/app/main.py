@@ -69,11 +69,11 @@ def _ensure_lib_link() -> None:
     except OSError:
         pass
 
-# The web app is a different origin in dev (5173 vs 8000). The pages origin is
-# NOT listed: it never talks to this API, and it must not be able to.
+web_origin = os.environ.get("WEB_ORIGIN", "*")
+allow_origins = ["*"] if web_origin == "*" else [o.strip() for o in web_origin.split(",") if o.strip()]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=os.environ.get("WEB_ORIGIN", "http://localhost:5173").split(","),
+    allow_origins=allow_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )

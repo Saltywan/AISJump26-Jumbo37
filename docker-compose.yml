@@ -29,7 +29,7 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg://jumpais:jumpais@db:5432/jumpais
       PAGES_ORIGIN: http://localhost:8080
-      WEB_ORIGIN: http://localhost:5173
+      WEB_ORIGIN: "*"
       STORAGE_DIR: /storage
       PUBLISHED_DIR: /published
     ports: ["8000:8000"]
@@ -131,8 +131,10 @@ services:
   web:
     build: { context: ., dockerfile: apps/web/Dockerfile }
     environment:
-      VITE_API_URL: http://localhost:8000
-      VITE_PAGES_URL: http://localhost:8080
+      VITE_API_URL: ${VITE_API_URL:-/api}
+      VITE_PAGES_URL: ${VITE_PAGES_URL:-}
+      API_TARGET: http://api:8000
+      PAGES_TARGET: http://pages:80
     ports: ["5173:5173"]
     volumes:
       # live-reload against the host source; the anonymous volume keeps the
