@@ -1,0 +1,33 @@
+# Dev-only extras, layered automatically on top of docker-compose.yml —
+# Compose reads this file with no flags, so `docker compose --profile
+# backend up --build` (the command in the README and in
+# docs/DEPLOY-ORACLE-CLOUD.md §7) is still the local-dev command, unchanged.
+#
+# This file is deliberately NOT rsynced to the server (see that doc's §6
+# --exclude), which is what makes docker-compose.yml prod-shaped by DEFAULT
+# rather than by remembering an extra -f flag on every `up`, `ps`, `logs` and
+# `exec` typed over SSH — forgetting a flag silently deploys the dev config;
+# forgetting the rsync --exclude is one line, fixed once, in one place.
+services:
+  api:
+    # --reload doubles the api process (a StatReload parent plus the reloaded
+    # child) and, worse, reloads uvicorn MID-REQUEST the moment source
+    # changes — which in prod is exactly when docs/DEPLOY-ORACLE-CLOUD.md §6
+    # rsyncs apps/api/app/*, killing every open SSE stream and in-flight
+    # tutor question at the moment of deploy. Fine in dev, wrong in prod.
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    volumes:
+      # live-reload against the host source; the image still COPYs it, so a
+      # built image with this override removed runs standalone.
+      - "./apps/api/app:/app/app"
+
+  worker:
+    volumes:
+      - "./apps/worker/worker.py:/app/worker.py:ro"
+
+  web:
+    volumes:
+      # live-reload against the host source; the anonymous volume keeps the
+      # image's own node_modules instead of an (absent) host one shadowing it.
+      - "./apps/web:/app"
+      - "/app/node_modules"

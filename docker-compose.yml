@@ -8,6 +8,22 @@
 # `docker compose up --build` (no flags, matching the README) brings up just
 # the default-profile services, i.e. stage 1. Run
 # `docker compose --profile backend up --build` once stage 3 exists.
+#
+# This file is PROD-SHAPED: no --reload, no bind-mounted source, resource
+# limits sized for a 2 vCPU / 8GB VM (see docs/DEPLOY-ORACLE-CLOUD.md).
+# docker-compose.override.yml carries the dev-only extras (--reload, live
+# source mounts) and is read automatically by every plain `docker compose`
+# invocation with no flags — so local dev is unchanged — but is NOT rsynced
+# to the server (see that doc's §6), which is what makes prod the default
+# instead of something you have to remember a flag for.
+#
+# Resource math (2 vCPU / 8GB host): db 1280M + api 512M + worker 3584M +
+# web 768M + pages 128M + seed 256M (exits) = 6528M, leaving ~1.6GB for the
+# OS, dockerd, and page cache. CPU limits sum to 3.75 on 2 physical vCPUs
+# ON PURPOSE — a `cpus:` limit is a ceiling (CFS quota), not a reservation,
+# so this just stops any one container from pinning both cores while letting
+# `worker` burst above 1 core when the rest of the stack is idle, which is
+# the common case. See each service below for its own share of the math.
 services:
   db:
     image: postgres:16-alpine
@@ -16,20 +32,72 @@ services:
       POSTGRES_USER: jumpais
       POSTGRES_PASSWORD: jumpais
       POSTGRES_DB: jumpais
-    ports: ["5432:5432"]
+    command:
+      - "postgres"
+      # api's pool (20+10, db.py) + worker's (20+6) + seed's psql (5) +
+      # human psql/pg_dump (10) + superuser_reserved_connections (3) = 84
+      # against the default 100 — workable but zero margin. 150 leaves ~65
+      # spare, enough to add a second worker replica later without another
+      # restart (see docs/BACKLOG.md on scaling past one worker container).
+      - "-c"
+      - "max_connections=150"
+      # NOT the usual "25% of host RAM" rule (2GB) — Postgres is one of six
+      # containers sharing an 8GB box and is capped at 1280M below. 256MB
+      # comfortably holds this schema's entire working set.
+      - "-c"
+      - "shared_buffers=256MB"
+      # A planner hint, not an allocation: roughly what the OS page cache can
+      # plausibly hold for Postgres given the host's unallocated slack.
+      - "-c"
+      - "effective_cache_size=1GB"
+      # Per sort/hash node per backend, up from the 4MB default. claim_one()
+      # (apps/worker/worker.py) runs an ORDER BY every 2 seconds forever; at
+      # a 50-deep queue that needs more than 4MB to stay off a temp file.
+      # Worst case 90 backends x 8MB x ~2 nodes/query stays under 1.4GB.
+      - "-c"
+      - "work_mem=8MB"
+      - "-c"
+      - "maintenance_work_mem=128MB"
+      - "-c"
+      - "autovacuum_max_workers=2"
+      # set_stage() (worker.py) commits several times per job; at 12
+      # concurrent jobs that's a commit every 1-2s, and block-volume fsync
+      # latency on a small cloud VM is real. Trade: losing at most the last
+      # ~200ms of job-progress rows on a hard power loss — rows that are
+      # re-derivable, never the generated pages themselves, which live on
+      # the separate `storage`/`published` volumes either way.
+      - "-c"
+      - "synchronous_commit=off"
+      - "-c"
+      - "max_wal_size=1GB"
+      - "-c"
+      - "checkpoint_completion_target=0.9"
+    # Bound to localhost: this was published on 0.0.0.0 with a demo password,
+    # saved only by Oracle's own default iptables REJECT rule — which
+    # docs/DEPLOY-ORACLE-CLOUD.md's own §3 teaches you to punch holes in.
+    # Nothing outside this host needs to reach Postgres directly; the deploy
+    # doc's own `docker exec ... psql` workflow doesn't use the published
+    # port at all.
+    ports: ["127.0.0.1:5432:5432"]
     volumes: ["pgdata:/var/lib/postgresql/data"]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U jumpais"]
       interval: 3s
       retries: 20
+    deploy:
+      resources:
+        limits:
+          cpus: "0.75"
+          memory: 1280M
+    restart: unless-stopped
 
   api:
     build: { context: ., dockerfile: apps/api/Dockerfile }
     profiles: ["backend"]
     environment:
       DATABASE_URL: postgresql+psycopg://jumpais:jumpais@db:5432/jumpais
-      PAGES_ORIGIN: http://localhost:8080
-      WEB_ORIGIN: http://localhost:5173
+      PAGES_ORIGIN: ${PAGES_ORIGIN:-http://localhost:8080}
+      WEB_ORIGIN: ${WEB_ORIGIN:-http://localhost:5173}
       STORAGE_DIR: /storage
       PUBLISHED_DIR: /published
       # Comma-separated allowlist, checked on every startup: an EXISTING
@@ -47,9 +115,31 @@ services:
       # _cookie_samesite(). Set to "none" then, and COOKIE_SECURE=true with
       # it — a browser refuses SameSite=None without Secure.
       COOKIE_SAMESITE: ${COOKIE_SAMESITE:-lax}
+      # Must match the worker's own WORKER_CONCURRENCY (below) — main.py
+      # derives MAX_INFLIGHT_GENERATE_PER_USER from it, and a mismatch here
+      # only makes the api's idea of the pool's width wrong, never the
+      # worker's actual concurrency. See main.py's comment on that constant
+      # for how a stale copy of this number drifted into a real bug once.
+      WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-12}
+      # Sized for ~50 concurrent sync requests without exhausting the anyio
+      # threadpool default of 40 (see main.py's _startup / API_THREADPOOL_TOKENS).
+      API_THREADPOOL_TOKENS: ${API_THREADPOOL_TOKENS:-80}
+      # 20 warm covers steady traffic (SSE ticks, _poll_job checkouts, normal
+      # requests — all ~1-2ms holds); 30 overflow absorbs a class-wide
+      # simultaneous-refresh burst and is closed on return so it doesn't
+      # linger. pool_timeout=10, not the 30s default: a request that can't
+      # get a connection in 10s should fail fast, not pile up behind
+      # whatever's holding the pool until it blows the client's own timeout.
+      DB_POOL_SIZE: ${DB_POOL_SIZE:-20}
+      DB_MAX_OVERFLOW: ${DB_MAX_OVERFLOW:-30}
+      DB_POOL_TIMEOUT: ${DB_POOL_TIMEOUT:-10}
     ports: ["8000:8000"]
-    # the source is mounted so an edit reloads instead of needing a rebuild;
-    # the image still COPYs it, so a built image runs standalone
+    # The image COPYs its own source (see apps/api/Dockerfile), so this runs
+    # standalone with no host mount. `storage`/`published` are the real data
+    # volumes this process needs; see docker-compose.override.yml for the
+    # dev-only live-source mount. (packages/kit is NOT mounted here — the api
+    # process never reads it; kit_version is a column read from Postgres, not
+    # the filesystem. Only the worker touches /kit.)
     volumes:
       # `storage` is where the worker drops a generated page — a draft, not
       # servable by anyone (see the `pages` service below). `published` is
@@ -60,10 +150,14 @@ services:
       # merely unlinked.
       - "storage:/storage"
       - "published:/published"
-      - "./packages/kit:/kit:ro"
-      - "./apps/api/app:/app/app"
-    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
     depends_on: { db: { condition: service_healthy } }
+    deploy:
+      resources:
+        limits:
+          cpus: "0.75"
+          memory: 512M
+    restart: unless-stopped
 
   worker:
     build: { context: ., dockerfile: apps/worker/Dockerfile }
@@ -74,11 +168,66 @@ services:
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
       GEN_MODEL: ${GEN_MODEL:-gemini-3.8-flash}
       GEN_EFFORT: ${GEN_EFFORT:-high}
+      # The wide, network-bound pool: each slot is one generate.py subprocess
+      # mostly waiting on the model's HTTPS response (~130MB RSS while it
+      # waits). 12 x 130MB = 1560MB, leaving room inside this service's
+      # memory limit below for CHECK_CONCURRENCY's chromiums too. Raising
+      # this further buys little before Google's own per-key rate limit
+      # becomes the binding constraint — verify your quota tier before going
+      # higher (see docs/BACKLOG.md).
+      WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-12}
+      # tutor_ask's own pool — it never spawns a subprocess (handle_tutor_ask
+      # calls google-genai in-process) so this costs ~0 extra RAM, and it's
+      # what actually decouples chat latency from generation queue depth;
+      # without it a chat question still waits for a free WORKER_CONCURRENCY
+      # slot even though claim_one() gives it queue PRIORITY, not a slot of
+      # its own.
+      TUTOR_CONCURRENCY: ${TUTOR_CONCURRENCY:-4}
+      # The narrow gate around the one genuinely CPU/RAM-expensive step: a
+      # real headless Chromium (~300MB RSS + real render work) via
+      # check.mjs. 2 keeps steady-state demand (~1.1 check-slots at 12
+      # concurrent generations) covered with headroom, while staying far
+      # from check.mjs's 25s waitForFunction timeout, which turns CPU
+      # starvation into a FALSE "broken:true" verdict rather than a slow
+      # check — a correctness bug, not just a slowdown, if this is set too
+      # high for the CPU limit below.
+      CHECK_CONCURRENCY: ${CHECK_CONCURRENCY:-2}
+      # kit/generate.py's own --timeout (its HTTP client timeout, default
+      # 420s) must stay well inside GENERATE_TIMEOUT_SECONDS, or one hung
+      # attempt burns the whole subprocess budget and call_with_backoff's
+      # multi-attempt retry ladder never gets to run.
+      GENERATE_CALL_TIMEOUT: ${GENERATE_CALL_TIMEOUT:-180}
+      GENERATE_TIMEOUT_SECONDS: ${GENERATE_TIMEOUT_SECONDS:-900}
+      CHECK_TIMEOUT_SECONDS: ${CHECK_TIMEOUT_SECONDS:-300}
+      # 17 concurrent threads (12 generate + 4 tutor + 1 main poll loop) + 3
+      # slack. Lower overflow than the api's (6, not 30): the only burst here
+      # is at startup (init_db + recover_orphaned_jobs + the first wave of
+      # claims), not an end-user traffic spike. Default 30s pool_timeout is
+      # fine — a worker thread blocked 30s is nothing against a 60-90s job,
+      # and failing fast here would waste a whole generation for no reason.
+      DB_POOL_SIZE: ${DB_POOL_SIZE:-20}
+      DB_MAX_OVERFLOW: ${DB_MAX_OVERFLOW:-6}
     volumes:
       - "storage:/storage"
       - "./packages/kit:/kit:ro"
-      - "./apps/worker/worker.py:/app/worker.py:ro"
     depends_on: { db: { condition: service_healthy } }
+    # Chromium uses /dev/shm for browser<->renderer shared memory; Docker's
+    # default is 64MB, which a JSXGraph-heavy page can blow past and crash
+    # the renderer mid-check — silently: run_check() then returns None and
+    # the Page ships with checks_json=null. check.mjs also now passes
+    # --disable-dev-shm-usage (see JumpAIS@check.mjs), so this is belt and
+    # braces, not the only fix.
+    shm_size: 256mb
+    deploy:
+      resources:
+        limits:
+          # The one service allowed to burst past 1 full core — chromium
+          # rendering during a check is real, if brief, CPU work, and this is
+          # the only container that should ever be able to use both vCPUs at
+          # once (when api/db/web/pages are all idle, the common case).
+          cpus: "1.50"
+          memory: 3584M
+    restart: unless-stopped
 
   # Runs once and exits. Fills an empty database with the three classrooms,
   # five chapters and 68 real fixture pages the app is meant to be seen with,
@@ -107,6 +256,11 @@ services:
       - "storage:/storage"
     depends_on:
       db: { condition: service_healthy }
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256M
     restart: "no"
 
   # separate origin, static only, no API surface at all
@@ -142,18 +296,25 @@ services:
       - "storage:/usr/share/nginx/html/drafts:ro"
       - "./packages/kit/lib:/usr/share/nginx/html/lib:ro"
       - "./apps/pages/nginx.conf:/etc/nginx/conf.d/default.conf:ro"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
+    restart: unless-stopped
 
   web:
     build: { context: ., dockerfile: apps/web/Dockerfile }
     environment:
-      VITE_API_URL: http://localhost:8000
-      VITE_PAGES_URL: http://localhost:8080
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
+      VITE_PAGES_URL: ${VITE_PAGES_URL:-http://localhost:8080}
     ports: ["5173:5173"]
-    volumes:
-      # live-reload against the host source; the anonymous volume keeps the
-      # image's own node_modules instead of an (absent) host one shadowing it.
-      - "./apps/web:/app"
-      - "/app/node_modules"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 768M
+    restart: unless-stopped
 
 volumes:
   pgdata:
