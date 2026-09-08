@@ -120,7 +120,7 @@ services:
       # only makes the api's idea of the pool's width wrong, never the
       # worker's actual concurrency. See main.py's comment on that constant
       # for how a stale copy of this number drifted into a real bug once.
-      WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-12}
+      WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-24}
       # Sized for ~50 concurrent sync requests without exhausting the anyio
       # threadpool default of 40 (see main.py's _startup / API_THREADPOOL_TOKENS).
       API_THREADPOOL_TOKENS: ${API_THREADPOOL_TOKENS:-80}
@@ -169,13 +169,16 @@ services:
       GEN_MODEL: ${GEN_MODEL:-gemini-3.8-flash}
       GEN_EFFORT: ${GEN_EFFORT:-high}
       # The wide, network-bound pool: each slot is one generate.py subprocess
-      # mostly waiting on the model's HTTPS response (~130MB RSS while it
-      # waits). 12 x 130MB = 1560MB, leaving room inside this service's
-      # memory limit below for CHECK_CONCURRENCY's chromiums too. Raising
-      # this further buys little before Google's own per-key rate limit
-      # becomes the binding constraint — verify your quota tier before going
-      # higher (see docs/BACKLOG.md).
-      WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-12}
+      # mostly waiting on the model's HTTPS response. Measured live (a real
+      # call, sampled mid-flight) at ~45-55MB RSS — well under the ~130MB
+      # first assumed here, which is why this moved from 12 to 24: 24 x
+      # ~80MB (padded above the measured figure for high-effort's larger
+      # prompts/responses) = ~1920MB, still leaving real slack inside this
+      # service's memory limit below for CHECK_CONCURRENCY's chromiums.
+      # Memory is no longer the reason to stop here — Google's own per-key
+      # rate limit is the next real ceiling and it has NOT been verified;
+      # see docs/BACKLOG.md before raising this further.
+      WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-24}
       # tutor_ask's own pool — it never spawns a subprocess (handle_tutor_ask
       # calls google-genai in-process) so this costs ~0 extra RAM, and it's
       # what actually decouples chat latency from generation queue depth;

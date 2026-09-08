@@ -158,59 +158,76 @@ Levers that actually touch the number, roughly cheapest first:
 
 Do not spend time on the checker. The data says it's not there.
 
-## Concurrency: sized for ~12 running / 50+ queued on 2 vCPU / 8GB, not 50 running
+## Concurrency: sized for ~24 running / 50+ queued on 2 vCPU / 8GB, not 50 running
 
 The `perf-tuning` branch (2026-09-08) tuned the worker pool, DB connection
 pools, Postgres, and the api's threadpool/SSE handling for a target of "50
 concurrent generations" on the current VM (2 vCPU / 8GB, see
 `docs/DEPLOY-ORACLE-CLOUD.md`). **50 simultaneously *running* generations is
-not what got built, deliberately** — every job's work is
-`subprocess.run(python3 generate.py)`, a fresh interpreter importing
-`google-genai` at ~130MB RSS each; 50 of those alone is 6.5GB, before
-Postgres, the api, or anything else. What's actually sized for that target:
-**`WORKER_CONCURRENCY=12` running, a 50+-deep queue drains at ~11 jobs/min
-(worst-case wait around the queue's own depth in minutes, not hours)**. See
-`docker-compose.yml`'s comments on `worker`/`db`/`api` for the full memory
-and connection-count arithmetic this is derived from, and
+still not what got built** — every job's work is
+`subprocess.run(python3 generate.py)`, a fresh interpreter per job — but the
+original per-job memory estimate here was wrong in the pessimistic direction.
+First pass assumed ~130MB RSS per `generate.py` subprocess (a generic
+"Python + pydantic + protobuf + httpx" guess) and set `WORKER_CONCURRENCY=12`
+against it. Measured live afterward (a real call against the real model,
+sampled mid-flight with `ps` inside the actual worker image): **~45-55MB**,
+under half the estimate. `WORKER_CONCURRENCY` moved to **24** on that
+measurement — 24 x ~80MB (padded above the measured figure for high-effort's
+larger prompts/responses, since the sample that produced 45-55MB was a
+trivial low-effort call) = ~1920MB, still comfortably inside the worker's
+existing 3584M cap alongside `CHECK_CONCURRENCY`'s chromiums. The container
+memory limit itself did NOT need to move — this was headroom the original
+estimate left on the table, not a new resource grant. At 24 running, a
+50+-deep queue drains roughly twice as fast as the original ~11 jobs/min
+figure, assuming nothing external throttles it first (see the rate-limit
+point below — that assumption is exactly the part that's unverified).
+
+See `docker-compose.yml`'s comments on `worker`/`db`/`api` for the full
+memory and connection-count arithmetic this is derived from, and
 `apps/worker/worker.py`'s `CHECK_CONCURRENCY`/`TUTOR_CONCURRENCY` for why the
 Chromium-driving check step and the tutor chat each got their own separate,
-narrower gate instead of sharing the generate pool's width.
+narrower gate instead of sharing the generate pool's width — that gate's
+sizing (`CHECK_CONCURRENCY=2`) did NOT change with this bump: it's sized
+against burst coincidence and CPU (real Chromium render work, capped by the
+box's 2 vCPUs), not against `WORKER_CONCURRENCY`, and the traffic that
+actually stresses it (`POST /sections/{id}/problems/bulk`) is unaffected by
+how wide the generate pool is.
 
-**Not yet verified against production traffic**: the numbers above are
-derived from documented per-process memory costs (a `generate.py` subprocess,
-a headless Chromium instance) and connection-count arithmetic, not a real
-load test — there is no realistic way to run 50 concurrent real model calls
-against this codebase without either the cost of doing so for real or a
-mocked model backend, and neither exists yet. Treat the specific numbers as
-a reasoned starting point to watch under real usage (worker OOM kills,
-Postgres connection exhaustion, and check.mjs's `broken:true` rate are the
-three signals worth actually watching once real traffic exists), not as a
-guarantee.
+**Not yet verified against production traffic**: the 24 figure is a real
+memory measurement, not a real load test — there is no realistic way to run
+24+ concurrent real model calls against this codebase without either the
+cost of doing so for real or a mocked model backend, and neither exists yet.
+Treat it as a reasoned, measurement-backed starting point to watch under real
+usage (worker OOM kills, Postgres connection exhaustion, and check.mjs's
+`broken:true` rate are the three signals worth actually watching once real
+traffic exists), not as a guarantee.
 
-**Two things that block going higher, in the order they'll actually bite:**
+**One thing blocks going meaningfully higher than 24, and it remains
+entirely unverified — everything else in this investigation got a real
+measurement except this:**
 
-1. **Google's own per-key rate limit**, not infra, is the first ceiling.
-   `apps/worker/worker.py`'s `genai_client()` uses `vertexai=True,
-   api_key=...` — Vertex AI's *express mode*, whose RPM is low. Verify the
-   key's actual quota tier before raising `WORKER_CONCURRENCY` past the
-   current default; if it's still express/free, a billing change is the
-   prerequisite for any of the levers below, not another config value.
-2. **A bigger box, then a second worker container**, in that order, get
-   closer to a real 50-running: 4 vCPU / 16GB funds roughly double every
-   number here (`WORKER_CONCURRENCY≈24`, `CHECK_CONCURRENCY≈4`) — still not
-   50. `claim_one()`'s `SELECT ... FOR UPDATE SKIP LOCKED` already makes a
-   second `worker` container (or `deploy.replicas: 2`) safe today with no
-   code change — `max_connections=150` in `docker-compose.yml` already
-   carries ~65 connections of spare headroom specifically for this. Two
-   workers on a 4 vCPU / 16GB box is a more realistic path to 48-ish running
-   than trying to force one worker container past what one box's RAM allows.
-   The alternative — making generation in-process instead of
-   `subprocess.run`, dropping per-job memory from ~130MB to ~5MB — is the
-   only lever that fits real 50-running into 2 vCPU / 8GB, and
-   `worker.py`'s own module docstring already argues against it ("a second
-   implementation in service code would fork the thing that exists to keep
-   this honest"); that argument still holds and this backlog item does not
-   propose reopening it.
+**Google's own per-key rate limit**, not infra, is the live ceiling now that
+the memory estimate has been corrected. `apps/worker/worker.py`'s
+`genai_client()` uses `vertexai=True, api_key=...` — Vertex AI's *express
+mode*, whose RPM is typically low. **Nobody has checked the actual quota
+tier on this key.** Do that before raising `WORKER_CONCURRENCY` again — if
+it's still express/free, a billing change is the prerequisite for any
+further increase, not another config value.
+
+Past the quota fix, a bigger box (4 vCPU / 16GB), then a second `worker`
+container, in that order, get closer to a real 50-running than trying to
+force one worker container past what one box's RAM allows —
+`claim_one()`'s `SELECT ... FOR UPDATE SKIP LOCKED` already makes a second
+worker safe today with no code change, and `max_connections=150` already
+carries ~65 connections of spare headroom for it. The alternative — making
+generation in-process instead of `subprocess.run`, dropping per-job memory
+to a few MB by sharing one interpreter instead of paying for a fresh one
+per job — would fit a real 50-running into 2 vCPU / 8GB on memory grounds
+alone (even the pre-measurement estimate was a factor-of-ten difference in
+per-job cost), but `worker.py`'s own module docstring already argues
+against it ("a second implementation in service code would fork the thing
+that exists to keep this honest"); that argument still holds and this
+backlog item does not propose reopening it.
 
 **Also flagged, not fixed, because it's out of this change's scope (the
 concurrency work was about the generation pipeline, not the frontend) but

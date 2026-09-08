@@ -101,7 +101,7 @@ MAX_SIMILAR_PER_SOURCE = 5
 # compose sets this on both the api and worker services so they can't drift
 # again; a mismatch here only ever makes the api's idea of the pool's width
 # wrong, never the worker's actual concurrency.
-WORKER_CONCURRENCY = int(os.environ.get("WORKER_CONCURRENCY", "12"))
+WORKER_CONCURRENCY = int(os.environ.get("WORKER_CONCURRENCY", "24"))
 
 # Shared by every generation-class write (POST /problems and its image/bulk/
 # global variants, /similar, /revise): refuses a user's Nth concurrent

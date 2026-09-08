@@ -91,7 +91,16 @@ EFFORT = os.environ.get("GEN_EFFORT", "high")
 # mostly waiting on the model's HTTPS response (see run_generate/run_revise
 # below), so this can run wide without much CPU/RAM cost per job. See
 # docker-compose.yml for the memory arithmetic this number is sized against.
-MAX_WORKERS = int(os.environ.get("WORKER_CONCURRENCY", "12"))
+# 24, not the original 12: that number assumed ~130MB RSS per generate.py
+# subprocess; measured live (a real call, sampled mid-flight in this image)
+# it's ~45-55MB — a fresh interpreter plus google-genai, not the heavier
+# stack that estimate guessed at. 24 x ~80MB (padded up from the measured
+# figure for headroom at high effort's larger prompts/responses) = ~1920MB,
+# still leaving real slack inside the worker's memory cap for
+# CHECK_CONCURRENCY's chromiums. The still-unverified ceiling is Google's
+# own per-key rate limit, not anything measured on this box — see
+# docs/BACKLOG.md before raising this further.
+MAX_WORKERS = int(os.environ.get("WORKER_CONCURRENCY", "24"))
 # tutor_ask never spawns a subprocess (handle_tutor_ask calls google-genai
 # in-process) and costs ~0 RAM per thread, but before this pool existed it
 # still had to wait for a MAX_WORKERS slot alongside every generate/revise
