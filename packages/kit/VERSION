@@ -6,9 +6,9 @@ Produced by kit/sync-to-app.sh in the research repo — do not hand-edit this
 file or the files beside it; re-run that script instead. Verify with
 packages/kit/check-version.sh in this repo.
 
-source-commit: 55ec6bc2333e75652cfc1b692dca3e6f40f0caba
+source-commit: 5a74a8705abc59655fc6952048acbb12623ab70e
 source-date:   2026-09-08
-synced:        2026-09-08 06:59:08 UTC
+synced:        2026-09-08 10:16:14 UTC
 tree:          clean
 
 shell.js:            sha256:b406997c85dc597d0af2c626c5c5aa4cbf3997cc2f486761efb8aa64acc6719c
@@ -17,7 +17,7 @@ shell-rules.th.txt:  sha256:f580e077caf4fcded068c5926ab8a061ed2408c6e5b36f8e98cf
 poc-original.th.txt: sha256:e06ecaef250bd63bee48f1e216a3c1256b4b8f0c0280b129a2e2743a83e5a305
 revise.th.txt:       sha256:aefa6584ad0e34e7e3e0b0cc3264d28241031051d8ebe1050719a2dcb606a462
 similar.th.txt:      sha256:0880e59b5b1dab89e0db422ae475c3297dcf63e10dc563fa8cf46a8bd132cac8
-check.mjs:           sha256:941b6af3d57d0c88a6e535becf76fa11fd9d086cb960a360340841a76ce0ba4c
+check.mjs:           sha256:79dde504522dd34f1bca402229646b8dd461f64d35e3a0513e0dc56d49148d61
 generate.py:         sha256:69d78ff2bf0fa0252601d9c0c5b46fc218dba532568f9d8121d3554b94b3de4c
 
 jsxgraph:      1.13.2
