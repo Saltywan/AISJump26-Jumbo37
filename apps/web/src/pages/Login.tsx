@@ -16,6 +16,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button, Input } from "../components/ui";
 import { useSession } from "../lib/session";
 import { ApiError } from "../lib/api";
+import logoUrl from "../icons/AniLearn.svg";
 
 export default function Login() {
   const { user, login } = useSession();
@@ -52,6 +53,10 @@ export default function Login() {
   return (
     <div className="login-ground">
       <form className="login-card" onSubmit={submit}>
+        <div className="login-brand">
+          <img src={logoUrl} alt="AniLearn logo" className="login-brand-logo" width={48} height={48} />
+          <span className="login-brand-name">AniLearn</span>
+        </div>
         <h1 className="login-title">เข้าสู่ระบบ</h1>
 
         <div className="login-fields">

@@ -31,7 +31,7 @@ export function Button({
   return (
     <button className={`ui-btn ui-btn-${variant} ${className}`} {...rest}>
       {icon}
-      {children ? <span>{children}</span> : null}
+      {children}
       {iconAfter}
     </button>
   );
@@ -57,7 +57,7 @@ export function ButtonLink({
   return (
     <Link className={`ui-btn ui-btn-${variant} ${className}`} to={to}>
       {icon}
-      {children ? <span>{children}</span> : null}
+      {children}
       {iconAfter}
     </Link>
   );

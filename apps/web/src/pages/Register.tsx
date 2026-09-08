@@ -6,6 +6,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button, Input } from "../components/ui";
 import { useSession } from "../lib/session";
 import { ApiError } from "../lib/api";
+import logoUrl from "../icons/AniLearn.svg";
 
 export default function Register() {
   const { user, register } = useSession();
@@ -45,6 +46,10 @@ export default function Register() {
   return (
     <div className="login-ground">
       <form className="login-card" onSubmit={submit}>
+        <div className="login-brand">
+          <img src={logoUrl} alt="AniLearn logo" className="login-brand-logo" width={48} height={48} />
+          <span className="login-brand-name">AniLearn</span>
+        </div>
         <h1 className="login-title">สมัครสมาชิก</h1>
 
         <div className="login-fields">

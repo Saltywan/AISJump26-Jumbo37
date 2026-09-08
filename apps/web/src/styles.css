@@ -1112,8 +1112,24 @@ button.chip {
   padding: 0 var(--space-2xl);
 }
 .navbar-brand {
-  font-size: var(--text-h5); font-weight: 700; color: var(--ink);
-  text-decoration: none; letter-spacing: -0.01em;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  text-decoration: none;
+}
+.navbar-logo {
+  width: 32px;
+  height: 32px;
+  display: block;
+  object-fit: contain;
+  flex: 0 0 auto;
+}
+.navbar-brand-name {
+  font-size: var(--text-h5);
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+  line-height: 1;
 }
 .navbar-right { display: flex; align-items: center; gap: var(--space-xl); }
 .navbar-user { display: flex; align-items: center; gap: var(--space-sm); }
@@ -1141,11 +1157,13 @@ button.chip {
   border: 1px solid transparent;
   font-family: inherit; font-size: var(--text-body); line-height: var(--lh-body);
   font-weight: 600; text-decoration: none; cursor: pointer;
+  white-space: nowrap;
   transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
 }
 .ui-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .ui-btn-block { width: 100%; }
 .ui-btn img { display: block; flex: 0 0 auto; }
+.ui-btn > span { display: inline-flex; align-items: center; gap: inherit; }
 
 .ui-btn-primary { background: var(--primary); color: var(--primary-ink); }
 .ui-btn-primary:hover:not(:disabled) { background: #35a6bb; }
@@ -1242,6 +1260,27 @@ button.chip {
   box-shadow: var(--shadow-center);
   padding: 35px 45px;
   display: flex; flex-direction: column; gap: var(--space-xl);
+}
+.login-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-2xs);
+}
+.login-brand-logo {
+  width: 52px;
+  height: 52px;
+  display: block;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 12px rgba(62, 186, 208, 0.28));
+}
+.login-brand-name {
+  font-size: var(--text-h4);
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.01em;
 }
 .login-title { margin: 0; text-align: center; font-size: var(--text-h4); line-height: var(--lh-h4); font-weight: 700; color: var(--ink); }
 .login-fields { display: flex; flex-direction: column; gap: var(--space-xl); }
