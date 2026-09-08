@@ -11,6 +11,7 @@
  * here once; ClassroomSettings.tsx's dialog and both creation modals all use
  * it now. */
 import { useEffect, useRef, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 
 /** Attach the returned ref to the dialog's outermost element.
  *  `initialFocusRef`, when given, is what receives focus on open (the delete
@@ -36,6 +37,11 @@ export function useDialogFocusTrap(
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") {
         e.preventDefault();
+        // Stop it here, or ArtifactViewer's own Escape listener (Artifact.tsx,
+        // on window) fires on the same keypress and closes the whole page
+        // viewer behind this dialog too — one Escape should dismiss one
+        // layer. document is inside window's bubble path, so this is enough.
+        e.stopPropagation();
         onClose();
         return;
       }
@@ -89,7 +95,22 @@ export function ModalDialog({
   children: ReactNode;
 }) {
   const dialogRef = useDialogFocusTrap(onClose, initialFocusRef);
-  return (
+  /* Portalled to <body>, like Artifact.tsx's ArtifactViewer — and for the
+   * mirror-image reason: that one escapes the message it's rendered inside,
+   * this one escapes whatever surface opened it. .modal-scrim is
+   * position:fixed, so it already ignores its ancestors' layout — but not
+   * their stacking context. ProblemArtifact.tsx's "ขอโจทย์คล้ายกัน" opens this
+   * from inside the already-portalled .artifact-view, and z-index beats DOM
+   * order: a scrim left in the normal React tree (a child of wherever
+   * ProblemArtifact happens to be mounted) painted UNDER that viewer's opaque
+   * full-screen overlay regardless of how late it mounted — the click landed,
+   * the dialog mounted, every pixel of it was invisible behind the page
+   * viewer. Being a <body> child, at a z-index above the viewer's (see
+   * .modal-scrim in styles.css), is what makes this resolve correctly in the
+   * root stacking context no matter which transformed or z-indexed ancestor a
+   * future caller sits under. Nothing observable changes for a modal opened
+   * from a plain page — every other caller today. */
+  return createPortal(
     <div className="modal-scrim" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div
         className={`modal-card ${className}`}
@@ -101,6 +122,7 @@ export function ModalDialog({
       >
         {children}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

@@ -243,17 +243,23 @@ function Expanded({
         actions={({ loaded }) => (
           <>
             {canGenerateSimilar ? (
-              // Same class as ลบ/ปฏิเสธ below, not ui-btn — mixing a
-              // different button primitive into this row made the three
-              // visually mismatched (different height and padding, which
-              // also let this one get covered by a neighbour at some
-              // widths — real mouse clicks missed it even though it looked
-              // present). No icon either: plus-small.svg is hardcoded
-              // fill="white" for use on a filled/primary background (see
-              // Library.tsx's use of it on Button variant="primary"); on
-              // this light chat-unpublish-btn background it was invisible.
-              // ปฏิเสธ is already icon-less in this exact row, so a
-              // text-only button here is consistent, not a compromise.
+              // chat-unpublish-btn, same as ลบ/ปฏิเสธ beside it — this row is
+              // three sibling decisions about one page and they should read
+              // as siblings. No icon: plus-small.svg is hardcoded
+              // fill="white" for a filled/primary background (Library.tsx
+              // uses it on Button variant="primary") and disappeared on this
+              // light one, and ปฏิเสธ is already icon-less in this exact row
+              // anyway, so text-only here isn't a compromise.
+              //
+              // The button being unclickable was never about this class or
+              // icon, though — it was SimilarProblemModal (built on
+              // ModalDialog) rendering in the normal document flow while
+              // this button lives inside ArtifactViewer's full-viewport
+              // overlay, which is portalled straight to <body>
+              // (Artifact.tsx). The click landed and the modal mounted; it
+              // just painted underneath that opaque overlay every time. Real
+              // fix is in Modal.tsx (ModalDialog now portals too) and
+              // .modal-scrim's z-index in styles.css.
               <button type="button" className="chat-unpublish-btn" onClick={() => setShowSimilarModal(true)}>
                 ขอโจทย์คล้ายกัน
               </button>
@@ -445,29 +451,40 @@ function AskPanel({
           </div>
         ))}
       </div>
-      <div className="ask-panel-input">
-        <input
-          className="chat-input-field"
-          value={text}
-          placeholder={mode === "revise" ? "อยากให้แก้อะไร…" : "พิมพ์คำถาม…"}
-          disabled={busy}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              send();
-            }
-          }}
-        />
-        <EffortSelect
-          value={mode === "revise" ? reviseEffort : askEffort}
-          onChange={mode === "revise" ? setReviseEffort : setAskEffort}
-          options={mode === "revise" ? REVISE_EFFORT_OPTIONS : ASK_EFFORT_OPTIONS}
-          disabled={busy}
-        />
-        <button type="button" className="chat-input-send" disabled={!text.trim() || busy} onClick={send} aria-label="ส่ง">
-          <img src={sendUrl} alt="" width={18} height={18} />
-        </button>
+      {/* The effort pills get a line of their own, unlike Generate.tsx's
+          850px-wide bar where they sit inline next to Send — this panel is a
+          fixed 380px column (.artifact-view-body-split), and the pills
+          beside the field AND the send button left no room for any of them:
+          the field shrank past its own placeholder's width, and before the
+          min-width fix the send button was pushed off the visible edge
+          entirely. One extra line buys the field its full width back. */}
+      <div className="ask-panel-foot">
+        <div className="ask-panel-effort">
+          <EffortSelect
+            value={mode === "revise" ? reviseEffort : askEffort}
+            onChange={mode === "revise" ? setReviseEffort : setAskEffort}
+            options={mode === "revise" ? REVISE_EFFORT_OPTIONS : ASK_EFFORT_OPTIONS}
+            disabled={busy}
+          />
+        </div>
+        <div className="ask-panel-input">
+          <input
+            className="chat-input-field"
+            value={text}
+            placeholder={mode === "revise" ? "อยากให้แก้อะไร…" : "พิมพ์คำถาม…"}
+            disabled={busy}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                send();
+              }
+            }}
+          />
+          <button type="button" className="chat-input-send" disabled={!text.trim() || busy} onClick={send} aria-label="ส่ง">
+            <img src={sendUrl} alt="" width={18} height={18} />
+          </button>
+        </div>
       </div>
     </div>
   );
