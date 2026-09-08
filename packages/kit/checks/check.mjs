@@ -20,7 +20,24 @@ for (let i = 0; i < argv.length; i++) {
   files.push(argv[i]);
 }
 if (shotDir) fs.mkdirSync(shotDir, { recursive: true });
-const b = await chromium.launch();
+// Flags matter once this runs with other checks concurrently (the service's
+// worker gates concurrent invocations of this whole script, not what happens
+// inside one): Docker's default /dev/shm is 64MB, which a JSXGraph-heavy page
+// can blow past, crashing the renderer and leaving run_check() with no
+// checks.json — a page shipped with checks_json=null, silently unmeasured.
+// The backgrounding flags matter because a page here is never the
+// foreground/visible tab from Chromium's point of view, so without them its
+// timer throttling can stall the shell's own init and push it toward the
+// waitForFunction(__shellCheck, 25000) timeout below — a healthy page
+// recorded as broken:true for a reason that has nothing to do with the page.
+const b = await chromium.launch({ args: [
+  '--disable-dev-shm-usage',
+  '--disable-gpu',
+  '--disable-extensions',
+  '--disable-background-timer-throttling',
+  '--disable-backgrounding-occluded-windows',
+  '--disable-renderer-backgrounding',
+] });
 const rows = [];
 for (const f of files) {
   const p = await b.newPage({ viewport: { width: 1280, height: 900 } });

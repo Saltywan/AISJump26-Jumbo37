@@ -8,6 +8,7 @@ import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import avatarUrl from "../icons/avatar.svg";
 import signOutUrl from "../icons/sign-out.svg";
+import logoUrl from "../icons/AniLearn.svg";
 import { useSession } from "../lib/session";
 
 export function AppShell({
@@ -22,8 +23,9 @@ export function AppShell({
   return (
     <div className="shell">
       <header className="navbar">
-        <Link className="navbar-brand" to="/">
-          JumpAIS
+        <Link className="navbar-brand" to="/" title="AniLearn">
+          <img src={logoUrl} alt="AniLearn logo" className="navbar-logo" width={32} height={32} />
+          <span className="navbar-brand-name">AniLearn</span>
         </Link>
         <div className="navbar-right">
           {user?.role === "admin" ? (
@@ -50,7 +52,7 @@ export function AppShell({
 
       {!wide ? (
         <footer className="shell-footer">
-          <p>Copyright © 2026 JumpAIS</p>
+          <p>Copyright © 2026 AniLearn</p>
         </footer>
       ) : null}
     </div>

@@ -42,6 +42,7 @@ from sqlalchemy import (
     CheckConstraint,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
@@ -255,6 +256,15 @@ class Review(Base, TimestampMixin):
 
 class Job(Base, TimestampMixin):
     __tablename__ = "job"
+    # Declared here so a FRESH database (create_all) gets them for free; an
+    # EXISTING one needs db.py's _add_missing_indexes() too, since
+    # create_all(checkfirst=True) skips a table that already exists — see
+    # that function's docstring, the sibling of this table's own
+    # _add_missing_columns() story for `generated_from` on Problem.
+    __table_args__ = (
+        Index("ix_job_state_created", "state", "created_at"),
+        Index("ix_job_requester_kind_state", "requested_by", "kind", "state"),
+    )
     id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_id)
     kind: Mapped[str] = mapped_column(String(20), nullable=False)  # generate | tutor_ask
     target_id: Mapped[str] = mapped_column(String(32), nullable=False)

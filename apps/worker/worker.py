@@ -68,6 +68,7 @@ import pathlib
 import re
 import subprocess
 import sys
+import threading
 import time
 
 sys.path.insert(0, "/app")
@@ -85,8 +86,57 @@ KIT = pathlib.Path(os.environ.get("KIT_DIR", "/kit"))
 STORAGE = pathlib.Path(os.environ.get("STORAGE_DIR", "/storage"))
 MODEL = os.environ.get("GEN_MODEL", "gemini-3.8-flash")
 EFFORT = os.environ.get("GEN_EFFORT", "high")
-MAX_WORKERS = int(os.environ.get("WORKER_CONCURRENCY", "3"))
+
+# The width of the generate/revise pool — jobs whose work is a subprocess
+# mostly waiting on the model's HTTPS response (see run_generate/run_revise
+# below), so this can run wide without much CPU/RAM cost per job. See
+# docker-compose.yml for the memory arithmetic this number is sized against.
+# 24, not the original 12: that number assumed ~130MB RSS per generate.py
+# subprocess; measured live (a real call, sampled mid-flight in this image)
+# it's ~45-55MB — a fresh interpreter plus google-genai, not the heavier
+# stack that estimate guessed at. 24 x ~80MB (padded up from the measured
+# figure for headroom at high effort's larger prompts/responses) = ~1920MB,
+# still leaving real slack inside the worker's memory cap for
+# CHECK_CONCURRENCY's chromiums. The still-unverified ceiling is Google's
+# own per-key rate limit, not anything measured on this box — see
+# docs/BACKLOG.md before raising this further.
+MAX_WORKERS = int(os.environ.get("WORKER_CONCURRENCY", "24"))
+# tutor_ask never spawns a subprocess (handle_tutor_ask calls google-genai
+# in-process) and costs ~0 RAM per thread, but before this pool existed it
+# still had to wait for a MAX_WORKERS slot alongside every generate/revise
+# job — claim_one() gave it queue priority, not a slot of its own, so a chat
+# question could still sit behind a 60-90s generation and hit
+# ASK_TIMEOUT_SECONDS (apps/api/app/main.py). A separate small pool fully
+# decouples chat latency from generation queue depth.
+TUTOR_WORKERS = int(os.environ.get("TUTOR_CONCURRENCY", "4"))
+# NOT a second thread pool — see _check_gate below for why this stays a
+# semaphore around one call site instead.
+CHECK_WORKERS = int(os.environ.get("CHECK_CONCURRENCY", "2"))
+
+# kit/generate.py's own --timeout (its HTTP client timeout, default 420s)
+# must stay well inside this subprocess timeout, or a single hung attempt
+# burns the whole budget and call_with_backoff's multi-attempt retry ladder
+# never gets to run — the worker kills a job that was legitimately retrying
+# a transient 429/503 instead of letting the backoff succeed.
+GENERATE_TIMEOUT_SECONDS = int(os.environ.get("GENERATE_TIMEOUT_SECONDS", "900"))
+GENERATE_CALL_TIMEOUT = int(os.environ.get("GENERATE_CALL_TIMEOUT", "180"))
+CHECK_TIMEOUT_SECONDS = int(os.environ.get("CHECK_TIMEOUT_SECONDS", "300"))
 POLL_SECONDS = 2
+
+# Chromium is the one genuinely CPU/RAM-expensive step here (~300MB RSS and
+# real render work per instance), unlike generate.py's subprocess which
+# mostly just waits on the network. Gating it with its own narrow semaphore
+# — rather than sizing MAX_WORKERS down to match, or running a second
+# ThreadPoolExecutor — lets the wide, network-bound generate phase run at
+# full MAX_WORKERS width while only ever CHECK_WORKERS browsers are alive at
+# once. A second pool was rejected: splitting process_job() across pools
+# would mean handing a SQLAlchemy Session across threads (unsafe) or
+# reopening one mid-job, for a property ("never more than N chromiums") a
+# semaphore around the one subprocess.run call already gives for free. A job
+# waiting on this semaphore still holds a generate-pool thread, but its
+# generate.py child has already exited by then, so that thread costs ~0MB
+# while it waits.
+_check_gate = threading.Semaphore(CHECK_WORKERS)
 
 # The kit's own vocabulary (packages/kit/generate.py's EFFORT dict) for the
 # one call here that talks to google-genai directly instead of shelling out
@@ -506,13 +556,14 @@ def run_generate(problem: Problem, out_dir: pathlib.Path, db, job: Job, effort: 
         "--model", MODEL,
         "--effort", effort,
         "--jobs", "1",
+        "--timeout", str(GENERATE_CALL_TIMEOUT),
     ]
     if problem.level:
         cmd += ["--level", problem.level]
     if image_args:
         cmd += image_args
 
-    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
+    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=GENERATE_TIMEOUT_SECONDS)
     log(proc.stdout[-2000:])
     if proc.returncode != 0:
         raise RuntimeError((proc.stderr or proc.stdout)[-500:])
@@ -549,10 +600,11 @@ def run_revise(problem: Problem, source_html: pathlib.Path, instruction: str,
         "--model", MODEL,
         "--effort", effort,
         "--jobs", "1",
+        "--timeout", str(GENERATE_CALL_TIMEOUT),
     ]
     cmd += image_args
 
-    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
+    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=GENERATE_TIMEOUT_SECONDS)
     log(proc.stdout[-2000:])
     if proc.returncode != 0:
         raise RuntimeError((proc.stderr or proc.stdout)[-500:])
@@ -568,7 +620,12 @@ def run_check(page_file: pathlib.Path, db, job: Job) -> dict | None:
     set_stage(db, job, "checking")
     out = page_file.parent.parent / "checks.json"
     cmd = ["node", str(KIT / "checks" / "check.mjs"), "--json", str(out), str(page_file)]
-    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+    # Held for the queued time too, deliberately: this thread's generate.py
+    # child has already exited by the time run_check runs, so waiting here
+    # costs ~0MB — see _check_gate's docstring for why this is a semaphore
+    # around one call site rather than a second thread pool.
+    with _check_gate:
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=CHECK_TIMEOUT_SECONDS)
     log(proc.stdout[-2000:])
     if not out.exists():
         log(f"worker: check produced no json: {(proc.stderr or '')[-300:]}")
@@ -762,14 +819,19 @@ def handle_revise(db, job: Job) -> None:
     set_stage(db, job, "done", page_id=new_page.id)
 
 
-def claim_one(db) -> Job | None:
-    """Claim the next queued job.
+def claim_one(db, kinds: tuple[str, ...]) -> Job | None:
+    """Claim the next queued job of one of `kinds`.
     Uses SELECT ... FOR UPDATE SKIP LOCKED so concurrent worker threads and scaled
     worker replicas never race or double-claim the same job row.
-    tutor_ask jumps ahead of generate so chat questions are answered immediately."""
+    tutor_ask jumps ahead of generate/revise so chat questions are answered
+    immediately when both kinds are being claimed for (kept even though
+    main() now also gives tutor_ask its own pool, since a still-warm
+    generate-pool slot should not claim a tutor_ask ahead of the pool meant
+    for it, and vice versa — `kinds` is what actually prevents that, this
+    ordering is just belt-and-braces within one call)."""
     job = (
         db.query(Job)
-        .filter(Job.state == "queued")
+        .filter(Job.state == "queued", Job.kind.in_(kinds))
         .order_by((Job.kind != "tutor_ask"), Job.created_at.asc())
         .with_for_update(skip_locked=True)
         .first()
@@ -834,38 +896,55 @@ def recover_orphaned_jobs(db) -> None:
 
 def main() -> None:
     init_db()
-    log(f"worker: up. kit={kit_version()} model={MODEL} effort={EFFORT} concurrency={MAX_WORKERS}")
+    log(f"worker: up. kit={kit_version()} model={MODEL} effort={EFFORT} "
+        f"concurrency={MAX_WORKERS} tutor_concurrency={TUTOR_WORKERS} check_concurrency={CHECK_WORKERS}")
     db_init = SessionLocal()
     try:
         recover_orphaned_jobs(db_init)
     finally:
         db_init.close()
 
-    executor = concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS)
-    active_futures: set[concurrent.futures.Future] = set()
+    # Two pools, not one: tutor_ask never spawns a subprocess and previously
+    # only got queue PRIORITY (claim_one's ordering) over generate/revise, not
+    # a slot of its own — with every MAX_WORKERS slot busy on real
+    # generations, a chat question still waited behind one. See TUTOR_WORKERS
+    # above.
+    gen_pool = concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS)
+    tutor_pool = concurrent.futures.ThreadPoolExecutor(max_workers=TUTOR_WORKERS)
+    gen_futures: set[concurrent.futures.Future] = set()
+    tutor_futures: set[concurrent.futures.Future] = set()
 
     while True:
-        done_futures = {f for f in active_futures if f.done()}
-        for f in done_futures:
-            try:
-                f.result()
-            except Exception as exc:
-                log(f"worker: unexpected error in worker thread: {exc}")
-        active_futures -= done_futures
+        for futures in (gen_futures, tutor_futures):
+            done_futures = {f for f in futures if f.done()}
+            for f in done_futures:
+                try:
+                    f.result()
+                except Exception as exc:
+                    log(f"worker: unexpected error in worker thread: {exc}")
+            futures -= done_futures
+
+        kinds: list[str] = []
+        if len(gen_futures) < MAX_WORKERS:
+            kinds += ["generate", "revise"]
+        if len(tutor_futures) < TUTOR_WORKERS:
+            kinds.append("tutor_ask")
 
         claimed = False
-        if len(active_futures) < MAX_WORKERS:
+        if kinds:
             db = SessionLocal()
             try:
-                job = claim_one(db)
+                job = claim_one(db, tuple(kinds))
                 if job:
-                    fut = executor.submit(process_job, job.id)
-                    active_futures.add(fut)
+                    if job.kind == "tutor_ask":
+                        tutor_futures.add(tutor_pool.submit(process_job, job.id))
+                    else:
+                        gen_futures.add(gen_pool.submit(process_job, job.id))
                     claimed = True
             finally:
                 db.close()
 
-        if not claimed or len(active_futures) >= MAX_WORKERS:
+        if not claimed:
             time.sleep(POLL_SECONDS)
 
 

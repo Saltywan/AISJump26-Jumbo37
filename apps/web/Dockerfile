@@ -11,6 +11,8 @@ WORKDIR /app
 
 COPY apps/web/package.json apps/web/package-lock.json* ./
 RUN npm install
+RUN npm install --no-save @rollup/rollup-linux-x64-musl || true
+RUN npm install --no-save @rollup/rollup-linux-arm64-musl || true
 
 COPY apps/web/ .
 
