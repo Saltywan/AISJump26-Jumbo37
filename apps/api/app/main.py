@@ -37,12 +37,14 @@ import pathlib
 import time
 from typing import Optional
 
+import anyio.to_thread
 from fastapi import Cookie, Depends, FastAPI, File, Form, HTTPException, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy import func
 from sqlalchemy.orm import Session, selectinload
+from starlette.concurrency import run_in_threadpool
 
 from .auth import DUMMY_PASSWORD_HASH, current_user, end_session, hash_password, require_admin, start_session, verify_password
 from .db import SessionLocal, get_session, init_db
@@ -90,13 +92,34 @@ ALLOWED_VARIATIONS = ("easier", "same", "harder")
 # ability to make their own variant of it.
 MAX_SIMILAR_PER_SOURCE = 5
 
-# Shared by every generation-class write (POST /problems, /similar, /revise):
-# refuses a user's Nth concurrent generation while N-1 are already
-# queued/running. WORKER_CONCURRENCY is 3 and shared by everyone, so one
-# account queueing twenty at once would starve the rest of the app, same
-# argument as MAX_SIMILAR_PER_SOURCE just at the level of the whole worker
-# instead of one source problem.
-MAX_INFLIGHT_GENERATE_PER_USER = 3
+# Must match apps/worker/worker.py's own default — read from the same env
+# var rather than restated as a literal, which is exactly how this drifted
+# before: MAX_INFLIGHT_GENERATE_PER_USER used to be hardcoded to 3, equal to
+# the OLD WORKER_CONCURRENCY default of 3, which meant one account queueing
+# up could occupy the entire worker — capping the tail, not the account's
+# SHARE, the opposite of what the constant below is named for. Docker
+# compose sets this on both the api and worker services so they can't drift
+# again; a mismatch here only ever makes the api's idea of the pool's width
+# wrong, never the worker's actual concurrency.
+WORKER_CONCURRENCY = int(os.environ.get("WORKER_CONCURRENCY", "12"))
+
+# Shared by every generation-class write (POST /problems and its image/bulk/
+# global variants, /similar, /revise): refuses a user's Nth concurrent
+# generation-class job while N-1 are already queued/running. Half the
+# worker's width, not a fixed number — so two distinct accounts are always
+# required to saturate the pool between them, while one teacher can still
+# queue a several-problem batch without hitting this on every item. `revise`
+# counts too (see _enforce_generate_quota): it is documented elsewhere in
+# this file as a full generation-class model call, same cost as a fresh one,
+# so excluding it from this cap was a hole, not a decision.
+MAX_INFLIGHT_GENERATE_PER_USER = max(3, WORKER_CONCURRENCY // 2)
+
+# POST /sections/{id}/problems/bulk is exempt from the per-user cap above by
+# design — importing a 40-question past paper in one request is that
+# endpoint's whole reason to exist (see add_global_problems_bulk's
+# docstring) — so it gets a batch-size ceiling instead, matched to the
+# in-flight queue depth this system is now sized for.
+MAX_BULK_ITEMS = 50
 
 
 def _validate_effort(effort: Optional[str], *, allow_low: bool) -> Optional[str]:
@@ -115,6 +138,24 @@ def _validate_effort(effort: Optional[str], *, allow_low: bool) -> Optional[str]
     if effort not in allowed:
         raise HTTPException(400, f"effort must be one of: {', '.join(allowed)}")
     return effort
+
+
+def _enforce_generate_quota(db: Session, user_id: str) -> None:
+    """MAX_INFLIGHT_GENERATE_PER_USER, in one place instead of copy-pasted
+    per endpoint — which is how this went from "shared by every
+    generation-class write" (the comment above the constant) to actually
+    enforced on exactly one of five call sites (POST /problems/{id}/similar)
+    for as long as it did. Called from every endpoint that queues a
+    `generate` or `revise` job outside of the bulk import path, which has
+    its own MAX_BULK_ITEMS ceiling instead — see that constant's comment."""
+    inflight = (
+        db.query(Job)
+        .filter(Job.kind.in_(("generate", "revise")),
+                Job.requested_by == user_id, Job.state.in_(("queued", "running")))
+        .count()
+    )
+    if inflight >= MAX_INFLIGHT_GENERATE_PER_USER:
+        raise HTTPException(409, {"error": "คุณมีงานที่กำลังสร้างอยู่หลายรายการแล้ว รอให้เสร็จก่อนสักครู่"})
 
 
 def _ensure_lib_link() -> None:
@@ -183,8 +224,26 @@ def _bootstrap_admins(db: Session) -> None:
         db.commit()
 
 
+# Starlette runs every plain `def` route (49 of this file's 53) through
+# anyio's threadpool, default 40 tokens. POST /pages/{id}/ask is one of
+# those and parks a token for up to ASK_TIMEOUT_SECONDS=60s inside
+# _poll_job's time.sleep loop — so 41 tutor questions in flight would make
+# an unrelated `GET /problems/mine` queue behind someone else's 60-second
+# wait. 50 (one question per student, worst case) + 20 (ordinary routes
+# during a class-wide refresh) + 10 (bulk import / image save / review
+# copy, the other slow-ish sync handlers) = 80. Each thread here is ~100KB
+# resident once touched — the ceiling that actually matters is
+# DB_POOL_SIZE+DB_MAX_OVERFLOW (db.py), not this number, so there's no cost
+# to sizing it generously.
+API_THREADPOOL_TOKENS = int(os.environ.get("API_THREADPOOL_TOKENS", "80"))
+
+
 @app.on_event("startup")
 def _startup() -> None:
+    # Must happen inside the running event loop for
+    # current_default_thread_limiter() to affect it — on_event("startup")
+    # runs there even though this function is a plain `def`.
+    anyio.to_thread.current_default_thread_limiter().total_tokens = API_THREADPOOL_TOKENS
     init_db()
     _ensure_lib_link()
     db = SessionLocal()
@@ -798,6 +857,7 @@ def add_problem(body: ProblemIn, user: User = Depends(current_user), db: Session
         if section.scope != "personal" or section.owner_id != user.id:
             raise HTTPException(403, "not your section")
 
+    _enforce_generate_quota(db, user.id)
     effort = _validate_effort(body.effort, allow_low=False)
     n = db.query(Problem).filter(Problem.owner_id == user.id).count()
     prob = Problem(
@@ -860,6 +920,7 @@ async def add_problem_image(
         if section.scope != "personal" or section.owner_id != user.id:
             raise HTTPException(403, "not your section")
 
+    _enforce_generate_quota(db, user.id)
     eff = _validate_effort(effort, allow_low=False)
     data, ext = await _read_image_upload(file)
     n = db.query(Problem).filter(Problem.owner_id == user.id).count()
@@ -900,6 +961,7 @@ def add_global_problem(
         raise HTTPException(404, "no such section")
     if section.scope != "global":
         raise HTTPException(400, "not a global section")
+    _enforce_generate_quota(db, admin.id)
     effort = _validate_effort(body.effort, allow_low=False)
     n = db.query(Problem).filter(Problem.section_id == section_id).count()
     prob = Problem(
@@ -927,7 +989,12 @@ def add_global_problems_bulk(
 ):
     """A past-papers book is forty questions. Adding them one at a time
     through a chat screen is the reason a global library stays empty — this
-    is the fan-out that makes bulk import practical."""
+    is the fan-out that makes bulk import practical.
+
+    Deliberately exempt from _enforce_generate_quota (see MAX_BULK_ITEMS):
+    the whole point is queueing many jobs in one request. MAX_BULK_ITEMS is
+    the guard instead, sized to the in-flight queue depth this system is
+    tuned for rather than to any one account's fair share of it."""
     section = db.get(Section, section_id)
     if section is None or section.archived_at is not None:
         raise HTTPException(404, "no such section")
@@ -935,6 +1002,8 @@ def add_global_problems_bulk(
         raise HTTPException(400, "not a global section")
     if not body.items:
         raise HTTPException(400, "no problems given")
+    if len(body.items) > MAX_BULK_ITEMS:
+        raise HTTPException(400, f"at most {MAX_BULK_ITEMS} problems per request")
     if any(not item.text.strip() for item in body.items):
         raise HTTPException(400, "every problem needs text")
     efforts = [_validate_effort(item.effort, allow_low=False) for item in body.items]
@@ -977,6 +1046,7 @@ async def add_global_problem_image(
     if section.scope != "global":
         raise HTTPException(400, "not a global section")
 
+    _enforce_generate_quota(db, admin.id)
     eff = _validate_effort(effort, allow_low=False)
     data, ext = await _read_image_upload(file)
     n = db.query(Problem).filter(Problem.section_id == section_id).count()
@@ -1131,13 +1201,7 @@ def generate_similar(problem_id: str, body: SimilarIn, user: User = Depends(curr
     if existing >= MAX_SIMILAR_PER_SOURCE:
         raise HTTPException(409, {"error": f"สร้างโจทย์คล้ายกันจากข้อนี้ได้สูงสุด {MAX_SIMILAR_PER_SOURCE} ข้อ"})
 
-    inflight = (
-        db.query(Job)
-        .filter(Job.kind == "generate", Job.requested_by == user.id, Job.state.in_(("queued", "running")))
-        .count()
-    )
-    if inflight >= MAX_INFLIGHT_GENERATE_PER_USER:
-        raise HTTPException(409, {"error": "คุณมีงานที่กำลังสร้างอยู่หลายรายการแล้ว รอให้เสร็จก่อนสักครู่"})
+    _enforce_generate_quota(db, user.id)
 
     effort = _validate_effort(body.effort, allow_low=False) or page.effort
 
@@ -1299,6 +1363,12 @@ def revise_page(page_id: str, body: ReviseIn, user: User = Depends(current_user)
     instruction = (body.instruction or "").strip()
     if not instruction:
         raise HTTPException(400, "instruction is required")
+
+    # A different concern from the same-problem check below: this is the
+    # account-wide share of the worker pool (see _enforce_generate_quota),
+    # that one is "is this SPECIFIC problem already being worked on" and
+    # applies regardless of who queued it.
+    _enforce_generate_quota(db, user.id)
 
     live_pages = db.query(Page).filter(Page.problem_id == prob.id, Page.superseded_by.is_(None)).count()
     if live_pages > 1:
@@ -1472,30 +1542,54 @@ async def job_events(job_id: str, user: User = Depends(current_user), db: Sessio
     j = db.get(Job, job_id)
     if j is None or not _job_visible(db, j, user):
         raise HTTPException(404, "no such job")
+    # get_session's `finally: db.close()` does not run until this whole
+    # dependency-injected generator is torn down — for a StreamingResponse
+    # that is after the stream ends below, up to 10 minutes. Without this,
+    # every open SSE connection pins one pooled connection idle-in-transaction
+    # for its entire lifetime; stream() below opens its own short-lived
+    # session per tick instead and never touches this one again. At the old
+    # unconfigured pool size (15, see db.py), ~15 students watching a
+    # generation at once was enough to exhaust the ENTIRE api pool and 500
+    # every other request in the app, regardless of anything worker.py does.
+    db.close()
 
     async def stream():
         last = None
-        for _ in range(600):  # ~10 minutes, then the client can reconnect
-            db = SessionLocal()
+
+        def read_job() -> Optional[dict]:
+            """One blocking psycopg round trip. Was previously called inline
+            in this async generator, directly on the event loop thread — at
+            50 open streams that is 50 blocking DB calls a second on the
+            single thread that also accepts new connections and dispatches
+            every other request (see main's uvicorn command: one process,
+            the CPU argument against more of them is in docker-compose.yml).
+            run_in_threadpool moves it off that thread; see _startup for why
+            the pool it lands in is sized larger than the 40-token default."""
+            s = SessionLocal()
             try:
-                j = db.get(Job, job_id)
-                if j is None:
-                    yield f"data: {json.dumps({'error': 'no such job'})}\n\n"
-                    return
-                payload = {
-                    "state": j.state,
-                    "stage": j.stage,
-                    "progress": j.progress_json,
-                    "error": j.error,
+                row = s.get(Job, job_id)
+                if row is None:
+                    return None
+                return {
+                    "state": row.state,
+                    "stage": row.stage,
+                    "progress": row.progress_json,
+                    "error": row.error,
                 }
-                blob = json.dumps(payload, ensure_ascii=False)
-                if blob != last:
-                    yield f"data: {blob}\n\n"
-                    last = blob
-                if j.state in ("done", "failed"):
-                    return
             finally:
-                db.close()
+                s.close()
+
+        for _ in range(600):  # ~10 minutes, then the client can reconnect
+            payload = await run_in_threadpool(read_job)
+            if payload is None:
+                yield f"data: {json.dumps({'error': 'no such job'})}\n\n"
+                return
+            blob = json.dumps(payload, ensure_ascii=False)
+            if blob != last:
+                yield f"data: {blob}\n\n"
+                last = blob
+            if payload["state"] in ("done", "failed"):
+                return
             await asyncio.sleep(1)
 
     return StreamingResponse(
