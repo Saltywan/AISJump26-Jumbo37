@@ -13,6 +13,7 @@
 import { useState, type FormEvent } from "react";
 import { Button, EffortSelect, Textarea, VariationSelect } from "./ui";
 import { ModalDialog } from "./Modal";
+import { MathText } from "./Math";
 import { api, ApiError, type ApiProblem, type Effort, type Variation } from "../lib/api";
 import "./creation-modals.css";
 
@@ -77,7 +78,9 @@ export function SimilarProblemModal({
       <h2 id="similar-problem-title" className="modal-title form-modal-title">
         ขอโจทย์คล้ายกัน
       </h2>
-      <p className="form-modal-subtitle">โจทย์ต้นทาง: {problem.text || "โจทย์นี้"}</p>
+      <p className="form-modal-subtitle">
+        โจทย์ต้นทาง: <MathText text={problem.text || "โจทย์นี้"} inline />
+      </p>
       <form className="ui-stack" onSubmit={handleSubmit}>
         <div className="ui-field">
           <span className="ui-field-label">ระดับความยาก</span>

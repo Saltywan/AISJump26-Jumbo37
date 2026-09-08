@@ -1203,10 +1203,19 @@ button.chip {
 .ui-tab:hover { color: var(--ink); }
 .ui-tab-active { color: var(--ink); font-weight: 600; border-bottom-color: var(--primary); }
 
-/* Effort picker (components/ui.tsx's EffortSelect) — a tight pill group, not
-   full tabs: it sits inline in an input bar next to a send button, not on a
-   line of its own. */
-.ui-effort { display: inline-flex; gap: 2px; padding: 2px; border-radius: var(--radius-sm); background: var(--bg); border: 1px solid var(--rule); }
+/* Effort picker (components/ui.tsx's EffortSelect, also VariationSelect) — a
+   tight pill group that must stay exactly as wide as its own three-or-so
+   buttons, wherever it's placed. inline-flex isn't enough of a guarantee on
+   its own: a flex item's outer display is "blockified" per spec, so inside a
+   COLUMN-direction flex parent (ui-field, in SimilarProblemModal.tsx's
+   options form) this silently became a block that stretched to the column's
+   full width, left the pills packed at the start, and left a wide dead gap
+   between the last pill and the field's edge — invisible in AskPanel's own
+   usage purely because that wrapper is row-direction, where stretch affects
+   height, not width, so the same bug had nothing to show for itself there.
+   align-self: flex-start pins this to its content's own width regardless of
+   which direction the parent flexes. */
+.ui-effort { display: inline-flex; align-self: flex-start; gap: 2px; padding: 2px; border-radius: var(--radius-sm); background: var(--bg); border: 1px solid var(--rule); }
 .ui-effort-opt {
   appearance: none; border: 0; background: none; border-radius: calc(var(--radius-sm) - 2px);
   padding: 4px 10px; font-family: inherit; font-size: 12.5px; line-height: 1.4;
