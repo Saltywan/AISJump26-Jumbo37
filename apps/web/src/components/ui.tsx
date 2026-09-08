@@ -266,3 +266,40 @@ export function EffortSelect({
     </div>
   );
 }
+
+/* Difficulty picker for SimilarProblemModal.tsx — deliberately the same
+   ui-effort* classes EffortSelect uses, not a parallel set: a second
+   control that must stay pixel-identical to the first is exactly the kind
+   of near-duplicate that quietly drifts. Not folded into EffortSelect
+   itself, though — the two pick from different, independent vocabularies
+   (see lib/api.ts's Effort vs Variation) and happen to share a look, which
+   is a styling fact, not a reason to make one component do both jobs. */
+const VARIATION_LABEL: Record<string, string> = { easier: "ง่ายกว่า", same: "เท่าเดิม", harder: "ยากกว่า" };
+
+export function VariationSelect({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: string;
+  onChange: (v: "easier" | "same" | "harder") => void;
+  disabled?: boolean;
+}) {
+  return (
+    <div className="ui-effort" role="radiogroup" aria-label="ระดับความยากของโจทย์ใหม่">
+      {(["easier", "same", "harder"] as const).map((opt) => (
+        <button
+          key={opt}
+          type="button"
+          role="radio"
+          aria-checked={value === opt}
+          disabled={disabled}
+          className={`ui-effort-opt${value === opt ? " ui-effort-opt-active" : ""}`}
+          onClick={() => onChange(opt)}
+        >
+          {VARIATION_LABEL[opt]}
+        </button>
+      ))}
+    </div>
+  );
+}

@@ -6,9 +6,9 @@ Produced by kit/sync-to-app.sh in the research repo — do not hand-edit this
 file or the files beside it; re-run that script instead. Verify with
 packages/kit/check-version.sh in this repo.
 
-source-commit: c2bc3374e065cb341cd4cb0ad6c7102b2070e48d
-source-date:   2026-09-07
-synced:        2026-09-07 15:32:13 UTC
+source-commit: a96111659018bcefdd07184c73ad9c44b83a5435
+source-date:   2026-09-08
+synced:        2026-09-08 05:17:15 UTC
 tree:          clean
 
 shell.js:            sha256:b406997c85dc597d0af2c626c5c5aa4cbf3997cc2f486761efb8aa64acc6719c
@@ -16,8 +16,9 @@ shell.css:           sha256:418588a8ef4b129aec46aed2ab9ce5691eeae885bea93eafc10d
 shell-rules.th.txt:  sha256:f580e077caf4fcded068c5926ab8a061ed2408c6e5b36f8e98cffc6474ca93f9
 poc-original.th.txt: sha256:e06ecaef250bd63bee48f1e216a3c1256b4b8f0c0280b129a2e2743a83e5a305
 revise.th.txt:       sha256:aefa6584ad0e34e7e3e0b0cc3264d28241031051d8ebe1050719a2dcb606a462
+similar.th.txt:      sha256:e6df4258287084753028f67354dc07f91cb27ed19d262a43385e3966d708bc26
 check.mjs:           sha256:941b6af3d57d0c88a6e535becf76fa11fd9d086cb960a360340841a76ce0ba4c
-generate.py:         sha256:ad6bd9b16e1817390c7b6528d07aa602eeccaa72b8cef3cefd52b4338ada477e
+generate.py:         sha256:69d78ff2bf0fa0252601d9c0c5b46fc218dba532568f9d8121d3554b94b3de4c
 
 jsxgraph:      1.13.2
 katex:         0.18.4

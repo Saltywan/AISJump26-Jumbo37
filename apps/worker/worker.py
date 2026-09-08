@@ -460,7 +460,18 @@ def run_generate(problem: Problem, out_dir: pathlib.Path, db, job: Job, effort: 
     """One problem through generate.py. Passed directly as CLI arguments so multiline
     text statements never get split by batch line parsers. For image problems,
     the image path is passed via --image to allow direct single-call multimodal
-    generation with zero diagram loss."""
+    generation with zero diagram loss.
+
+    `source == "variant"` is the one other branch: POST /problems/{id}/similar
+    (apps/api/app/main.py) creates a Problem with no raw_text/extracted_text
+    at all — the model invents the new problem statement itself — and
+    `progress_json` carries which source to vary and how (source_problem_id,
+    variation, steer). Reusing kind="generate" for this rather than adding a
+    fourth job kind is deliberate: everything downstream of run_generate
+    (check.mjs, the final filename, the Page row, the generating-card UI,
+    every poll-based list endpoint) already does exactly the right thing for
+    a plain "generate" job and would otherwise all need to learn a new kind."""
+    is_variant = problem.source == "variant"
     text = (problem.raw_text or problem.extracted_text or "").strip()
     image_args: list[str] = []
     if problem.source == "image" and problem.image_path:
@@ -470,13 +481,26 @@ def run_generate(problem: Problem, out_dir: pathlib.Path, db, job: Job, effort: 
         else:
             raise RuntimeError(f"problem image missing on disk: {img_p}")
 
-    if not text and not image_args:
+    if not text and not image_args and not is_variant:
         raise RuntimeError("problem has neither text nor image")
 
     set_stage(db, job, "generating", model=MODEL, effort=effort)
-    cmd = [
-        "python3", str(KIT / "generate.py"),
-        text,
+    cmd = ["python3", str(KIT / "generate.py")]
+    if is_variant:
+        progress = job.progress_json or {}
+        source_id = progress.get("source_problem_id")
+        source = db.get(Problem, source_id) if source_id else None
+        if source is None:
+            raise RuntimeError(f"source problem {source_id} for variant is gone")
+        source_text = (source.extracted_text or source.raw_text or "").strip()
+        if not source_text:
+            raise RuntimeError(f"source problem {source_id} has no text to vary")
+        cmd += ["--similar-to", source_text, "--variation", progress.get("variation") or "same"]
+        if progress.get("steer"):
+            cmd += ["--steer", progress["steer"]]
+    else:
+        cmd.append(text)
+    cmd += [
         "--id", problem.id,
         "--out", str(out_dir),
         "--model", MODEL,
@@ -569,11 +593,12 @@ def handle_generate(db, job: Job) -> None:
     checks = run_check(page_file, db, job)
     html = page_file.read_text(encoding="utf-8", errors="replace")
 
-    # If this problem was image-sourced, extract the problem statement written
-    # by the generator directly from the page's Shell.page({problem}) call,
-    # and save it to problem.extracted_text so the teacher review card and tutor
-    # have the exact problem text without a separate OCR call.
-    if problem.source == "image":
+    # If this problem was image-sourced OR is a generated variant, extract the
+    # problem statement the generator itself wrote into the page's
+    # Shell.page({problem}) call, and save it to problem.extracted_text —
+    # both cases share the same situation: the caller never typed the
+    # problem, so this call is the ONLY record of what it actually is.
+    if problem.source in ("image", "variant"):
         extracted = extract_problem_statement(html)
         if extracted:
             problem.extracted_text = extracted

@@ -14,9 +14,11 @@
  * reviewing tool, not something a student or a personal user needs to see.
  */
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { ArtifactCard, ArtifactViewer } from "./Artifact";
 import { MathText } from "./Math";
 import { EffortSelect } from "./ui";
+import { SimilarProblemModal } from "./SimilarProblemModal";
 import { ReportSummary } from "../pages/chat/ReportSummary";
 import { api, pageKindOf, pageSrc, watchJob, type ApiProblem, type Effort, ApiError } from "../lib/api";
 import type { CheckRow } from "../checks";
@@ -24,6 +26,7 @@ import globeUrl from "../icons/globe.svg";
 import globeOnPrimaryUrl from "../icons/globe-on-primary.svg";
 import lockUrl from "../icons/lock.svg";
 import exclamationUrl from "../icons/exclamation.svg";
+import plusSmallUrl from "../icons/plus-small.svg";
 import sendUrl from "../icons/send.svg";
 import trashUrl from "../icons/trash.svg";
 
@@ -130,6 +133,7 @@ function Expanded({
   onChanged?: () => void;
   onClose: () => void;
 }) {
+  const navigate = useNavigate();
   const page = problem.page!;
   const src = page.html_path ? pageSrc(page.html_path, pageKindOf(page)) : undefined;
   const canReview = isAdmin && problem.scope === "global" && page.status === "ready";
@@ -137,7 +141,16 @@ function Expanded({
   // revision of an approved page needs to go back through review before
   // replacing what's published, which needs its own pass (see docs/BACKLOG.md).
   const canRevise = isMine && problem.scope === "personal" && page.status === "ready";
+  // Same gate as the tutor chat — deliberately: a variant is a NEW problem
+  // this creates in the CALLER's own library, never a write to the source,
+  // so a global page is a valid source for anyone who can read it (unlike
+  // revision, which mutates the source and stays personal-only). An admin
+  // mid-review of a `ready` global page gets canAsk===false here too, on
+  // purpose — spawning a personal variant is not a reviewing action.
+  const canGenerateSimilar = canAsk;
   const [reviewing, setReviewing] = useState(false);
+  const [showSimilarModal, setShowSimilarModal] = useState(false);
+  const [similarNotice, setSimilarNotice] = useState(false);
 
   async function decide(action: "approved" | "rejected", openedAt: number) {
     setReviewing(true);
@@ -171,6 +184,30 @@ function Expanded({
       </div>
     ) : null;
 
+  // No SSE stream for this one, unlike a revision — a variant lands on a
+  // DIFFERENT page somewhere else in the library, so there is nothing on
+  // THIS screen to wait for. Library.tsx/SectionView.tsx already poll every
+  // 4s and already render the "กำลังสร้างสื่อการสอน…" card for any problem
+  // with no page yet, so the destination animates itself with no new code —
+  // this banner is just a pointer to go look, not a progress display.
+  const similarBanner = similarNotice ? (
+    <div className="gen-card-extracted">
+      <div className="gen-card-extracted-body">
+        <p className="gen-card-extracted-label">กำลังสร้างโจทย์ใหม่ — ใช้เวลาประมาณ 1 นาที</p>
+        <button
+          type="button"
+          className="raw-toggle"
+          onClick={() => {
+            onClose();
+            navigate("/");
+          }}
+        >
+          ดูได้ที่ห้องสมุด
+        </button>
+      </div>
+    </div>
+  ) : null;
+
   // The card's onOpen only fires with html_path present (ProblemArtifact
   // above), so this component is never actually mounted without one — but
   // the type is still Optional, and `src` must be a string before we're past
@@ -179,53 +216,81 @@ function Expanded({
   const openedAt = Date.now();
 
   return (
-    <ArtifactViewer
-      title={problem.text || "โจทย์"}
-      subtitle={problem.scope === "global" ? "คลังข้อสอบกลาง" : "ของฉัน"}
-      src={src}
-      onClose={onClose}
-      banner={extracted}
-      aside={
-        isAdmin && problem.scope === "global" ? (
-          page.checks ? <ReportSummary check={page.checks as CheckRow} /> : <p className="report-caveat">ยังไม่มีรายงานผลตรวจ</p>
-        ) : canAsk ? (
-          <AskPanel pageId={page.id} sourceEffort={page.effort} canRevise={canRevise} onRevised={onChanged} />
-        ) : undefined
-      }
-      asideLabel={isAdmin && problem.scope === "global" ? "รายงานการตรวจ" : "ถามคำถาม"}
-      actions={({ loaded }) => (
-        <>
-          {isMine ? (
-            <button type="button" className="chat-unpublish-btn" onClick={() => void remove()}>
-              <img src={trashUrl} alt="" width={16} height={16} />
-              <span>ลบ</span>
-            </button>
-          ) : null}
-          {canReview ? (
+    <>
+      <ArtifactViewer
+        title={problem.text || "โจทย์"}
+        subtitle={
+          (problem.scope === "global" ? "คลังข้อสอบกลาง" : "ของฉัน") +
+          (problem.generated_from ? " · สร้างจากโจทย์ต้นทาง" : "")
+        }
+        src={src}
+        onClose={onClose}
+        banner={
+          extracted || similarBanner ? (
             <>
-              <button
-                type="button"
-                className="chat-unpublish-btn"
-                disabled={!loaded || reviewing}
-                onClick={() => void decide("rejected", openedAt)}
-              >
-                ปฏิเสธ
-              </button>
-              <button
-                type="button"
-                className="chat-publish-btn"
-                disabled={!loaded || reviewing}
-                title={!loaded ? "รอโหลดหน้าให้เสร็จก่อน" : undefined}
-                onClick={() => void decide("approved", openedAt)}
-              >
-                <img src={globeOnPrimaryUrl} alt="" width={16} height={16} />
-                <span>อนุมัติ</span>
-              </button>
+              {extracted}
+              {similarBanner}
             </>
-          ) : null}
-        </>
-      )}
-    />
+          ) : undefined
+        }
+        aside={
+          isAdmin && problem.scope === "global" ? (
+            page.checks ? <ReportSummary check={page.checks as CheckRow} /> : <p className="report-caveat">ยังไม่มีรายงานผลตรวจ</p>
+          ) : canAsk ? (
+            <AskPanel pageId={page.id} sourceEffort={page.effort} canRevise={canRevise} onRevised={onChanged} />
+          ) : undefined
+        }
+        asideLabel={isAdmin && problem.scope === "global" ? "รายงานการตรวจ" : "ถามคำถาม"}
+        actions={({ loaded }) => (
+          <>
+            {canGenerateSimilar ? (
+              <button type="button" className="ui-btn ui-btn-outline" onClick={() => setShowSimilarModal(true)}>
+                <img src={plusSmallUrl} alt="" width={16} height={16} />
+                <span>ขอโจทย์คล้ายกัน</span>
+              </button>
+            ) : null}
+            {isMine ? (
+              <button type="button" className="chat-unpublish-btn" onClick={() => void remove()}>
+                <img src={trashUrl} alt="" width={16} height={16} />
+                <span>ลบ</span>
+              </button>
+            ) : null}
+            {canReview ? (
+              <>
+                <button
+                  type="button"
+                  className="chat-unpublish-btn"
+                  disabled={!loaded || reviewing}
+                  onClick={() => void decide("rejected", openedAt)}
+                >
+                  ปฏิเสธ
+                </button>
+                <button
+                  type="button"
+                  className="chat-publish-btn"
+                  disabled={!loaded || reviewing}
+                  title={!loaded ? "รอโหลดหน้าให้เสร็จก่อน" : undefined}
+                  onClick={() => void decide("approved", openedAt)}
+                >
+                  <img src={globeOnPrimaryUrl} alt="" width={16} height={16} />
+                  <span>อนุมัติ</span>
+                </button>
+              </>
+            ) : null}
+          </>
+        )}
+      />
+      {showSimilarModal ? (
+        <SimilarProblemModal
+          problem={problem}
+          onClose={() => setShowSimilarModal(false)}
+          onCreated={() => {
+            setShowSimilarModal(false);
+            setSimilarNotice(true);
+          }}
+        />
+      ) : null}
+    </>
   );
 }
 

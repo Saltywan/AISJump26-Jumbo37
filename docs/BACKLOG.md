@@ -77,10 +77,56 @@ forbids it from doing anything else). A revision defaults to inheriting the
 medium-effort page doesn't silently get more expensive and a fix on a
 high-effort page doesn't silently get worse.
 
-Not done: no UI control for it yet on Generate.tsx or AskPanel (the API and
-worker both support it; nothing in the frontend offers picking it). No
-per-effort latency measurement — the generation-latency section below still
-only has one number, at high.
+A shared `EffortSelect` (`components/ui.tsx`) now offers it in Generate.tsx
+(persisted to `localStorage`) and both AskPanel modes. Not done: per-effort
+latency measurement — the generation-latency section below still only has
+one number, at high.
+
+## Similar-problem generation: shipped
+
+`POST /problems/{id}/similar` — "make one like this" — with three options:
+difficulty (`easier`/`same`/`harder`, one axis, not a taxonomy: `same` already
+means "same method, new numbers and dressing"), an optional free-text steer,
+and effort (inherits the source page's own, same rule revision uses). A new
+kit mode, `--similar-to` (`kit/generate.py`, `build_similar_prompt()`,
+`kit/prompts/similar.th.txt`), reusing `kind="generate"` rather than adding a
+fourth job kind — the source's TEXT only, never its page's HTML, so the model
+gets the question and not an answer to anchor on.
+
+Always lands in the CALLER's own personal library, never a write to the
+source — which is why, unlike revision, a **global** (`คลังข้อสอบ`) page is a
+valid source for any signed-in user, not just its owner or an admin: reading
+an approved page and asking for more like it writes nothing anyone else can
+observe. Verified with a genuine non-admin account against a real global
+page. `Problem.generated_from` (a real column — the first schema change this
+app has ever needed after `create_all`, added via `db.py`'s narrowly-scoped
+`_add_missing_columns()`, not a full migration framework) records the
+lineage, `ON DELETE SET NULL` so deleting a source never destroys its
+variants. Capped per-source (`MAX_SIMILAR_PER_SOURCE = 5`) and per-user
+in-flight (`MAX_INFLIGHT_GENERATE_PER_USER = 3`, checked on this endpoint
+only for now) — a variant is a real ~90s model call a user can trigger
+against content they merely read.
+
+Deliberately not built, into this same backlog:
+- A count-per-click option ("generate 3 at once") — a pure cost multiplier
+  chosen at a UI affordance; click the button again instead.
+- Chain-depth limiting (a variant of a variant of a variant) — each step is
+  a legitimate act and the two caps above already bound the rate; add the
+  same cycle guard `_is_section_visible`/`_has_approved_descendant` use if
+  anything ever needs to walk the chain.
+- The in-flight cap on `POST /problems` and the two image endpoints (only
+  `/similar` enforces it today) — real, but changes existing behaviour and
+  deserves its own pass rather than riding in on this one.
+- A "show me every variant of X" list — `generated_from` makes it possible
+  now; nothing renders it as a list yet, only as one line in a variant's own
+  subtitle.
+- `revise`'s `instruction` field still has no length cap, unlike `/similar`'s
+  `steer` (500 chars) — same category of exposure, worth taking in one pass.
+
+This is narrower than, and does not replace, the personalization item below —
+"make one problem like this one" is a feature; suggested practice sets, a
+quiz, and weak/strong-topic analysis are a different, larger data model this
+one doesn't attempt.
 
 ## Generation latency
 

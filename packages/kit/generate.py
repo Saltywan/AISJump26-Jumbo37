@@ -10,6 +10,7 @@
     uv run kit/generate.py --image photo.jpg            # a photographed problem
     uv run kit/generate.py --image photo.jpg "หามุม ABC" # plus a note from the teacher
     uv run kit/generate.py --revise-from old.html --instruction "แก้ป้ายกำกับที่ทับกันในขั้นที่ 3"
+    uv run kit/generate.py --similar-to "จงหาพื้นที่วงกลมรัศมี 5 หน่วย" --variation harder
 
 Assembles exactly the same prompt as `checks/run.sh` — the one-line role header
 from prompts/poc-original.th.txt, the problem, then prompts/shell-rules.th.txt
@@ -25,6 +26,17 @@ page, and check.mjs is exactly as capable of catching a "fix" that
 introduces a new label collision as it is a first draft that does. Mutually
 exclusive with -f (a revision is always exactly one page); --id defaults to
 the source file's stem when not given.
+
+--similar-to is a third mode: not solving the given problem, generating a
+DIFFERENT one like it (prompts/similar.th.txt, see build_similar_prompt()).
+Takes the source problem's TEXT only, never a page's HTML — a variant needs
+the question, not the rendered answer, which would anchor the new problem on
+the old one's numbers. --variation (easier/same/harder, default same) and
+--steer (free-text, optional) shape how it differs. The new problem's own
+statement exists nowhere except inside the generated page's own
+Shell.page({problem}) call — there is no separate record of it, same
+situation as a photographed problem, and the same reason that call must
+never be weakened. Mutually exclusive with -f and with --revise-from.
 
 Everything is kept: the prompt sent, the raw model output, the finished page.
 Two of the defects fixed in the shell were only diagnosable by reading what the
@@ -168,6 +180,41 @@ def build_revise_prompt(instruction: str, existing_html: str) -> str:
     preamble = (HERE / "prompts" / "revise.th.txt").read_text(encoding="utf-8")
     rules = (HERE / "prompts" / "shell-rules.th.txt").read_text(encoding="utf-8")
     body = preamble.format(instruction=instruction.strip(), existing_html=existing_html)
+    return "\n".join([header, "", body]) + "\n" + rules
+
+
+VARIATIONS = {
+    "easier": "แต่งโจทย์ใหม่ที่ใช้วิธีคิดเดียวกันแต่ง่ายกว่าโจทย์ต้นทาง เช่น ตัวเลขลงตัวง่ายขึ้น หรือมีขั้นตอนน้อยลงหนึ่งขั้น",
+    "same": "แต่งโจทย์ใหม่ที่ใช้วิธีคิดเดียวกันและระดับความยากใกล้เคียงเดิม เปลี่ยนเฉพาะตัวเลขและบริบทของโจทย์",
+    "harder": "แต่งโจทย์ใหม่ที่ใช้วิธีคิดเดียวกันแต่ยากกว่าโจทย์ต้นทาง เช่น เพิ่มอีกหนึ่งขั้นตอน หรือใช้ตัวเลข/สถานการณ์ที่ไม่ตรงไปตรงมาเท่าเดิม",
+}
+
+
+def build_similar_prompt(source_problem: str, variation: str, steer: str | None, level: str | None) -> str:
+    """A "make one like this" prompt: the source problem's TEXT (never its
+    page's HTML — a variant needs the question, not the answer, and handing
+    it the rendered solution anchors the new problem on the old one's numbers)
+    plus which of VARIATIONS was asked for, in place of build_prompt()'s
+    "โจทย์:" section. Same role header and same shell-rules.th.txt verbatim
+    afterward, so a variant page is bound by the same output contract and
+    check.mjs is exactly as capable of catching a bad one as a first draft.
+
+    Keeps --level, unlike build_revise_prompt(): there is no existing page
+    here to carry it, and the variant must be pitched at the same ระดับชั้น
+    as its source."""
+    header = (HERE / "prompts" / "poc-original.th.txt").read_text(
+        encoding="utf-8"
+    ).splitlines()[0]
+    preamble = (HERE / "prompts" / "similar.th.txt").read_text(encoding="utf-8")
+    rules = (HERE / "prompts" / "shell-rules.th.txt").read_text(encoding="utf-8")
+    steer_line = f"คำแนะนำเพิ่มเติมจากผู้ใช้: {steer.strip()}\n" if steer and steer.strip() else ""
+    level_line = f"ระดับชั้น: {level}\n" if level else ""
+    body = preamble.format(
+        source_problem=source_problem.strip(),
+        variation_rule=VARIATIONS[variation],
+        steer_line=steer_line,
+        level_line=level_line,
+    )
     return "\n".join([header, "", body]) + "\n" + rules
 
 
@@ -380,9 +427,12 @@ def call_with_backoff(client, model, prompt, effort, image_path: str | None = No
 
 def run_problem(client, model, effort, out: Path, pid: str,
                 problem: str, level: str | None, image_path: str | None = None,
-                revise_instruction: str | None = None, existing_html: str | None = None) -> dict:
+                revise_instruction: str | None = None, existing_html: str | None = None,
+                similar_to: str | None = None, variation: str = "same", steer: str | None = None) -> dict:
     if revise_instruction is not None:
         prompt = build_revise_prompt(revise_instruction, existing_html)
+    elif similar_to is not None:
+        prompt = build_similar_prompt(similar_to, variation, steer, level)
     else:
         prompt = build_prompt(problem, level, has_image=bool(image_path))
     (out / "prompts" / f"p_{pid}.txt").write_text(prompt, encoding="utf-8")
@@ -429,10 +479,14 @@ def read_problems(args) -> list[tuple[str, str, str | None, str | None]]:
         return rows
     problem = args.problem if args.problem is not None else (sys.stdin.read() if not sys.stdin.isatty() else "")
     image_arg = getattr(args, "image", None)
-    # --revise-from supplies its own context (the existing page's full HTML,
-    # read in main() before this is called) — no separate problem statement
-    # is needed, and args.id is already defaulted from the source filename.
-    if not problem.strip() and not image_arg and not getattr(args, "revise_from", None):
+    # --revise-from and --similar-to each supply their own context (the
+    # existing page's HTML, or the source problem text) — no separate
+    # positional problem statement is needed for either, and args.id is
+    # already defaulted from the source filename for --revise-from.
+    if (
+        not problem.strip() and not image_arg
+        and not getattr(args, "revise_from", None) and not getattr(args, "similar_to", None)
+    ):
         sys.exit("no problem given: pass it as an argument, with -f, --image, or on stdin")
     pid = args.id or re.sub(r"[^a-z0-9]+", "-", problem.strip()[:28].lower()).strip("-") or "page"
     return [(pid, problem, args.level, image_arg)]
@@ -447,6 +501,10 @@ def main() -> None:
     ap.add_argument("--image", help="path to a problem image file")
     ap.add_argument("--revise-from", help="path to an existing page's HTML to revise, instead of generating from scratch")
     ap.add_argument("--instruction", help="what to change, required together with --revise-from")
+    ap.add_argument("--similar-to", help="a source problem statement to generate a NEW, different problem like, instead of solving it")
+    ap.add_argument("--variation", default="same", choices=list(VARIATIONS),
+                    help="how the new problem should compare to --similar-to (default: same difficulty)")
+    ap.add_argument("--steer", help="optional extra instruction for --similar-to, e.g. 'ใช้เศษส่วนแทนทศนิยม'")
     ap.add_argument("--model", default="gemini-3.8-flash",
                     help="a Gemini model name, or an OpenRouter slug "
                          "(anything containing '/', e.g. openai/gpt-5.6-terra) "
@@ -486,6 +544,18 @@ def main() -> None:
     elif args.instruction:
         sys.exit("--instruction only makes sense together with --revise-from")
 
+    if args.similar_to:
+        if args.file:
+            sys.exit("--similar-to cannot be combined with -f/--file: a variant is always one page")
+        if args.revise_from:
+            sys.exit("--similar-to cannot be combined with --revise-from — pick one mode")
+        if not args.similar_to.strip():
+            sys.exit("--similar-to needs a source problem statement")
+    elif args.steer:
+        sys.exit("--steer only makes sense together with --similar-to")
+    elif args.variation != "same":
+        sys.exit("--variation only makes sense together with --similar-to")
+
     use_openrouter = is_openrouter_model(args.model)
 
     if use_openrouter:
@@ -523,6 +593,12 @@ def main() -> None:
         # it started from, not a problem statement — there isn't one.
         (out / "problems.txt").write_text(
             f"revise-from={args.revise_from}\ninstruction={args.instruction}\n", encoding="utf-8")
+    elif args.similar_to:
+        # Likewise: the evidence trail here is what was varied and how, not
+        # a fresh problem statement — the new one is invented by the model.
+        (out / "problems.txt").write_text(
+            f"similar-to={args.similar_to}\nvariation={args.variation}\nsteer={args.steer or ''}\n",
+            encoding="utf-8")
     elif args.file:
         (out / "problems.txt").write_text(
             Path(args.file).read_text(encoding="utf-8"), encoding="utf-8")
@@ -557,6 +633,7 @@ def main() -> None:
             pool.submit(
                 run_problem, client, args.model, args.effort, out, pid, prob, lvl, img,
                 args.instruction, existing_html,
+                args.similar_to, args.variation, args.steer,
             ): pid
             for pid, prob, lvl, img in problems
         }

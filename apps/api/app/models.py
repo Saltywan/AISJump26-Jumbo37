@@ -181,6 +181,20 @@ class Problem(Base, TimestampMixin):
     image_path: Mapped[Optional[str]] = mapped_column(String(500))
     extracted_text: Mapped[Optional[str]] = mapped_column(Text)
     level: Mapped[Optional[str]] = mapped_column(String(50))
+    # Set only when this problem was generated as a variant of another one
+    # (see main.py's POST /problems/{id}/similar) — never backfilled for
+    # anything generated before this column existed, and that gap is
+    # permanent: unlike everything else on this row, a relationship between
+    # two problems that was never recorded cannot be reconstructed later.
+    # ON DELETE SET NULL is deliberate, unlike Page.superseded_by's bare
+    # ForeignKey: deleting the source must not destroy its variants (same
+    # argument as delete_section's docstring makes about personal problems),
+    # and letting Postgres enforce that means delete_problem/delete_section
+    # need no hand-written nulling dance the way superseded_by's lack of an
+    # ondelete clause forced them to grow one.
+    generated_from: Mapped[Optional[str]] = mapped_column(
+        ForeignKey("problem.id", ondelete="SET NULL")
+    )
 
     section: Mapped[Optional["Section"]] = relationship(back_populates="problems")
     pages: Mapped[list["Page"]] = relationship(

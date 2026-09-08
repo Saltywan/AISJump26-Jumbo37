@@ -88,6 +88,11 @@ export type Scope = "global" | "personal";
  *  _validate_effort) — offered here only where the caller actually allows it. */
 export type Effort = "low" | "medium" | "high";
 
+/** The kit's own vocabulary (packages/kit/generate.py's VARIATIONS dict) for
+ *  POST /problems/{id}/similar — one difficulty axis, not a taxonomy: "same"
+ *  already means "same method, new numbers and dressing". */
+export type Variation = "easier" | "same" | "harder";
+
 export interface ApiSection {
   id: string;
   parent_id: string | null;
@@ -111,6 +116,10 @@ export interface ApiProblem {
   extracted_text?: string | null;
   source: string;
   image_path?: string | null;
+  /** Set only when this problem was generated as a variant of another one
+   *  (see POST /problems/{id}/similar) — never backfilled for anything made
+   *  before this existed. */
+  generated_from?: string | null;
   created_at?: string | null;
   page: ApiPage | null;
   job?: { id: string; state: string; stage: string | null } | null;
@@ -208,6 +217,18 @@ export const api = {
   myProblems: () => req<ApiProblem[]>("/problems/mine"),
 
   deleteProblem: (problemId: string) => req<{ ok: boolean }>(`/problems/${problemId}`, { method: "DELETE" }),
+
+  /** "Make one like this" — a NEW problem invented from this one's text,
+   *  always landing in the CALLER's own personal library (never a write to
+   *  the source, which is why this works even when the source is a global
+   *  page the caller can only read — see main.py's generate_similar()).
+   *  Async like addProblem, not synchronous like askPage; watch it the same
+   *  way with watchJob(). */
+  generateSimilar: (problemId: string, opts?: { variation?: Variation; steer?: string; effort?: Effort }) =>
+    req<{ problem_id: string; job_id: string }>(`/problems/${problemId}/similar`, {
+      method: "POST",
+      body: JSON.stringify(opts ?? {}),
+    }),
 
   // ---- pages ----------------------------------------------------------------
 

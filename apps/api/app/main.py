@@ -76,6 +76,28 @@ ALLOWED_EFFORTS = ("low", "medium", "high")
 # fresh generation, for the same reason (see _validate_effort below).
 MAX_REVISIONS_PER_PROBLEM = 10
 
+# The kit's own vocabulary for POST /problems/{id}/similar (kit/generate.py's
+# VARIATIONS dict) — one axis, not a taxonomy: "same" already means "same
+# method, new numbers and dressing", which is the definition of a similar
+# problem at unchanged difficulty; easier/harder scale that one axis instead
+# of adding a second dimension for "how different".
+ALLOWED_VARIATIONS = ("easier", "same", "harder")
+
+# Generating a variant is a real generation-class model call against content
+# the caller may only have READ (see revise_page's docstring on why that
+# distinction matters) — capped per source, per user, so one popular global
+# page can't have its cost spent by one account against every other account's
+# ability to make their own variant of it.
+MAX_SIMILAR_PER_SOURCE = 5
+
+# Shared by every generation-class write (POST /problems, /similar, /revise):
+# refuses a user's Nth concurrent generation while N-1 are already
+# queued/running. WORKER_CONCURRENCY is 3 and shared by everyone, so one
+# account queueing twenty at once would starve the rest of the app, same
+# argument as MAX_SIMILAR_PER_SOURCE just at the level of the whole worker
+# instead of one source problem.
+MAX_INFLIGHT_GENERATE_PER_USER = 3
+
 
 def _validate_effort(effort: Optional[str], *, allow_low: bool) -> Optional[str]:
     """None passes through unchanged — it means "let the worker fall back to
@@ -247,6 +269,17 @@ class ReviseIn(BaseModel):
     effort: Optional[str] = None
 
 
+class SimilarIn(BaseModel):
+    """"Make one like this" instead of asking about it or fixing it — see
+    POST /problems/{id}/similar. `variation` picks a canned difficulty line
+    (see ALLOWED_VARIATIONS); `steer` is an optional free-text nudge on top
+    of it, capped short because it rides straight into the model prompt."""
+
+    variation: str = "same"
+    steer: Optional[str] = None
+    effort: Optional[str] = None
+
+
 # Accepted image types for the two image-upload endpoints, mapped to the
 # extension the file is stored under.
 ALLOWED_IMAGE_TYPES = {
@@ -323,6 +356,7 @@ def _problem_out(prob: Problem, page: Optional[Page], job_info: Optional[dict]) 
         "extracted_text": prob.extracted_text,
         "source": prob.source,
         "image_path": prob.image_path,
+        "generated_from": prob.generated_from,
         "created_at": prob.created_at.isoformat() if prob.created_at else None,
         "page": page_out(page) if page else None,
         "job": job_info,
@@ -778,7 +812,7 @@ def add_problem(body: ProblemIn, user: User = Depends(current_user), db: Session
     )
     db.add(prob)
     db.flush()
-    job = Job(kind="generate", target_id=prob.id, state="queued",
+    job = Job(kind="generate", target_id=prob.id, requested_by=user.id, state="queued",
               progress_json={"effort": effort} if effort else None)
     db.add(job)
     db.commit()
@@ -848,7 +882,7 @@ async def add_problem_image(
     dest.write_bytes(data)
     prob.image_path = rel_path
 
-    job = Job(kind="generate", target_id=prob.id, state="queued",
+    job = Job(kind="generate", target_id=prob.id, requested_by=user.id, state="queued",
               progress_json={"effort": eff} if eff else None)
     db.add(job)
     db.commit()
@@ -880,7 +914,7 @@ def add_global_problem(
     )
     db.add(prob)
     db.flush()
-    job = Job(kind="generate", target_id=prob.id, state="queued",
+    job = Job(kind="generate", target_id=prob.id, requested_by=admin.id, state="queued",
               progress_json={"effort": effort} if effort else None)
     db.add(job)
     db.commit()
@@ -919,7 +953,7 @@ def add_global_problems_bulk(
         )
         db.add(prob)
         db.flush()
-        job = Job(kind="generate", target_id=prob.id, state="queued",
+        job = Job(kind="generate", target_id=prob.id, requested_by=admin.id, state="queued",
                   progress_json={"effort": efforts[i]} if efforts[i] else None)
         db.add(job)
         out.append({"problem_id": prob.id, "job_id": job.id})
@@ -965,7 +999,7 @@ async def add_global_problem_image(
     dest.write_bytes(data)
     prob.image_path = rel_path
 
-    job = Job(kind="generate", target_id=prob.id, state="queued",
+    job = Job(kind="generate", target_id=prob.id, requested_by=admin.id, state="queued",
               progress_json={"effort": eff} if eff else None)
     db.add(job)
     db.commit()
@@ -1051,6 +1085,100 @@ def delete_problem(problem_id: str, user: User = Depends(current_user), db: Sess
     db.delete(prob)
     db.commit()
     return {"ok": True}
+
+
+@app.post("/problems/{problem_id}/similar", status_code=202)
+def generate_similar(problem_id: str, body: SimilarIn, user: User = Depends(current_user), db: Session = Depends(get_session)):
+    """"Make one like this" — a NEW problem, invented by the model from this
+    one's text, always landing in the CALLER's own personal library. Never
+    writes to the source in any way (contrast POST /pages/{id}/revise, which
+    mutates a page in place and is personal-content-only for exactly that
+    reason).
+
+    That distinction is why a GLOBAL source is allowed here at all: revision
+    is a write to content someone else owns (global content is admin-managed
+    — see the section pivot's rule), which collides with the review gate the
+    moment the source is already approved and published. This endpoint reads
+    a page the caller can already see and creates something new that only
+    the caller ever owns — no write to global content, no review-gate
+    interaction, nothing anyone else can observe. A student reading an
+    approved past-paper solution and asking for two more like it is the
+    actual product case this exists for.
+
+    Keyed on the PROBLEM, not the page (contrast revise, which is page-keyed
+    because it edits one page's HTML): the source of a variant is the
+    problem statement, which outlives any particular page rendering it, and
+    a variant should still be traceable to a stable row even after its
+    source has since been revised. Same argument BACKLOG already recorded
+    for why a future chat-message table keys on problem_id, not page_id."""
+    prob = db.get(Problem, problem_id)
+    if prob is None:
+        raise HTTPException(404, "no such problem")
+    page = _current_page(prob)
+    if page is None or not _page_visible(page, prob, user):
+        raise HTTPException(404, "no such problem")
+    if page.status not in ("ready", "approved"):
+        raise HTTPException(409, {"error": "โจทย์นี้ยังสร้างไม่เสร็จ หรือยังนำมาใช้ไม่ได้"})
+
+    variation = body.variation or "same"
+    if variation not in ALLOWED_VARIATIONS:
+        raise HTTPException(400, f"variation must be one of: {', '.join(ALLOWED_VARIATIONS)}")
+    steer = (body.steer or "").strip() or None
+    if steer and len(steer) > 500:
+        raise HTTPException(400, "steer must be 500 characters or fewer")
+
+    existing = db.query(Problem).filter(Problem.generated_from == prob.id, Problem.owner_id == user.id).count()
+    if existing >= MAX_SIMILAR_PER_SOURCE:
+        raise HTTPException(409, {"error": f"สร้างโจทย์คล้ายกันจากข้อนี้ได้สูงสุด {MAX_SIMILAR_PER_SOURCE} ข้อ"})
+
+    inflight = (
+        db.query(Job)
+        .filter(Job.kind == "generate", Job.requested_by == user.id, Job.state.in_(("queued", "running")))
+        .count()
+    )
+    if inflight >= MAX_INFLIGHT_GENERATE_PER_USER:
+        raise HTTPException(409, {"error": "คุณมีงานที่กำลังสร้างอยู่หลายรายการแล้ว รอให้เสร็จก่อนสักครู่"})
+
+    effort = _validate_effort(body.effort, allow_low=False) or page.effort
+
+    # Inherit the source's own section only when it's a live personal one the
+    # caller owns — never a global section_id. list_section_problems trusts
+    # `Problem.section_id == section_id` alone, so an inherited global id
+    # would put another user's personal problem in front of an admin
+    # browsing that section; delete_section only deletes global-scope
+    # problems in a global section's subtree, so a personal one landing
+    # there would be orphaned into a section that no longer exists instead
+    # of being cleaned up. Landing in the inbox is always safe; inheriting a
+    # section is an optimisation, not a requirement.
+    section_id = None
+    if prob.scope == "personal" and prob.owner_id == user.id and prob.section_id:
+        src_section = db.get(Section, prob.section_id)
+        if src_section is not None and src_section.scope == "personal" and src_section.owner_id == user.id and src_section.archived_at is None:
+            section_id = src_section.id
+
+    n = db.query(Problem).filter(Problem.owner_id == user.id).count()
+    new_prob = Problem(
+        section_id=section_id,
+        scope="personal",
+        owner_id=user.id,
+        created_by=user.id,
+        position=n,
+        source="variant",
+        level=prob.level,
+        generated_from=prob.id,
+    )
+    db.add(new_prob)
+    db.flush()
+    job = Job(
+        kind="generate",
+        target_id=new_prob.id,
+        requested_by=user.id,
+        state="queued",
+        progress_json={"effort": effort, "variation": variation, "steer": steer, "source_problem_id": prob.id},
+    )
+    db.add(job)
+    db.commit()
+    return {"problem_id": new_prob.id, "job_id": job.id}
 
 
 # ----------------------------------------------------------------- pages ----
