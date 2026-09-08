@@ -26,7 +26,6 @@ import globeUrl from "../icons/globe.svg";
 import globeOnPrimaryUrl from "../icons/globe-on-primary.svg";
 import lockUrl from "../icons/lock.svg";
 import exclamationUrl from "../icons/exclamation.svg";
-import plusSmallUrl from "../icons/plus-small.svg";
 import sendUrl from "../icons/send.svg";
 import trashUrl from "../icons/trash.svg";
 
@@ -244,9 +243,19 @@ function Expanded({
         actions={({ loaded }) => (
           <>
             {canGenerateSimilar ? (
-              <button type="button" className="ui-btn ui-btn-outline" onClick={() => setShowSimilarModal(true)}>
-                <img src={plusSmallUrl} alt="" width={16} height={16} />
-                <span>ขอโจทย์คล้ายกัน</span>
+              // Same class as ลบ/ปฏิเสธ below, not ui-btn — mixing a
+              // different button primitive into this row made the three
+              // visually mismatched (different height and padding, which
+              // also let this one get covered by a neighbour at some
+              // widths — real mouse clicks missed it even though it looked
+              // present). No icon either: plus-small.svg is hardcoded
+              // fill="white" for use on a filled/primary background (see
+              // Library.tsx's use of it on Button variant="primary"); on
+              // this light chat-unpublish-btn background it was invisible.
+              // ปฏิเสธ is already icon-less in this exact row, so a
+              // text-only button here is consistent, not a compromise.
+              <button type="button" className="chat-unpublish-btn" onClick={() => setShowSimilarModal(true)}>
+                ขอโจทย์คล้ายกัน
               </button>
             ) : null}
             {isMine ? (
