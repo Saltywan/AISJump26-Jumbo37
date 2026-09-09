@@ -115,6 +115,7 @@ services:
       # _cookie_samesite(). Set to "none" then, and COOKIE_SECURE=true with
       # it — a browser refuses SameSite=None without Secure.
       COOKIE_SAMESITE: ${COOKIE_SAMESITE:-lax}
+      ALLOW_REGISTRATION: ${ALLOW_REGISTRATION:-true}
       # Must match the worker's own WORKER_CONCURRENCY (below) — main.py
       # derives MAX_INFLIGHT_GENERATE_PER_USER from it, and a mismatch here
       # only makes the api's idea of the pool's width wrong, never the
@@ -311,6 +312,7 @@ services:
     environment:
       VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
       VITE_PAGES_URL: ${VITE_PAGES_URL:-http://localhost:8080}
+      VITE_ALLOW_REGISTRATION: ${ALLOW_REGISTRATION:-true}
     ports: ["5173:5173"]
     deploy:
       resources:

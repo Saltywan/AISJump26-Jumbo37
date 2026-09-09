@@ -19,6 +19,7 @@ import { ApiError } from "../lib/api";
 import logoUrl from "../icons/AniLearn.svg";
 
 export default function Login() {
+  const allowRegistration = import.meta.env.VITE_ALLOW_REGISTRATION !== "false";
   const { user, login } = useSession();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
@@ -88,9 +89,11 @@ export default function Login() {
           </Button>
         </div>
 
-        <p className="login-switch">
-          ยังไม่มีบัญชี? <Link to="/register">สมัครสมาชิก</Link>
-        </p>
+        {allowRegistration ? (
+          <p className="login-switch">
+            ยังไม่มีบัญชี? <Link to="/register">สมัครสมาชิก</Link>
+          </p>
+        ) : null}
       </form>
     </div>
   );

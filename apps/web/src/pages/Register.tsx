@@ -3,12 +3,13 @@
  * rather than a new visual language. */
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Button, Input } from "../components/ui";
+import { Button, ButtonLink, Input } from "../components/ui";
 import { useSession } from "../lib/session";
 import { ApiError } from "../lib/api";
 import logoUrl from "../icons/AniLearn.svg";
 
 export default function Register() {
+  const allowRegistration = import.meta.env.VITE_ALLOW_REGISTRATION !== "false";
   const { user, register } = useSession();
   const navigate = useNavigate();
   const [name, setName] = useState("");
@@ -20,6 +21,26 @@ export default function Register() {
   useEffect(() => {
     if (user) navigate("/", { replace: true });
   }, [user, navigate]);
+
+  if (!allowRegistration) {
+    return (
+      <div className="login-ground">
+        <div className="login-card">
+          <div className="login-brand">
+            <img src={logoUrl} alt="AniLearn logo" className="login-brand-logo" width={48} height={48} />
+            <span className="login-brand-name">AniLearn</span>
+          </div>
+          <h1 className="login-title">ระบบปิดรับสมัครชั่วคราว</h1>
+          <p style={{ textAlign: "center", color: "var(--ink-muted)", margin: "8px 0 20px", fontSize: "var(--text-body)" }}>
+            ขณะนี้ระบบยังไม่เปิดรับการลงทะเบียนผู้ใช้ใหม่ กรุณาเข้าสู่ระบบด้วยบัญชีที่มีอยู่แล้ว
+          </p>
+          <ButtonLink variant="primary" to="/login" className="ui-btn-block">
+            กลับไปหน้าเข้าสู่ระบบ
+          </ButtonLink>
+        </div>
+      </div>
+    );
+  }
 
   async function submit(e: FormEvent) {
     e.preventDefault();

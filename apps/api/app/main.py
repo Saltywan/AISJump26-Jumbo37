@@ -452,6 +452,8 @@ def _current_page(prob: Problem) -> Optional[Page]:
 
 @app.post("/auth/register", status_code=201)
 def register(body: RegisterIn, response: Response, db: Session = Depends(get_session)):
+    if os.environ.get("ALLOW_REGISTRATION", "true").lower() != "true":
+        raise HTTPException(403, "Registration is currently closed")
     email = body.email.strip().lower()
     if not email or "@" not in email:
         raise HTTPException(400, "a real-looking email is required")
