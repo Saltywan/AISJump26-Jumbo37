@@ -113,10 +113,18 @@ RUN npm install --no-save @rollup/rollup-linux-arm64-musl || true
 
 ## 6. Transfer Files & Configure Remote Environment
 
-From your **local machine**, sync the project directory to the server:
+From your **local machine**, you can use the automated script:
+```bash
+./scripts/sync-cloud.sh --rebuild
+```
+
+Or run manual rsync with strict exclusions (**never** overwrite `.env` or `exports/`):
 
 ```bash
 rsync -avz -e "ssh -i ~/.ssh/ais_alloy" \
+  --exclude '.env' \
+  --exclude '.env.*' \
+  --exclude 'exports/' \
   --exclude '.git' \
   --exclude '.venv' \
   --exclude 'node_modules' \
