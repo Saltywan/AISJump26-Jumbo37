@@ -496,7 +496,11 @@ def ask_tutor(problem_text: str, ctx: dict, question: str, effort: str = "low") 
     valid_ns = {s["n"] for s in ctx.get("steps", [])}
     answer, cites = "", []
     try:
-        data = json.loads(raw)
+        clean_raw = raw
+        if clean_raw.startswith("```"):
+            clean_raw = re.sub(r"^```(?:json)?\s*", "", clean_raw)
+            clean_raw = re.sub(r"\s*```$", "", clean_raw)
+        data = json.loads(clean_raw, strict=False)
         answer = str(data.get("answer") or "").strip()
         cites = sorted({
             int(c) for c in (data.get("cites") or [])

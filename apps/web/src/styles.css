@@ -1560,6 +1560,138 @@ button.chip {
 }
 .chat-msg-assistant { align-self: flex-start; max-width: 640px; font-size: var(--text-body); line-height: var(--lh-body); color: var(--ink); }
 
+/* Markdown & Math typography for chat and content */
+.math-markdown.math-block {
+  display: block;
+  width: 100%;
+}
+.math-markdown > :first-child {
+  margin-top: 0;
+}
+.math-markdown > :last-child {
+  margin-bottom: 0;
+}
+.math-markdown p {
+  margin: 0 0 var(--space-sm) 0;
+  line-height: var(--lh-body, 1.55);
+}
+.math-markdown p:last-child {
+  margin-bottom: 0;
+}
+.math-markdown h1,
+.math-markdown h2,
+.math-markdown h3,
+.math-markdown h4,
+.math-markdown h5,
+.math-markdown h6 {
+  margin: var(--space-sm) 0 var(--space-xs) 0;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--ink);
+}
+.math-markdown h1 { font-size: 1.2rem; }
+.math-markdown h2 { font-size: 1.1rem; }
+.math-markdown h3 { font-size: 1.02rem; }
+.math-markdown h4 { font-size: 0.95rem; }
+
+.math-markdown ul,
+.math-markdown ol {
+  margin: var(--space-xs) 0 var(--space-sm) 0;
+  padding-left: 1.35rem;
+}
+.math-markdown ul:last-child,
+.math-markdown ol:last-child {
+  margin-bottom: 0;
+}
+.math-markdown li {
+  margin-bottom: var(--space-2xs);
+  line-height: var(--lh-body, 1.5);
+}
+.math-markdown li:last-child {
+  margin-bottom: 0;
+}
+.math-markdown li > ul,
+.math-markdown li > ol {
+  margin-top: var(--space-2xs);
+  margin-bottom: var(--space-2xs);
+  padding-left: 1.2rem;
+}
+
+.math-markdown blockquote {
+  margin: var(--space-sm) 0;
+  padding: var(--space-2xs) var(--space-md);
+  border-left: 3px solid var(--primary);
+  background: var(--sunk, rgba(0, 0, 0, 0.03));
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  color: var(--ink-2);
+}
+.math-markdown blockquote p {
+  margin: 0;
+}
+
+.math-markdown code {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.88em;
+  background: var(--sunk, rgba(0, 0, 0, 0.05));
+  padding: 0.15em 0.35em;
+  border-radius: 4px;
+}
+.math-markdown pre {
+  background: var(--sunk, rgba(0, 0, 0, 0.05));
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-sm);
+  overflow-x: auto;
+  margin: var(--space-sm) 0;
+}
+.math-markdown pre code {
+  background: transparent;
+  padding: 0;
+}
+
+.math-markdown table {
+  border-collapse: collapse;
+  width: 100%;
+  max-width: 100%;
+  margin: var(--space-sm) 0;
+  font-size: 0.9em;
+  display: block;
+  overflow-x: auto;
+}
+.math-markdown th,
+.math-markdown td {
+  border: 1px solid var(--rule, #e5e7eb);
+  padding: var(--space-xs) var(--space-sm);
+  text-align: left;
+}
+.math-markdown th {
+  background: var(--sunk, rgba(0, 0, 0, 0.03));
+  font-weight: 600;
+}
+
+.math-markdown hr {
+  border: 0;
+  border-top: 1px solid var(--rule, #e5e7eb);
+  margin: var(--space-md) 0;
+}
+
+.math-markdown a {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+/* KaTeX equations in chat / markdown */
+.math-markdown .katex-display,
+.math-markdown .katex-display-block {
+  margin: var(--space-sm) 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+.math-markdown .katex {
+  font-size: 1.05em;
+}
+
+
 /* Generated-lesson card — the animation plus, for an admin reviewing global
    content, the check report and the approve/reject control. Shared by every
    screen that renders components/ProblemArtifact.tsx. */

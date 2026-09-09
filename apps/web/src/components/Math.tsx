@@ -6,6 +6,7 @@
 import { useEffect, useRef } from "react";
 import "katex/dist/katex.min.css";
 import renderMathInElement from "katex/contrib/auto-render";
+import { renderMarkdownWithMath } from "./markdown";
 
 export function MathText({
   text,
@@ -21,9 +22,14 @@ export function MathText({
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const normalized = text.replace(/<br\s*\/?>/gi, "\n");
-    el.textContent = normalized;
+    if (!text) {
+      el.innerHTML = "";
+      return;
+    }
+
     try {
+      const html = renderMarkdownWithMath(text, inline);
+      el.innerHTML = html;
       renderMathInElement(el, {
         delimiters: [
           { left: "$$", right: "$$", display: true },
@@ -39,11 +45,16 @@ export function MathText({
       });
     } catch {
       /* fallback plain text remains in element */
+      el.textContent = text;
     }
-  }, [text]);
+  }, [text, inline]);
+
+  const fullClassName = ["math-markdown", inline ? "math-inline" : "math-block", className]
+    .filter(Boolean)
+    .join(" ");
 
   if (inline) {
-    return <span ref={ref} className={className} />;
+    return <span ref={ref} className={fullClassName} />;
   }
-  return <div ref={ref} className={className} />;
+  return <div ref={ref} className={fullClassName} />;
 }
