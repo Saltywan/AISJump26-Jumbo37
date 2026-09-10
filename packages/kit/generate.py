@@ -409,6 +409,13 @@ def call_with_backoff(client, model, prompt, effort, image_path: str | None = No
                          # a stream that stalls past the deadline is worth another
                          # go, not a lost problem — four of sixty-eight hung
                          or "timeout" in msg.lower() or "timed out" in msg.lower()
+                         # 504 DEADLINE_EXCEEDED: the gateway gave up waiting on
+                         # the model backend, not a verdict on the prompt. Seen
+                         # in production on long HIGH-effort explanatory prompts;
+                         # the phrasing ("Deadline expired...") matches neither
+                         # "timeout" nor "timed out" above, so it fell through to
+                         # a single-shot failure.
+                         or "504" in msg or "DEADLINE_EXCEEDED" in msg
                          or "empty completion" in msg)
             if not transient or attempt == tries - 1:
                 raise

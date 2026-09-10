@@ -1718,6 +1718,19 @@ button.chip {
   display: flex; align-items: center; justify-content: center; gap: var(--space-sm);
   padding: 60px var(--space-lg); color: var(--ink-3); font-size: var(--text-body);
 }
+.gen-card-failed {
+  padding: var(--space-lg); gap: var(--space-md);
+}
+.gen-card-failed-body { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.gen-card-failed-title {
+  display: flex; align-items: center; gap: var(--space-xs);
+  color: var(--sev-critical); font-weight: 600; font-size: var(--text-body);
+}
+.gen-card-failed-text {
+  color: var(--ink-2); font-size: var(--text-body-sm);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.gen-card-failed-hint { color: var(--ink-3); font-size: var(--text-body-sm); }
 
 .chat-publish-btn {
   display: inline-flex; align-items: center; gap: var(--space-md);
