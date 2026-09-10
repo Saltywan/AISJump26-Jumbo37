@@ -6,9 +6,9 @@ Produced by kit/sync-to-app.sh in the research repo — do not hand-edit this
 file or the files beside it; re-run that script instead. Verify with
 packages/kit/check-version.sh in this repo.
 
-source-commit: 5a74a8705abc59655fc6952048acbb12623ab70e
-source-date:   2026-09-08
-synced:        2026-09-08 10:16:14 UTC
+source-commit: f0fe5859d3d1fce8d5e6a702f0db040fbf518777
+source-date:   2026-09-10
+synced:        2026-09-10 15:38:03 UTC
 tree:          clean
 
 shell.js:            sha256:b406997c85dc597d0af2c626c5c5aa4cbf3997cc2f486761efb8aa64acc6719c
@@ -18,7 +18,7 @@ poc-original.th.txt: sha256:e06ecaef250bd63bee48f1e216a3c1256b4b8f0c0280b129a2e2
 revise.th.txt:       sha256:aefa6584ad0e34e7e3e0b0cc3264d28241031051d8ebe1050719a2dcb606a462
 similar.th.txt:      sha256:0880e59b5b1dab89e0db422ae475c3297dcf63e10dc563fa8cf46a8bd132cac8
 check.mjs:           sha256:79dde504522dd34f1bca402229646b8dd461f64d35e3a0513e0dc56d49148d61
-generate.py:         sha256:69d78ff2bf0fa0252601d9c0c5b46fc218dba532568f9d8121d3554b94b3de4c
+generate.py:         sha256:6bf774c10023eedff18a3d7c3e48180de9dc7a5f0a803034fbd73d5e726ebce7
 
 jsxgraph:      1.13.2
 katex:         0.18.4

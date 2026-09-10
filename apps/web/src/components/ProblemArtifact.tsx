@@ -71,9 +71,53 @@ export function ProblemArtifact({
   onChanged?: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [removing, setRemoving] = useState(false);
   const page = problem.page;
 
+  // A page-less problem whose generate job FAILED used to render the spinner
+  // card below forever — this branch only ever read job.stage for a label,
+  // never job.state — and the only delete button lives inside <Expanded>,
+  // which needs a page to render. So a failed generation was a permanent
+  // card with no way to remove it. Give it its own state, with a delete.
+  async function removeFailed() {
+    if (removing) return;
+    if (!confirm(`ลบ "${problem.text ?? "โจทย์นี้"}" ใช่ไหม?`)) return;
+    setRemoving(true);
+    try {
+      await api.deleteProblem(problem.id);
+      onChanged?.();
+    } catch (err) {
+      setRemoving(false);
+      alert(err instanceof Error ? err.message : "ลบไม่สำเร็จ ลองใหม่อีกครั้ง");
+    }
+  }
+
   if (!page) {
+    if (problem.job?.state === "failed") {
+      return (
+        <div className="gen-card gen-card-failed">
+          <div className="gen-card-failed-body">
+            <p className="gen-card-failed-title">
+              <img src={exclamationUrl} alt="" width={16} height={16} />
+              สร้างสื่อการสอนไม่สำเร็จ
+            </p>
+            {problem.text ? <p className="gen-card-failed-text">{problem.text}</p> : null}
+            <p className="gen-card-failed-hint">ระบบสร้างหน้านี้ไม่สำเร็จ ลองสร้างโจทย์นี้ใหม่ หรือลบทิ้ง</p>
+          </div>
+          {isMine || isAdmin ? (
+            <button
+              type="button"
+              className="chat-unpublish-btn"
+              onClick={() => void removeFailed()}
+              disabled={removing}
+            >
+              <img src={trashUrl} alt="" width={16} height={16} />
+              {removing ? "กำลังลบ…" : "ลบ"}
+            </button>
+          ) : null}
+        </div>
+      );
+    }
     return (
       <div className="gen-card">
         <div className="gen-card-generating">

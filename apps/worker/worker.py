@@ -118,8 +118,15 @@ CHECK_WORKERS = int(os.environ.get("CHECK_CONCURRENCY", "2"))
 # burns the whole budget and call_with_backoff's multi-attempt retry ladder
 # never gets to run — the worker kills a job that was legitimately retrying
 # a transient 429/503 instead of letting the backoff succeed.
+#
+# CALL_TIMEOUT was 180 and clipped real HIGH-effort generations: production
+# saw long explanatory prompts fail on a 504 DEADLINE_EXCEEDED (which
+# generate.py now retries — see its call_with_backoff). 300s gives those the
+# room to finish; two full attempts (600s) plus backoff still fit inside the
+# 900s subprocess cap, and a third attempt is rare enough that letting it be
+# cut off there is the right trade.
 GENERATE_TIMEOUT_SECONDS = int(os.environ.get("GENERATE_TIMEOUT_SECONDS", "900"))
-GENERATE_CALL_TIMEOUT = int(os.environ.get("GENERATE_CALL_TIMEOUT", "180"))
+GENERATE_CALL_TIMEOUT = int(os.environ.get("GENERATE_CALL_TIMEOUT", "300"))
 CHECK_TIMEOUT_SECONDS = int(os.environ.get("CHECK_TIMEOUT_SECONDS", "300"))
 POLL_SECONDS = 2
 
